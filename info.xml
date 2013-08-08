@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<extension key="ca.civicrm.iats" type="module">
+  <file>iats</file>
+  <name>IATS</name>
+  <description>IATS Web Services Payment Processor</description>
+  <urls>
+    <url desc="Main Extension Page">http://blackflysolutions.ca/iats</url>
+    <url desc="Documentation">http://blackflysolutions.ca/iats-civicrm</url>
+    <url desc="Support"></url>
+  </urls>
+  <license>AGPL</license>
+  <maintainer>
+    <author>Alan Dixon</author>
+    <email>iats@blackflysolutions.ca</email>
+  </maintainer>
+  <releaseDate>2012-11-28</releaseDate>
+  <version>1.0</version>
+  <develStage>alpha</develStage>
+  <compatibility>
+    <ver>4.2</ver>
+    <ver>4.3</ver>
+  </compatibility>
+  <comments>This extension module replaces the previous IATS payment processor. It uses the new webservices interface instead of the old "php api" interface to IATS, and is now distributed as an extension. It can co-exist with the old IATS payment processor.</comments>
+  <civix>
+    <namespace>CRM/Iats</namespace>
+  </civix>
+</extension>
