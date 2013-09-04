@@ -68,12 +68,12 @@ function iats_civicrm_upgrade($op, CRM_Queue_Queue $queue = NULL) {
 function iats_civicrm_managed(&$entities) {
   $entities[] = array(
     'module' => 'ca.civicrm.iats',
-    'name' => 'iATS Webservice',
+    'name' => 'iATS Payments',
     'entity' => 'PaymentProcessorType',
     'params' => array(
       'version' => 3,
-      'name' => 'iATS Webservice',
-      'title' => 'iATS Webservice',
+      'name' => 'iATS Payments',
+      'title' => 'iATS Payments',
       'description' => 'iATS payment processor using the web services interface.',
       'class_name' => 'Payment_iATSService',
       'billing_mode' => 'form',

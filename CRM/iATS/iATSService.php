@@ -1,7 +1,7 @@
 <?php
 /* iATS Service Request Object used for accessing iATS Service Interface 
  *
- * A lightweight object that encapsulates the details of the iATS Webservice interface
+ * A lightweight object that encapsulates the details of the iATS Payments interface
  *
  * Provides SOAP interface details for the various methods,
  * error messages, and cc details

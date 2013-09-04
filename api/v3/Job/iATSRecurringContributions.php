@@ -73,7 +73,7 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
     $total_amount = $dao->amount;
     $hash = md5(uniqid(rand(), true));
     $contribution_recur_id    = $dao->id;
-    $source = "iATS Webservice Recurring Contribution";
+    $source = "iATS Payments Recurring Contribution";
     $receive_date = date("YmdHis"); // i.e. now
     // check if we already have an error
     $errors = array();
@@ -170,7 +170,7 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
         'activity_type_id'  => 6,
         'source_contact_id'   => $contact_id,
         'assignee_contact_id' => $contact_id,
-        'subject'       => "Attempted iATS Webservice Recurring Contribution for " . $total_amount,
+        'subject'       => "Attempted iATS Payments Recurring Contribution for " . $total_amount,
         'status_id'       => 2,
         'activity_date_time'  => date("YmdHis"),
       )
