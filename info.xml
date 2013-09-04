@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <extension key="ca.civicrm.iats" type="module">
   <file>iats</file>
-  <name>iATS</name>
-  <description>iATS Web Services Payment Processor</description>
+  <name>iATS Payments</name>
+  <description>iATS Payments Web Services Payment Processor</description>
   <urls>
     <url desc="Main Extension Page">http://blackflysolutions.ca/iats</url>
     <url desc="Documentation">http://blackflysolutions.ca/iats-civicrm</url>
