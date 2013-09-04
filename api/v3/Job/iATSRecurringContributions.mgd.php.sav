@@ -6,16 +6,16 @@
 return array (
   0 => 
   array (
-    'name' => 'Cron:Job.IatsRecurringContributions',
+    'name' => 'Cron:Job.iATSRecurringContributions',
     'entity' => 'Job',
     'params' => 
     array (
       'version' => 3,
-      'name' => 'Call Job.IatsRecurringContributions API',
-      'description' => 'Call Job.IatsRecurringContributions API',
+      'name' => 'Call Job.iATSRecurringContributions API',
+      'description' => 'Call Job.iATSRecurringContributions API',
       'run_frequency' => 'Daily',
       'api_entity' => 'Job',
-      'api_action' => 'IatsRecurringContributions',
+      'api_action' => 'iATSRecurringContributions',
       'parameters' => '',
     ),
   ),

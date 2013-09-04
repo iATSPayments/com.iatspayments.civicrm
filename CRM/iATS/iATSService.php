@@ -1,7 +1,7 @@
 <?php
-/* IATS Service Request Object used for accessing IATS Service Interface 
+/* iATS Service Request Object used for accessing iATS Service Interface 
  *
- * A lightweight object that encapsulates the details of the IATS Webservice interface
+ * A lightweight object that encapsulates the details of the iATS Webservice interface
  *
  * Provides SOAP interface details for the various methods,
  * error messages, and cc details
@@ -12,26 +12,26 @@
  * TODO: provide logging options for the request, exception and response
  * 
  * Expected usage:
- * $iats = new IATS_Service_Request($method_code, $options)  
+ * $iats = new iATS_Service_Request($method_code, $options)  
  * where: method code is 'cc', etc., options allows for logging options 
  * $response = $iats->request($credentials,$payment)
- * the request method encapsulates the soap inteface and requires IATS client details + payment info (cc + amount + billing info)
+ * the request method encapsulates the soap inteface and requires iATS client details + payment info (cc + amount + billing info)
  * $result = $iats->response($response) 
  * the 'response' method converts the soap response into a nicer format 
  **/
 
-Class IATS_Service_Request {
+Class iATS_Service_Request {
 
-  /* check IATS website for additional supported currencies */
+  /* check iATS website for additional supported currencies */
   CONST CURRENCIES = 'CAD,USD,AUD,GBP,EUR,NZD';
-  // IATS transaction mode definitions:
-  CONST IATS_TXN_NS = 'xmlns';
-  CONST IATS_TXN_TRACE = TRUE;
-  CONST IATS_TXN_SUCCESS = 'Success';
-  CONST IATS_TXN_OK = 'OK';
-  CONST IATS_URL_PROCESSLINK = 'https://www.iatspayments.com/NetGate/ProcessLink.asmx?WSDL';
-  CONST IATS_URL_REPORTLINK = 'https://www.iatspayments.com/NetGate/ReportLink.asmx?WDSL';
-  CONST IATS_URL_CUSTOMERLINK = 'https://www.iatspayments.com/NetGate/CustomerLink.asmx?WDSL';
+  // iATS transaction mode definitions:
+  CONST iATS_TXN_NS = 'xmlns';
+  CONST iATS_TXN_TRACE = TRUE;
+  CONST iATS_TXN_SUCCESS = 'Success';
+  CONST iATS_TXN_OK = 'OK';
+  CONST iATS_URL_PROCESSLINK = 'https://www.iatspayments.com/NetGate/ProcessLink.asmx?WSDL';
+  CONST iATS_URL_REPORTLINK = 'https://www.iatspayments.com/NetGate/ReportLink.asmx?WDSL';
+  CONST iATS_URL_CUSTOMERLINK = 'https://www.iatspayments.com/NetGate/CustomerLink.asmx?WDSL';
 
   function __construct($method, $options = array()) {
     $this->method = $this->methodInfo($method);
@@ -43,7 +43,7 @@ Class IATS_Service_Request {
       'clientEnvironment' => php_uname(),
     );
     // TODO: make this url configurable on object construction?
-    $this->_wsdl_url = self::IATS_URL_PROCESSLINK;
+    $this->_wsdl_url = self::iATS_URL_PROCESSLINK;
     // name space url
     $this->_wsdl_url_ns = 'https://www.iatspayments.com/NetGate/';
     // TODO: go through options and ensure defaults 
@@ -53,7 +53,7 @@ Class IATS_Service_Request {
   }
 
   /**
-   * Submits an API request through the IATS SOAP API Toolkit.
+   * Submits an API request through the iATS SOAP API Toolkit.
    *
    * @param $request
    *   The request object or array containing the parameters of the requested services.
@@ -77,7 +77,7 @@ Class IATS_Service_Request {
     // the agent user and password only get put in here so they don't end up in a log above
     try {
       $soapClient = new SoapClient($this->_wsdl_url, array('trace' => $this->options['trace']));
-      /* build the request manually as per the IATS docs */
+      /* build the request manually as per the iATS docs */
       $xml = '<'.$message.' xmlns="'.$this->_wsdl_url_ns.'">';
       $request = array_merge($this->request,(array) $payment, (array) $credentials);
       foreach($request as $k => $v) {
@@ -107,7 +107,7 @@ Class IATS_Service_Request {
   
     // Log the response if specified.
     if (!empty($this->options['log']['all']) || !empty($this->options['log']['respnose'])) {
-      watchdog('commerce_ca_iats', 'IATS SOAP response: !request', array('!request' => '<pre>' . check_plain(print_r($soapResponse, TRUE)) . '</pre>', WATCHDOG_DEBUG));
+      watchdog('commerce_ca_iats', 'iATS SOAP response: !request', array('!request' => '<pre>' . check_plain(print_r($soapResponse, TRUE)) . '</pre>', WATCHDOG_DEBUG));
     } 
     $xml_response = $soapResponse->$response->any;
     return new SimpleXMLElement($xml_response);
@@ -124,8 +124,8 @@ Class IATS_Service_Request {
                     'remote_id' => current($processresult->TRANSACTIONID)
     );
     // If we didn't get an approval response code...
-    // Note: do not use SUCCESS property, which just means IATS said "hello"
-    $result['status'] = (substr($auth_result,0,2) == self::IATS_TXN_OK) ? 1 : 0; 
+    // Note: do not use SUCCESS property, which just means iATS said "hello"
+    $result['status'] = (substr($auth_result,0,2) == self::iATS_TXN_OK) ? 1 : 0; 
 
     // If the payment failed, display an error and rebuild the form.
     if (!$result['status']) {
@@ -141,12 +141,12 @@ Class IATS_Service_Request {
   }
 
   /* 
-   * Provides the soap parameters for each of the ways to process payments at IATS Services
+   * Provides the soap parameters for each of the ways to process payments at iATS Services
    * Parameters are: method, message and response, these are all soap object properties
    * Title and description provide a public information interface, not used internally
    */  
   function methodInfo($method = '') {
-    $desc = 'Integrates the IATS SOAP webservice: ';
+    $desc = 'Integrates the iATS SOAP webservice: ';
     $methods = array(
       'cc' => array(
         'title' => 'Credit card',
@@ -249,9 +249,9 @@ Class IATS_Service_Request {
       case 'REJECT: 27':
          return 'Please have cardholder call the number on the back of credit card.';
       case 'REJECT: 39':
-         return 'Contact IATS 1-888-955-5455.';
+         return 'Contact iATS 1-888-955-5455.';
       case 'REJECT: 40':
-         return 'Invalid cc number. Card not supported by IATS.';
+         return 'Invalid cc number. Card not supported by iATS.';
       case 'REJECT: 41':
          return 'Invalid Expiry date.';
       case 'REJECT: 42':
@@ -261,7 +261,7 @@ Class IATS_Service_Request {
       case 'REJECT: 100':
          return 'DO NOT REPROCESS.';
       case 'Timeout':
-         return 'The system has not responded in the time allotted. Please contact IATS at 1-888-955-5455.';
+         return 'The system has not responded in the time allotted. Please contact iATS at 1-888-955-5455.';
     }
   
     return $code;

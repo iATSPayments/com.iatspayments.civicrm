@@ -8,10 +8,10 @@
  *
  * @author Alan Dixon
  *
- * This code provides glue between CiviCRM payment model and the IATS Payment model encapsulated in the IATS_Service_Request object
+ * This code provides glue between CiviCRM payment model and the iATS Payment model encapsulated in the iATS_Service_Request object
  *
  */
-class CRM_Core_Payment_IATSService extends CRM_Core_Payment {
+class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
 
   /**
    * We only need one instance of this object. So we use the singleton
@@ -31,7 +31,7 @@ class CRM_Core_Payment_IATSService extends CRM_Core_Payment {
    */ 
    function __construct($mode, &$paymentProcessor) {
     $this->_paymentProcessor = $paymentProcessor;
-    $this->_processorName = ts('IATS Webservice');
+    $this->_processorName = ts('iATS Webservice');
 
     // get merchant data from config
     $config = CRM_Core_Config::singleton();
@@ -42,7 +42,7 @@ class CRM_Core_Payment_IATSService extends CRM_Core_Payment {
   static function &singleton($mode, &$paymentProcessor) {
     $processorName = $paymentProcessor['name'];
     if (self::$_singleton[$processorName] === NULL) {
-      self::$_singleton[$processorName] = new CRM_Core_Payment_IATSService($mode, $paymentProcessor);
+      self::$_singleton[$processorName] = new CRM_Core_Payment_iATSService($mode, $paymentProcessor);
     }
     return self::$_singleton[$processorName];
   }
@@ -52,12 +52,12 @@ class CRM_Core_Payment_IATSService extends CRM_Core_Payment {
     if (!$this->_profile) {
       return self::error('Unexpected error, missing profile');
     }
-    // use the IATSService object for interacting with IATS, mostly the same for recurring contributions
-    require_once("CRM/Iats/IATSService.php");
+    // use the iATSService object for interacting with iATS, mostly the same for recurring contributions
+    require_once("CRM/iATS/iATSService.php");
     $isRecur =  CRM_Utils_Array::value('is_recur', $params) && $params['contributionRecurID'];
     $method = $isRecur ? 'cc_create_customer_code':'cc';
     // to add debugging info in the drupal log, assign 1 to log['all'] below
-    $iats = new IATS_Service_Request($method,array('log' => array('all' => 0),'trace' => FALSE));
+    $iats = new iATS_Service_Request($method,array('log' => array('all' => 0),'trace' => FALSE));
     if (!in_array($params['currencyID'], explode(',', $iats::CURRENCIES))) {
       return self::error('Invalid currency selection, must be one of ' . $iats::CURRENCIES);
     }
@@ -168,7 +168,7 @@ class CRM_Core_Payment_IATSService extends CRM_Core_Payment {
   }
 
   /*
-   * Convert the values in the civicrm params to the request array with keys as expected by IATS
+   * Convert the values in the civicrm params to the request array with keys as expected by iATS
    */
   function convertParams($params, $method) {
     $request = array();

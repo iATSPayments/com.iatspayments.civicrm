@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Job.IatsRecurringContributions API specification
+ * Job.iATSRecurringContributions API specification
  *
  * @param array $spec description of fields supported by this API call
  * @return void
@@ -21,7 +21,7 @@ function _civicrm_api3_job_iatsrecurringcontributions_spec(&$spec) {
 }
 
 /**
- * Job.IatsRecurringContributions API
+ * Job.iATSRecurringContributions API
  *
  * @param array $params
  * @return array API result descriptor
@@ -40,7 +40,7 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
   $dtCurrentDayStart = $dtCurrentDay."000000";
   $dtCurrentDayEnd   = $dtCurrentDay."235959";
   $expiry_limit = date('ym');
-  // Select the recurring payments for IATSService, where current date is equal to next scheduled date
+  // Select the recurring payments for iATSService, where current date is equal to next scheduled date
   $select = 'SELECT cr.*, icc.customer_code, icc.expiry as icc_expiry, icc.cid as icc_contact_id FROM civicrm_contribution_recur cr 
       INNER JOIN civicrm_payment_processor pp ON cr.payment_processor_id = pp.id
       INNER JOIN civicrm_iats_customer_codes icc ON cr.id = icc.recur_id
@@ -49,7 +49,7 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
         AND pp.is_test = 0
         AND (cr.end_date IS NULL OR cr.end_date > NOW())';
   $args = array(
-    1 => array('Payment_IATSService', 'String'),
+    1 => array('Payment_iATSService', 'String'),
   );
   if ($params['recur_id']) {
     $select .= ' AND icc.recur_id = %2';
@@ -73,7 +73,7 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
     $total_amount = $dao->amount;
     $hash = md5(uniqid(rand(), true));
     $contribution_recur_id    = $dao->id;
-    $source = "IATS Webservice Recurring Contribution";
+    $source = "iATS Webservice Recurring Contribution";
     $receive_date = date("YmdHis"); // i.e. now
     // check if we already have an error
     $errors = array();
@@ -121,10 +121,10 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
       $contribution = reset($result['values']);
       $contribution_id = $contribution['id'];
       $output[] = ts('Created contribution record for contact id %1, recurring contribution id %2', array(1 => $contact_id, 2 => $contribution_recur_id));
-      require_once("CRM/Iats/IATSService.php");
+      require_once("CRM/iATS/iATSService.php");
       $method = 'cc_with_customer_code';
       // to add debugging info in the drupal log, assign 1 to log['all'] below
-      $iats = new IATS_Service_Request($method,array('log' => array('all' => 1),'trace' => TRUE));
+      $iats = new iATS_Service_Request($method,array('log' => array('all' => 1),'trace' => TRUE));
       // build the request array
       $request = array(
         'customerCode' => $dao->customer_code,
@@ -170,7 +170,7 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
         'activity_type_id'  => 6,
         'source_contact_id'   => $contact_id,
         'assignee_contact_id' => $contact_id,
-        'subject'       => "Attempted IATS Webservice Recurring Contribution for " . $total_amount,
+        'subject'       => "Attempted iATS Webservice Recurring Contribution for " . $total_amount,
         'status_id'       => 2,
         'activity_date_time'  => date("YmdHis"),
       )

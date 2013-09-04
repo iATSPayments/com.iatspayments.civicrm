@@ -1,4 +1,4 @@
 ca.civicrm.iats
 ===============
 
-CiviCRM Extension for IATS Web Services Payment Processor
+CiviCRM Extension for iATS Web Services Payment Processor

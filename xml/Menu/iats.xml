@@ -1,9 +1,9 @@
 <?xml version="1.0"?>
 <menu>
   <item>
-    <path>civicrm/IATSAdmin</path>
-    <page_callback>CRM_Iats_Page_IATSAdmin</page_callback>
-    <title>IATSAdmin</title>
+    <path>civicrm/iATSAdmin</path>
+    <page_callback>CRM_iATS_Page_iATSAdmin</page_callback>
+    <title>iATSAdmin</title>
     <access_arguments>access CiviCRM</access_arguments>
   </item>
 </menu>
