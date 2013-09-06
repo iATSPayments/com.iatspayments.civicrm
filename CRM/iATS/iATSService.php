@@ -75,7 +75,7 @@ Class iATS_Service_Request {
     $query_params = array(
       1 => array($logged_request['invoiceNum'], 'String'),
       2 => array($logged_request['customerIPAddress'], 'String'),
-      3 => array($logged_request['creditCardNum'], 'String'),
+      3 => array(substr($logged_request['creditCardNum'], -4), 'String'),
       4 => array('', 'String'),
       5 => array($logged_request['total'], 'String'),
     );
