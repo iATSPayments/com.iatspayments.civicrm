@@ -151,7 +151,7 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
   function checkConfig() {
     $error = array();
 
-    if (empty($this->_paymentProcessor['signature'])) {
+    if (empty($this->_paymentProcessor['user_name'])) {
       $error[] = ts('Agent Code is not set in the Administer CiviCRM &raquo; System Settings &raquo; Payment Processors.');
     }
 
