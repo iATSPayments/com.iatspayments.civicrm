@@ -14,3 +14,32 @@ CREATE TABLE `civicrm_iats_customer_codes` (
   KEY (`email`),
   KEY (`recur_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='Table to store customer codes';
+
+CREATE TABLE `civicrm_iats_request_log` (
+  `id` int unsigned NOT NULL AUTO_INCREMENT  COMMENT 'Request Log Id',
+  `invoice_num` varchar(255) NOT NULL COMMENT 'Invoice number being sent to iATS',
+  `ip` varchar(255) DEFAULT NULL COMMENT 'IP from which this request originated',
+  `cc` varchar(4) DEFAULT NULL COMMENT 'CC last four digits',
+  `customer_code` varchar(255) COMMENT 'Customer code if used',
+  `total` decimal(20,2) DEFAULT NULL COMMENT 'Charge amount request',
+  `request_datetime` datetime COMMENT 'Date time of request',
+  PRIMARY KEY ( `id` ),
+  KEY (`invoice_num`),
+  KEY (`cc`),
+  KEY (`request_datetime`),
+  KEY (`customer_code`),
+  KEY (`total`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='Table for request log';
+
+CREATE TABLE `civicrm_iats_response_log` (
+  `id` int unsigned NOT NULL AUTO_INCREMENT  COMMENT 'Response Log Id',
+  `invoice_num` varchar(255) NOT NULL COMMENT 'Invoice number sent to iATS',
+  `auth_result` varchar(255) NOT NULL COMMENT 'Authorization string returned from iATS',
+  `remote_id` varchar(255) NOT NULL COMMENT 'iATS-internal transaction id',
+  `response_datetime` datetime COMMENT 'Date time of response',
+  PRIMARY KEY ( `id` ),
+  KEY (`invoice_num`),
+  KEY (`auth_result`),
+  KEY (`remote_id`),
+  KEY (`response_datetime`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='Table for response log';

@@ -67,13 +67,22 @@ Class iATS_Service_Request {
     $method = $this->method['method'];
     $message = $this->method['message'];
     $response = $this->method['response'];
-    // TODO log request if specified
-    if (!empty($this->options['log']['all']) || !empty($this->options['log']['payment'])) {
-      $log_request = $payment;
-      $this->mask($log_request);
-      watchdog('civicrm_ca_iats', 'Payment info: !request', array('!request' => '<pre>' . print_r($log_request, TRUE) . '</pre>'), WATCHDOG_NOTICE);
-    }
-
+    // always log requests, start by making a copy of the original request
+    $logged_request = $payment;
+    // mask the cc numbers
+    $this->mask($logged_request);
+    // log: ip, invoiceNum, , cc, total, date
+    $query_params = array(
+      1 => array($logged_request['invoiceNum'], 'String'),
+      2 => array($logged_request['customerIPAddress'], 'String'),
+      3 => array($logged_request['creditCardNum'], 'String'),
+      4 => array('', 'String'),
+      5 => array($logged_request['total'], 'String'),
+    );
+    CRM_Core_DAO::executeQuery("INSERT INTO civicrm_iats_request_log
+      (invoice_num, ip, cc, customer_code, total, request_datetime) VALUES (%1, %2, %3, %4, %5, NOW())", $query_params);
+    // save the invoiceNum so I can log it for the response
+    $this->invoiceNum = $logged_request['invoiceNum']; 
     // the agent user and password only get put in here so they don't end up in a log above
     try {
       $soapClient = new SoapClient($this->_wsdl_url, array('trace' => $this->options['trace']));
@@ -115,9 +124,10 @@ Class iATS_Service_Request {
 
   /*
   * Process the response to the request into a more friendly format in an array $result;
+  * Log the result to an internal table while I'm at it, unless explicitly not requested
   */
-
-  function result($response) {
+ 
+  function result($response, $log = TRUE) {
     $processresult = $response->PROCESSRESULT;
     $auth_result = trim(current($processresult->AUTHORIZATIONRESULT));
     $result = array('auth_result' => $auth_result,
@@ -136,6 +146,15 @@ Class iATS_Service_Request {
       else {
         //drupal_set_message('Please enter your information again or try a different card.', 'error');
       }
+    }
+    if ($log) {
+      $query_params = array(
+        1 => array($this->invoiceNum, 'String'),
+        2 => array($result['auth_result'], 'String'),
+        3 => array($result['remote_id'], 'String'),
+      );
+      CRM_Core_DAO::executeQuery("INSERT INTO civicrm_iats_response_log
+        (invoice_num, auth_result, remote_id, response_datetime) VALUES (%1, %2, %3, NOW())", $query_params);
     }
     return $result;
   }
