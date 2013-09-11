@@ -4,8 +4,8 @@
   <name>iATS Payments</name>
   <description>iATS Payments Web Services Payment Processor</description>
   <urls>
-    <url desc="Main Extension Page">http://blackflysolutions.ca/iats</url>
-    <url desc="Documentation">http://blackflysolutions.ca/iats-civicrm</url>
+    <url desc="Main Extension Page">http://blackflysolutions.ca/project/iats-webservices-civicrm-extension</url>
+    <url desc="Documentation"></url>
     <url desc="Support"></url>
   </urls>
   <license>AGPL</license>
