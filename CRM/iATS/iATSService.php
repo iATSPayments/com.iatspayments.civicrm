@@ -72,10 +72,11 @@ Class iATS_Service_Request {
     // mask the cc numbers
     $this->mask($logged_request);
     // log: ip, invoiceNum, , cc, total, date
+    $cc = isset($logged_request['creditCardNum']) ? $logged_request['creditCardNum'] :  $logged_request['ccNum'];
     $query_params = array(
       1 => array($logged_request['invoiceNum'], 'String'),
       2 => array($logged_request['customerIPAddress'], 'String'),
-      3 => array(substr($logged_request['creditCardNum'], -4), 'String'),
+      3 => array(substr($cc, -4), 'String'),
       4 => array('', 'String'),
       5 => array($logged_request['total'], 'String'),
     );

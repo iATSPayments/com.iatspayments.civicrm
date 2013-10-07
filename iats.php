@@ -89,3 +89,85 @@ function iats_civicrm_managed(&$entities) {
   );
   return _iats_civix_civicrm_managed($entities);
 }
+
+function iats_civicrm_postProcess($formName, &$form) {
+  global $user;
+  // if (0 == $user->uid) die($formName);
+  switch($formName) {
+    case 'CRM_Contribute_Form_Contribution_Main': 
+      // _iats_civicrm_update_contribution_status(&$form);
+      break;
+  }
+}
+
+/*
+ * hook_civicrm_post
+ *
+ * CiviCRM assumes all recurring contributions need to be reverified
+ * using the IPN mechanism.
+ * After saving any contribution, test for status = 2 using IATS
+ * and set to status = 1 instead.
+ * Will work for both the initial contribution and subsequent ones as well.
+ */
+
+function iats_civicrm_pre($op, $objectName, $objectId, &$params) {
+  if ('create' == $op) {
+    if ('Contribution' == $objectName) {
+      // watchdog('iats_civicrm','hook_civicrm_pre for Contribution page @id',array('@id' => $params['contribution_page_id']));
+      if (2 == $params['contribution_status_id']
+          && !empty($params['contribution_recur_id'])
+          && !empty($params['contribution_page_id'])
+      ) {
+        // watchdog('iats_civicrm','hook_civicrm_pre for Contribution recur @id',array('@id' => $params['contribution_recur_id']));
+        if ($payment_processor_id = _iats_civicrm_get_payment_processor_id($params['contribution_page_id'])) {
+          // watchdog('iats_civicrm','hook_civicrm_pre for PP id @id',array('@id' => $payment_processor_id));
+          if (_iats_civicrm_is_iats($payment_processor_id)) {
+            // watchdog('iats_civicrm','Convert to status of 1');
+            $params['contribution_status_id'] = 1;
+          }
+        }
+      }
+    }
+    elseif ('ContributionRecur' == $objectName) {
+      if (2 == $params['contribution_status_id']
+          && !empty($params['payment_processor_id'])
+      ) {
+        if (_iats_civicrm_is_iats($params['payment_processor_id'])) {
+          $params['contribution_status_id'] = 1;
+        }
+      }
+    }
+  }
+}
+
+/* 
+ * The contribution itself doesn't tell you which payment processor it came from
+ * So we have to dig back via the contribution_page_id that it is associated with.
+ */
+function _iats_civicrm_get_payment_processor_id($contribution_page_id) {
+  $params = array(
+    'version' => 3,
+    'sequential' => 1,
+    'id' => $contribution_page_id,
+  );
+  $result = civicrm_api('ContributionPage', 'getsingle', $params);
+  if (empty($result['payment_processor'])) {
+    return FALSE;
+    // TODO: log error
+  }
+  return $result['payment_processor'];
+}
+
+function _iats_civicrm_is_iats($payment_processor_id) {
+  $params = array(
+    'version' => 3,
+    'sequential' => 1,
+    'id' => $payment_processor_id,
+  );
+  $result = civicrm_api('PaymentProcessor', 'getsingle', $params);
+  if (empty($result['class_name'])) {
+    return FALSE;
+    // TODO: log error
+  }
+  return ('Payment_iATSService' == $result['class_name']) ? TRUE : FALSE;
+}
