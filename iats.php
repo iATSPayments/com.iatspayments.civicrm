@@ -72,9 +72,9 @@ function iats_civicrm_managed(&$entities) {
     'entity' => 'PaymentProcessorType',
     'params' => array(
       'version' => 3,
-      'name' => 'iATS Payments',
-      'title' => 'iATS Payments',
-      'description' => 'iATS payment processor using the web services interface.',
+      'name' => 'iATS Payments Credit Card',
+      'title' => 'iATS Payments Credit Card',
+      'description' => 'iATS credit card payment processor using the web services interface.',
       'class_name' => 'Payment_iATSService',
       'billing_mode' => 'form',
       'user_name_label' => 'Agent Code',
@@ -84,7 +84,28 @@ function iats_civicrm_managed(&$entities) {
       'url_site_test_default' => 'https://www.iatspayments.com/NetGate/ProcessLink.asmx?WSDL',
       'url_recur_test_default' => 'https://www.iatspayments.com/NetGate/ProcessLink.asmx?WSDL',
       'is_recur' => 1,
-      'paymentType' => 1,
+      'payment_type' => 1,
+    ),
+  );
+  $entities[] = array(
+    'module' => 'ca.civicrm.iats',
+    'name' => 'iATS Payments ACH/EFT',
+    'entity' => 'PaymentProcessorType',
+    'params' => array(
+      'version' => 3,
+      'name' => 'iATS Payments ACH/EFT',
+      'title' => 'iATS Payments ACH/EFT',
+      'description' => 'iATS ACH/EFT payment processor using the web services interface.',
+      'class_name' => 'Payment_iATSServiceACHEFT',
+      'billing_mode' => 'form',
+      'user_name_label' => 'Agent Code',
+      'password_label' => 'Password',
+      'url_site_default' => 'https://www.iatspayments.com/NetGate/ProcessLink.asmx?WSDL',
+      'url_recur_default' => 'https://www.iatspayments.com/NetGate/ProcessLink.asmx?WSDL',
+      'url_site_test_default' => 'https://www.iatspayments.com/NetGate/ProcessLink.asmx?WSDL',
+      'url_recur_test_default' => 'https://www.iatspayments.com/NetGate/ProcessLink.asmx?WSDL',
+      'is_recur' => 1,
+      'payment_type' => 2,
     ),
   );
   return _iats_civix_civicrm_managed($entities);
