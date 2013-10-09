@@ -90,24 +90,15 @@ function iats_civicrm_managed(&$entities) {
   return _iats_civix_civicrm_managed($entities);
 }
 
-function iats_civicrm_postProcess($formName, &$form) {
-  global $user;
-  // if (0 == $user->uid) die($formName);
-  switch($formName) {
-    case 'CRM_Contribute_Form_Contribution_Main': 
-      // _iats_civicrm_update_contribution_status(&$form);
-      break;
-  }
-}
-
 /*
- * hook_civicrm_post
+ * hook_civicrm_pre
  *
  * CiviCRM assumes all recurring contributions need to be reverified
  * using the IPN mechanism.
- * After saving any contribution, test for status = 2 using IATS
+ * After saving any contribution, test for status = 2 and using IATS Payments
  * and set to status = 1 instead.
- * Will work for both the initial contribution and subsequent ones as well.
+ * Applies only to the initial contribution and the recurring contribution record.
+ * The recurring contribution status id is set explicitly in the job that creates it, and doesn't need this modification.
  */
 
 function iats_civicrm_pre($op, $objectName, $objectId, &$params) {
@@ -134,6 +125,9 @@ function iats_civicrm_pre($op, $objectName, $objectId, &$params) {
       ) {
         if (_iats_civicrm_is_iats($params['payment_processor_id'])) {
           $params['contribution_status_id'] = 1;
+          // we have already taken the first payment, so calculate the next one
+          $next = strtotime('+'.$params['frequency_interval'].' '.$params['frequency_unit']);
+          $params['next_sched_contribution'] = date('YmdHis',$next);
         }
       }
     }
