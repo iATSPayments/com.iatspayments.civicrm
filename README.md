@@ -53,3 +53,4 @@ and scroll down to see the transaction you just processed via CiviCRM.
 iATS' Agent Code and Password. Please remember that iATS master accounts (ending in 01) can NOT be used to push 
 monies into via web services. So when setting up your Account with iATS - ask them to create another (set of)
 Agent Codes for you: e.g. 80 or 90, etc. 
+
