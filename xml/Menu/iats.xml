@@ -3,7 +3,7 @@
   <item>
     <path>civicrm/iATSAdmin</path>
     <page_callback>CRM_iATS_Page_iATSAdmin</page_callback>
-    <title>iATSAdmin</title>
+    <title>iATS Payments Administration</title>
     <access_arguments>access CiviCRM</access_arguments>
   </item>
 </menu>
