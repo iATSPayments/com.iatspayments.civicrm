@@ -111,6 +111,41 @@ function iats_civicrm_managed(&$entities) {
   return _iats_civix_civicrm_managed($entities);
 }
 
+function iats_civicrm_navigationMenu(&$params) {
+  // get the maximum key of $params
+  $maxKey = 1 + (max(array_keys($params)));
+  foreach($params as $key => $value) {
+    if ('Contributions' == $value['attributes']['name']) {
+      $params[$key]['child'][$maxKey] =  array (
+        'attributes' => array (
+          'label'      => 'iATS Payments Admin',
+          'name'       => 'iATS Payments Admin',
+          'url'        => 'civicrm/iATSAdmin',
+          'permission' => 'access CiviContribute,administer CiviCRM',
+          'operator'   => 'AND',
+          'separator'  => null,
+          'parentID'   => 28,
+          'navID'      => $maxKey,
+          'active'     => 1
+        )
+      );
+      $maxKey++; // just in case ...
+    }
+  }
+}
+
+
+/*
+ * hook_civicrm_buildForm
+ * Do a Drupal 7 style thing so we can write smaller functions
+ */
+function iats_civicrm_buildForm($formName, &$form) {
+  $fname = 'iats_civicrm_buildForm_'.$formName;
+  if (function_exists($fname)) {
+    $fname(&$form);
+  }
+}
+
 /*
  * hook_civicrm_pre
  *
@@ -185,4 +220,25 @@ function _iats_civicrm_is_iats($payment_processor_id) {
     // TODO: log error
   }
   return ('Payment_iATSService' == $result['class_name']) ? TRUE : FALSE;
+}
+
+/* ACH/EFT modifications from the default direct debit form */
+function iats_civicrm_buildForm_CRM_Contribute_Form_Contribution_Main(&$form) {
+  $params = array('version' => 3, 'id' => $form->_values['payment_processor']);
+  $result = civicrm_api('PaymentProcessor', 'getsingle', $params);
+  // print_r($result); die();
+  if (empty($result['class_name']) || ('Payment_iATSServiceACHEFT' != $result['class_name'])) {
+    return;
+  }
+  //$form->getElement('is_recur')->setValue(1); // recurring contrib as an option
+  if (isset($form->_elementIndex['is_recur'])) {
+    $form->removeElement('is_recur'); // force recurring contrib
+  }
+  $form->addElement('hidden','is_recur',1);
+  // TODO: add legal requirements for electronic acceptance of 
+  //workaround the notice message, as ContributionBase assumes these fields exist in the confirm step
+  /* foreach (array("account_holder","bank_identification_number","bank_name","bank_account_number") as $field){
+    $form->addElement("hidden",$field);
+  } */
+  // CRM_Core_Region::instance('page-header')->add(array('script' => $js));
 }
