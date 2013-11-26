@@ -76,7 +76,8 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
     $total_amount = $dao->amount;
     $hash = md5(uniqid(rand(), true));
     $contribution_recur_id    = $dao->id;
-    $source = "iATS Payments Recurring Contribution";
+    // $sourceURL = CRM_Utils_System::url('civicrm/contact/view/contributionrecur', 'reset=1&id='. $dao->id .'&cid='. $dao->contact_id .'&context=contribution');
+    $source = "iATS Payments Recurring Contribution (id=$contribution_recur_id)"; 
     $receive_date = date("YmdHis"); // i.e. now
     // check if we already have an error
     $errors = array();
@@ -106,12 +107,12 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
       'source'         => $source,
       'contribution_status_id' => 2,
       'currency'  => $dao->currency,
-      //'contribution_page_id'   => $entity_id
+      'payment_processor'   => $dao->payment_processor_id,
     );
-    if (isset($dao->contribution_type_id)) {
+    if (isset($dao->contribution_type_id)) {  // 4.2
        $contribution['contribution_type_id'] = $dao->contribution_type_id;
     }
-    else {
+    else { // 4.3+
        $contribution['financial_type_id'] = $dao->financial_type_id;
     }
     $result = civicrm_api('contribution', 'create', $contribution);

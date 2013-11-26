@@ -159,12 +159,10 @@ function iats_civicrm_buildForm($formName, &$form) {
 
 function iats_civicrm_pre($op, $objectName, $objectId, &$params) {
   if ('create' == $op) {
-    if (('Contribution' == $objectName) && !empty($params['contribution_page_id'])) {
-      // watchdog('iats_civicrm','hook_civicrm_pre for Contribution page @id',array('@id' => $params['contribution_page_id']));
-      if (2 == $params['contribution_status_id']
-          && !empty($params['contribution_recur_id'])
-          && !empty($params['contribution_page_id'])
-      ) {
+    if (('Contribution' == $objectName) 
+      && !empty($params['contribution_status_id']) 
+      && !empty($params['contribution_recur_id'])) {
+      if (2 == $params['contribution_status_id']) {
         // watchdog('iats_civicrm','hook_civicrm_pre for Contribution recur @id',array('@id' => $params['contribution_recur_id']));
         if ($payment_processor_id = _iats_civicrm_get_payment_processor_id($params['contribution_recur_id'])) {
           // watchdog('iats_civicrm','hook_civicrm_pre for PP id @id',array('@id' => $payment_processor_id));
