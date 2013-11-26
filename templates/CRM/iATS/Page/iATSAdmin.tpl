@@ -20,7 +20,6 @@ Auth <input size="20" type="text" name="search_auth_result" value="{$search.auth
   <th>{ts}Invoice Number{/ts}</th>
   <th>{ts}IP{/ts}</th>
   <th>{ts}CC{/ts}</th>
-  <th>{ts}Customer Code{/ts}</th>
   <th>{ts}Total{/ts}</th>
   <th>{ts}Request Datetime{/ts}</th>
   <th>{ts}Auth Result{/ts}</th>
@@ -32,7 +31,6 @@ Auth <input size="20" type="text" name="search_auth_result" value="{$search.auth
   <td><a href="{$row.contributionURL}">{$row.invoice_num}</a></td>
   <td>{$row.ip}</td>
   <td>{$row.cc}</td>
-  <td>{$row.customer_code}</td>
   <td>{$row.total}</td>
   <td>{$row.request_datetime}</td>
   <td>{$row.auth_result}</td>
