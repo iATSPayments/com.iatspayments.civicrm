@@ -45,7 +45,9 @@ Reponses depend on the $amount processed - as follows
 16.00 REJ: 2;
 Other Amount REJ: 15
 
-Once completed -> visit http://home.iatspayments.com/ -> and click the Client Login button (top right)
+8. Visit the custom menu item under Contributions -> iATS Payments Admin. This will give you a list of recent transactions with the iATS payment processor, including deails like the Auth code and last 4 digits of the credit card that aren't stored/searchable in CiviCRM.
+
+9. You can also visit http://home.iatspayments.com/ -> and click the Client Login button (top right)
 Login with TEST88 and TEST88
 hit Journal and Get Journal -> if it has been a busy day there will be lots of transactions here - so hit display all 
 and scroll down to see the transaction you just processed via CiviCRM.
