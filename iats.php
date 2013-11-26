@@ -159,14 +159,14 @@ function iats_civicrm_buildForm($formName, &$form) {
 
 function iats_civicrm_pre($op, $objectName, $objectId, &$params) {
   if ('create' == $op) {
-    if ('Contribution' == $objectName) {
+    if (('Contribution' == $objectName) && !empty($params['contribution_page_id'])) {
       // watchdog('iats_civicrm','hook_civicrm_pre for Contribution page @id',array('@id' => $params['contribution_page_id']));
       if (2 == $params['contribution_status_id']
           && !empty($params['contribution_recur_id'])
           && !empty($params['contribution_page_id'])
       ) {
         // watchdog('iats_civicrm','hook_civicrm_pre for Contribution recur @id',array('@id' => $params['contribution_recur_id']));
-        if ($payment_processor_id = _iats_civicrm_get_payment_processor_id($params['contribution_page_id'])) {
+        if ($payment_processor_id = _iats_civicrm_get_payment_processor_id($params['contribution_recur_id'])) {
           // watchdog('iats_civicrm','hook_civicrm_pre for PP id @id',array('@id' => $payment_processor_id));
           if (_iats_civicrm_is_iats($payment_processor_id)) {
             // watchdog('iats_civicrm','Convert to status of 1');
@@ -176,6 +176,7 @@ function iats_civicrm_pre($op, $objectName, $objectId, &$params) {
       }
     }
     elseif ('ContributionRecur' == $objectName) {
+      // watchdog('iats_civicrm','hook_civicrm_pre for ContributionRecur params @id',array('@id' => print_r($params, TRUE)));
       if (2 == $params['contribution_status_id']
           && !empty($params['payment_processor_id'])
       ) {
@@ -187,25 +188,26 @@ function iats_civicrm_pre($op, $objectName, $objectId, &$params) {
         }
       }
     }
+    // watchdog('iats_civicrm','ignoring hook_civicrm_pre for objectName @id',array('@id' => $objectName));
   }
 }
 
 /* 
  * The contribution itself doesn't tell you which payment processor it came from
- * So we have to dig back via the contribution_page_id that it is associated with.
+ * So we have to dig back via the contribution_recur_id that it is associated with.
  */
-function _iats_civicrm_get_payment_processor_id($contribution_page_id) {
+function _iats_civicrm_get_payment_processor_id($contribution_recur_id) {
   $params = array(
     'version' => 3,
     'sequential' => 1,
-    'id' => $contribution_page_id,
+    'id' => $contribution_recur_id,
   );
-  $result = civicrm_api('ContributionPage', 'getsingle', $params);
-  if (empty($result['payment_processor'])) {
+  $result = civicrm_api('ContributionRecur', 'getsingle', $params);
+  if (empty($result['payment_processor_id'])) {
     return FALSE;
     // TODO: log error
   }
-  return $result['payment_processor'];
+  return $result['payment_processor_id'];
 }
 
 function _iats_civicrm_is_iats($payment_processor_id) {
