@@ -72,7 +72,8 @@ Class iATS_Service_Request {
     // mask the cc numbers
     $this->mask($logged_request);
     // log: ip, invoiceNum, , cc, total, date
-    $cc = isset($logged_request['creditCardNum']) ? $logged_request['creditCardNum'] :  $logged_request['ccNum'];
+    // dpm($logged_request);
+    $cc = isset($logged_request['creditCardNum']) ? $logged_request['creditCardNum'] :  (isset($logged_request['ccNum']) ? $logged_request['ccNum'] : '');
     $query_params = array(
       1 => array($logged_request['invoiceNum'], 'String'),
       2 => array($logged_request['customerIPAddress'], 'String'),
@@ -95,7 +96,7 @@ Class iATS_Service_Request {
       }
       $xml .= '</'.$message.'>';
       if (!empty($this->options['log']['all']) || !empty($this->options['log']['xml'])) {
-         watchdog('civicrm_ca_iats', 'Method info: !method', array('!method' => $method), WATCHDOG_NOTICE);
+         watchdog('iats_civicrm_ca', 'Method info: !method', array('!method' => $method), WATCHDOG_NOTICE);
       }
       $soapRequest = new SoapVar($xml, XSD_ANYXML);
       $soapResponse = $soapClient->$method($soapRequest);
@@ -105,19 +106,19 @@ Class iATS_Service_Request {
          $response_log = "\n BODY:\n";
          $response_log .= $soapClient->__getLastRequest();
          $response_log = "\n BODYEND:\n";
-         watchdog('civicrm_ca_iats', 'Response: !response', array('!response' => '<pre>' . $response_log . '</pre>'), WATCHDOG_NOTICE);
+         watchdog('iats_civicrm_ca', 'Response: !response', array('!response' => '<pre>' . $response_log . '</pre>'), WATCHDOG_NOTICE);
       }
     }
     catch (SoapFault $exception) {
       if (!empty($this->options['log']['all']) || !empty($this->options['log']['exception'])) {
-        watchdog('civicrm_ca_iats', 'SoapFault: !exception', array('!exception' => '<pre>' . print_r($exception, TRUE) . '</pre>'), WATCHDOG_ERROR);
+        watchdog('iats_civicrm_ca', 'SoapFault: !exception', array('!exception' => '<pre>' . print_r($exception, TRUE) . '</pre>'), WATCHDOG_ERROR);
       }
       return FALSE;
     }
 
     // Log the response if specified.
     if (!empty($this->options['log']['all']) || !empty($this->options['log']['respnose'])) {
-      watchdog('commerce_ca_iats', 'iATS SOAP response: !request', array('!request' => '<pre>' . check_plain(print_r($soapResponse, TRUE)) . '</pre>', WATCHDOG_DEBUG));
+      watchdog('iats_civicrm_ca', 'iATS SOAP response: !request', array('!request' => '<pre>' . check_plain(print_r($soapResponse, TRUE)) . '</pre>', WATCHDOG_DEBUG));
     }
     $xml_response = $soapResponse->$response->any;
     return new SimpleXMLElement($xml_response);
