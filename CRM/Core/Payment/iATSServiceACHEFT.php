@@ -54,6 +54,7 @@ class CRM_Core_Payment_iATSServiceACHEFT extends CRM_Core_Payment {
     }
     // use the iATSService object for interacting with iATS, mostly the same for recurring contributions
     require_once("CRM/iATS/iATSService.php");
+    // TODO: force bail if it's not recurring?
     $isRecur =  CRM_Utils_Array::value('is_recur', $params) && $params['contributionRecurID'];
     $method = $isRecur ? 'acheft_create_customer_code':'acheft';
     // to add debugging info in the drupal log, assign 1 to log['all'] below
@@ -61,6 +62,7 @@ class CRM_Core_Payment_iATSServiceACHEFT extends CRM_Core_Payment {
     if (!in_array($params['currencyID'], explode(',', $iats::CURRENCIES))) {
       return self::error('Invalid currency selection, must be one of ' . $iats::CURRENCIES);
     }
+    // TODO: deal with currency selection!
     $request = $this->convertParams($params, $method);
     $request['customerIPAddress'] = (function_exists('ip_address') ? ip_address() : $_SERVER['REMOTE_ADDR']);
     $credentials = array('agentCode' => $this->_paymentProcessor['user_name'],
@@ -83,7 +85,8 @@ class CRM_Core_Payment_iATSServiceACHEFT extends CRM_Core_Payment {
         // CRM_Utils_Hook::alterPaymentProcessorParams($this, $params, $iatslink1);
         $processresult = $response->PROCESSRESULT; 
         $customer_code = $processresult->CUSTOMERCODE;
-        $exp = sprintf('%02d%02d', ($params['year'] % 100), $params['month']);
+        // $exp = sprintf('%02d%02d', ($params['year'] % 100), $params['month']);
+        $exp = '0000';
         if (isset($params['email'])) {
           $email = $params['email'];
         }
@@ -181,8 +184,8 @@ class CRM_Core_Payment_iATSServiceACHEFT extends CRM_Core_Payment {
       'zipCode' => 'postal_code',
       'country' => 'country',
       'invoiceNum' => 'invoiceID',
-      'creditCardNum' => 'credit_card_number',
-      'cvv2' => 'cvv2',
+    /*  'accountNum' => 'bank_account_number', */
+      'accountType' => 'bank_account_type',
     );
  
     foreach($convert as $r => $p) {
@@ -190,24 +193,15 @@ class CRM_Core_Payment_iATSServiceACHEFT extends CRM_Core_Payment {
         $request[$r] = $params[$p];
       }
     }
-    $request['creditCardExpiry'] = sprintf('%02d/%02d', $params['month'], ($params['year'] % 100));
     $request['total'] = sprintf('%01.2f', $params['amount']);
     // place for ugly hacks
     switch($method) {
       case 'acheft_create_customer_code':
-        $request['ccNum'] = $request['creditCardNum'];
-        unset($request['creditCardNum']);
-        $request['ccExp'] = $request['creditCardExpiry'];
-        unset($request['creditCardExpiry']);
+        // add bank number + transit to account number
+        // TODO: verification?
+        $request['accountNum'] = preg_replace('/^0-9]/','',$params['bank_identification_number'].$params['bank_account_number']);
         break;
     }
-    $mop = array(
-      'Visa' => 'VISA',
-      'MasterCard' => 'MC',
-      'Amex' => 'AMX',
-      'Discover' => 'DISC',
-    );
-    $request['mop'] = $mop[$params['credit_card_type']];
     return $request;
   }
  

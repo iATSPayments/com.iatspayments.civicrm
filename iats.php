@@ -166,9 +166,19 @@ function iats_civicrm_pre($op, $objectName, $objectId, &$params) {
         // watchdog('iats_civicrm','hook_civicrm_pre for Contribution recur @id',array('@id' => $params['contribution_recur_id']));
         if ($payment_processor_id = _iats_civicrm_get_payment_processor_id($params['contribution_recur_id'])) {
           // watchdog('iats_civicrm','hook_civicrm_pre for PP id @id',array('@id' => $payment_processor_id));
-          if (_iats_civicrm_is_iats($payment_processor_id)) {
+          if ($type = _iats_civicrm_is_iats($payment_processor_id)) {
             // watchdog('iats_civicrm','Convert to status of 1');
-            $params['contribution_status_id'] = 1;
+            switch ($type) {
+              case 'iATSService': // cc
+                $params['contribution_status_id'] = 1;
+                break;
+              case 'iATSServiceACHEFT': // cc
+                $params['payment_instrument_id'] = 2;
+                // watchdog('iats_civicrm_regular','<pre>'.print_r($params,TRUE).'</pre>');
+                // $params['contribution_status_id'] = 1;
+                break;
+            }
+            
           }
         }
       }
@@ -178,11 +188,23 @@ function iats_civicrm_pre($op, $objectName, $objectId, &$params) {
       if (2 == $params['contribution_status_id']
           && !empty($params['payment_processor_id'])
       ) {
-        if (_iats_civicrm_is_iats($params['payment_processor_id'])) {
-          $params['contribution_status_id'] = 1;
-          // we have already taken the first payment, so calculate the next one
-          $next = strtotime('+'.$params['frequency_interval'].' '.$params['frequency_unit']);
-          $params['next_sched_contribution'] = date('YmdHis',$next);
+        if ($type = _iats_civicrm_is_iats($params['payment_processor_id'])) {
+          // watchdog('iats_civicrm','Convert to status of 1');
+          switch ($type) {
+            case 'iATSService': // cc
+              // we have already taken the first payment, so calculate the next one
+              $params['contribution_status_id'] = 1;
+              $next = strtotime('+'.$params['frequency_interval'].' '.$params['frequency_unit']);
+              $params['next_sched_contribution'] = date('YmdHis',$next);
+              break;
+            case 'iATSServiceACHEFT': // 
+              // watchdog('iats_civicrm_recur','<pre>'.print_r($params,TRUE).'</pre>');
+              $params['payment_instrument_id'] = 2;
+              $params['contribution_status_id'] = 1;
+              $next = strtotime('+'.$params['frequency_interval'].' '.$params['frequency_unit']);
+              $params['next_sched_contribution'] = date('YmdHis',$next);
+              break;
+          }
         }
       }
     }
@@ -219,26 +241,58 @@ function _iats_civicrm_is_iats($payment_processor_id) {
     return FALSE;
     // TODO: log error
   }
-  return ('Payment_iATSService' == $result['class_name']) ? TRUE : FALSE;
+  $type = substr($result['class_name'],0,19);
+  $subtype = substr($result['class_name'],19);
+  return ('Payment_iATSService' == $type) ? 'iATSService'.$subtype  : FALSE;
 }
 
 /* ACH/EFT modifications from the default direct debit form */
 function iats_civicrm_buildForm_CRM_Contribute_Form_Contribution_Main(&$form) {
-  $params = array('version' => 3, 'id' => $form->_values['payment_processor']);
-  $result = civicrm_api('PaymentProcessor', 'getsingle', $params);
-  // print_r($result); die();
-  if (empty($result['class_name']) || ('Payment_iATSServiceACHEFT' != $result['class_name'])) {
+  $form->addElement( 'text', 'creditor_iban',  ts('IBAN'),array("size"=>34,"maxlength"=>34));
+  if (empty($form->_paymentProcessors)) {
     return;
   }
-  //$form->getElement('is_recur')->setValue(1); // recurring contrib as an option
-  if (isset($form->_elementIndex['is_recur'])) {
-    $form->removeElement('is_recur'); // force recurring contrib
+  $acheft = array();
+  foreach($form->_paymentProcessors as $id => $paymentProcessor) {
+    $params = array('version' => 3, 'sequential' => 1, 'id' => $id);
+    $result = civicrm_api('PaymentProcessor', 'getsingle', $params);
+    if (!empty($result['class_name']) && ('Payment_iATSServiceACHEFT' == $result['class_name'])) {
+      $acheft[$id] = TRUE; 
+      break;
+    }
   }
-  $form->addElement('hidden','is_recur',1);
+  // I only need to mangle formst that allow ACH/EFT
+  if (0 == count($acheft)) {
+    return;
+  }
+  if (isset($form->_elementIndex['is_recur'])) {
+    $form->getElement('is_recur')->setValue(1); // force recurring contrib option
+    $form->getElement('is_recur')->freeze(); 
+  }
+  elseif (empty($form->_values['is_recur'])) {
+    CRM_Core_Session::setStatus(ts('You must configure iATS ACH/EFT for recurring contributions.'), ts('Invalid form setting!'), 'alert');
+  }
+ 
+  // In addition, I need to mangle the ajax-bit of the form if I've just selected an ach/eft option
+  if (!empty($acheft[$form->_paymentProcessor['id']])){ 
+    /* TODO: this is only for Canada */
+    $element = $form->getElement('account_holder');
+    $element->setLabel(ts('Name of Account Holder'));
+    $element = $form->getElement('bank_identification_number');
+    $element->setLabel(ts('Bank number + branch transit number'));
+    //$element = $form->getElement('bank_name');
+    //$element->setLabel(ts('Bank name'));
+    $form->addElement('select', 'bank_account_type', ts('Account type'), array('CHECKING' => 'Checking', 'SAVING' => 'Saving'));
+    $form->addRule('bank_account_type', ts('%1 is a required field.', array(1 => ts('Account type'))), 'required');
+    CRM_Core_Region::instance('billing-block')->add(array(
+      'template' => 'CRM/iATS/BillingBlockDirectDebitExtra.tpl'
+    ));
+
+    // watchdog('iats_acheft',kprint_r($form,TRUE));
+  }
   // TODO: add legal requirements for electronic acceptance of 
   //workaround the notice message, as ContributionBase assumes these fields exist in the confirm step
   /* foreach (array("account_holder","bank_identification_number","bank_name","bank_account_number") as $field){
     $form->addElement("hidden",$field);
   } */
-  // CRM_Core_Region::instance('page-header')->add(array('script' => $js));
 }

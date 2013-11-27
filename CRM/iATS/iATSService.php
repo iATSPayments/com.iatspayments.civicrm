@@ -65,6 +65,10 @@ Class iATS_Service_Request {
   function request($credentials, $payment) {
     // Attempt the SOAP request and log the exception on failure.
     $method = $this->method['method'];
+    if (empty($method)) {
+      dsm($this->method);
+      return FALSE;
+    }
     $message = $this->method['message'];
     $response = $this->method['response'];
     // always log requests, start by making a copy of the original request
@@ -191,14 +195,21 @@ Class iATS_Service_Request {
         'response' => 'ProcessCreditCardWithCustomerCodeV1Result',
       ),
       'acheft' => array(
-        'title' => 'Debit Card',
+        'title' => 'ACH/EFT',
         'description' => $desc. 'ProcessACHEFTV1',
         'method' => 'ProcessACHEFT',
         'message' => 'ProcessACHEFTV1',
         'response' => 'ProcessACHEFTV1Result',
       ),
+      'acheft_create_customer_code' => array(
+        'title' => 'ACH/EFT, saved',
+        'description' => $desc. 'CreateCustomerCodeAndProcessACHEFTV1',
+        'method' => 'CreateCustomerCodeAndProcessACHEFT',
+        'message' => 'CreateCustomerCodeAndProcessACHEFTV1',
+        'response' => 'CreateCustomerCodeAndProcessACHEFTV1Result',
+      ),
       'acheft_with_customer_code' => array(
-        'title' => 'Debit Card with customer code',
+        'title' => 'ACH/EFT with customer code',
         'description' => $desc. 'ProcessACHEFTWithCustomerCodeV1',
         'method' => 'ProcessACHEFTWithCustomerCode',
         'message' => 'ProcessACHEFTWithCustomerCodeV1',
