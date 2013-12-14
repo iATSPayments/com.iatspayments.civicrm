@@ -32,8 +32,8 @@ function _civicrm_api3_job_iatsrecurringcontributions_spec(&$spec) {
 function civicrm_api3_job_iatsrecurringcontributions($params) {
   // TODO: what kind of extra security do we want or need here to prevent it from being triggered inappropriately? Or does it matter?
 
-  $config = &CRM_Core_Config::singleton();
-  $debug  = false;
+  // $config = &CRM_Core_Config::singleton();
+  // $debug  = false;
   // do my calculations based on yyyymmddhhmmss representation of the time
   // not sure about time-zone issues, may this next line tries to fix that?
   $dtCurrentDay    = date("Ymd", mktime(0, 0, 0, date("m") , date("d") , date("Y")));
@@ -150,7 +150,7 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
       );
       $request['customerIPAddress'] = (function_exists('ip_address') ? ip_address() : $_SERVER['REMOTE_ADDR']);
 
-      $credentials = _civicrm_api3_job_iatsrecurringcontributions_credentials($dao->payment_processor_id);
+      $credentials = $iats->credentials($dao->payment_processor_id);
       // TODO: enable override of the default url in the request object
       // $url = $this->_paymentProcessor['url_site'];
       // make the soap request
@@ -234,24 +234,3 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
   return civicrm_api3_create_success(ts('No contribution records were processed.'));
 
 }
-
-function _civicrm_api3_job_iatsrecurringcontributions_credentials($payment_processor_id) {
-  static $credentials = array();
-  if (empty($credentials[$payment_processor_id])) {
-    $select = 'SELECT user_name, password FROM civicrm_payment_processor WHERE id = %1';
-    $args = array(
-      1 => array($payment_processor_id, 'Int'),
-    );
-    $dao = CRM_Core_DAO::executeQuery($select,$args);
-    if ($dao->fetch()) {
-      $cred = array(
-        'agentCode' => $dao->user_name,
-        'password' => $dao->password,
-      );
-      $credentials[$payment_processor_id] = $cred;
-      return $cred;
-    }
-    return;
-  }
-  return $credentials[$payment_processor_id];
-} 
