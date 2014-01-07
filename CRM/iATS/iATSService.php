@@ -57,8 +57,10 @@ Class iATS_Service_Request {
     $this->_wsdl_url_ns = 'https://www.iatspayments.com/NetGate/';
     // TODO: go through options and ensure defaults
     $this->options = $options;
-    $this->options['log'] = array('all' => 1);
-    $this->options['trace'] = 1;
+    $user_system = _iats_civicrm_domain_info('userSystem');
+    $this->options['log'] = _iats_civicrm_domain_info('userFrameworkLogging') && !empty($user_system->is_drupal);
+    $this->options['debug'] = _iats_civicrm_domain_info('debug');
+
   }
 
   /**
@@ -80,7 +82,8 @@ Class iATS_Service_Request {
     }
     $message = $this->method['message'];
     $response = $this->method['response'];
-    // always log requests, start by making a copy of the original request
+    // always log requests to my own table, start by making a copy of the original request
+    // note: this is different from the drupal watchdog logging that only happens if userframework logging and debug are enabled
     if (!empty($payment['invoiceNum'])) {
       $logged_request = $payment;
       // mask the cc numbers
@@ -102,7 +105,7 @@ Class iATS_Service_Request {
     }
     // the agent user and password only get put in here so they don't end up in a log above
     try {
-      $soapClient = new SoapClient($this->_wsdl_url, array('trace' => $this->options['trace']));
+      $soapClient = new SoapClient($this->_wsdl_url, array('trace' => $this->options['debug']));
       // watchdog('iats_civicrm_ca', 'Soap Client: !obj', array('!obj' => print_r($soapClient, TRUE)), WATCHDOG_NOTICE);
       /* build the request manually as per the iATS docs */
       $xml = '<'.$message.' xmlns="'.$this->_wsdl_url_ns.'">';
@@ -112,16 +115,16 @@ Class iATS_Service_Request {
          $xml .= '<'.$k.'>'.$v.'</'.$k.'>';
       }
       $xml .= '</'.$message.'>';
-      if (!empty($this->options['log']['all']) || !empty($this->options['log']['xml'])) {
+      if (!empty($this->options['log'])) {
          watchdog('iats_civicrm_ca', 'Method info: !method', array('!method' => $method), WATCHDOG_NOTICE);
          watchdog('iats_civicrm_ca', 'XML: !xml', array('!xml' => $xml), WATCHDOG_NOTICE);
       }
       $soapRequest = new SoapVar($xml, XSD_ANYXML);
-      if (!empty($this->options['log']['all']) || !empty($this->options['log']['xml'])) {
+      if (!empty($this->options['log'])) {
          watchdog('iats_civicrm_ca', 'Request !request', array('!request' => print_r($soapRequest,TRUE)), WATCHDOG_NOTICE);
       }
       $soapResponse = $soapClient->$method($soapRequest);
-      if (!empty($this->options['log']['all']) || !empty($this->options['log']['request'])) {
+      if (!empty($this->options['log']) && !empty($this->options['debug'])) {
          $response_log = "\n HEADER:\n";
          $response_log .= $soapClient->__getLastResponseHeaders();
          $response_log .= "\n BODY:\n";
@@ -131,7 +134,7 @@ Class iATS_Service_Request {
       }
     }
     catch (SoapFault $exception) {
-      if (!empty($this->options['log']['all']) || !empty($this->options['log']['exception'])) {
+      if (!empty($this->options['log'])) {
         watchdog('iats_civicrm_ca', 'SoapFault: !exception', array('!exception' => '<pre>' . print_r($exception, TRUE) . '</pre>'), WATCHDOG_ERROR);
         $response_log = "\n HEADER:\n";
         $response_log .= $soapClient->__getLastResponseHeaders();
@@ -144,14 +147,14 @@ Class iATS_Service_Request {
     }
 
     // Log the response if specified.
-    if (!empty($this->options['log']['all']) || !empty($this->options['log']['response'])) {
+    if (!empty($this->options['log'])) {
       watchdog('iats_civicrm_ca', 'iATS SOAP response: !request', array('!request' => '<pre>' . print_r($soapResponse, TRUE) . '</pre>', WATCHDOG_DEBUG));
     }
     if (isset($soapResponse->$response->any)) {
       $xml_response = $soapResponse->$response->any;
       return new SimpleXMLElement($xml_response);
     }
-    else { // deal with bad iats soap
+    else { // deal with bad iats soap, this will only work if trace (debug) is on for now
       $hack = new stdClass();
       $hack->FILE = strip_tags($soapClient->__getLastResponse());
       return $hack;

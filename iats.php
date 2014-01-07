@@ -2,7 +2,6 @@
 
 define('IATS_CIVICRM_NSCD_FID',_iats_civicrm_nscd_fid());
 
-
 require_once 'iats.civix.php';
 
 /**
@@ -300,16 +299,24 @@ function iats_civicrm_buildForm_CRM_Contribute_Form_Contribution_Main(&$form) {
   } */
 }
 
-function _iats_civicrm_version() {
-  static $version;
-  if (empty($version)) {
-    $result = civicrm_api('Domain', 'getsingle', array('version' => 3));
-    $version = explode('.',$result['version']);
+function _iats_civicrm_domain_info($key) {
+  static $domain;
+  if (empty($domain)) {
+    $domain = civicrm_api('Domain', 'getsingle', array('version' => 3));
   }
-  return $version;
+  switch($key) {
+    case 'version':
+      return explode('.',$domain['version']);
+    default:
+      if (!empty($domain[$key])) {
+        return $key;
+      }
+      $config_backend = unserialize($domain['config_backend']);
+      return $config_backend[$key];
+  }
 }
 
 function _iats_civicrm_nscd_fid() {
-  $version = _iats_civicrm_version();
+  $version = _iats_civicrm_domain_info('version');
   return (($version[0] <= 4) && ($version[1] <= 3)) ? 'next_sched_contribution' : 'next_sched_contribution_date';
 }
