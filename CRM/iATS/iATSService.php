@@ -105,7 +105,9 @@ Class iATS_Service_Request {
     }
     // the agent user and password only get put in here so they don't end up in a log above
     try {
-      $soapClient = new SoapClient($this->_wsdl_url, array('trace' => $this->options['debug']));
+      /* until iATS fixes it's box verify, we need to have trace on to make the hack below work */
+      $soapClient = new SoapClient($this->_wsdl_url, array('trace' => 1));
+      // $soapClient = new SoapClient($this->_wsdl_url, array('trace' => $this->options['debug']));
       // watchdog('iats_civicrm_ca', 'Soap Client: !obj', array('!obj' => print_r($soapClient, TRUE)), WATCHDOG_NOTICE);
       /* build the request manually as per the iATS docs */
       $xml = '<'.$message.' xmlns="'.$this->_wsdl_url_ns.'">';
