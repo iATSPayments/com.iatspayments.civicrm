@@ -19,6 +19,7 @@
   <compatibility>
     <ver>4.2</ver>
     <ver>4.3</ver>
+    <ver>4.4</ver>
   </compatibility>
   <comments>This extension module replaces the previous iATS payment processor. It uses the new webservices interface instead of the old "php api" interface to iATS, and is now distributed as an extension. It can co-exist with the old iATS payment processor.</comments>
   <civix>
