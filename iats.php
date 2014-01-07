@@ -145,7 +145,7 @@ function iats_civicrm_navigationMenu(&$params) {
 function iats_civicrm_buildForm($formName, &$form) {
   $fname = 'iats_civicrm_buildForm_'.$formName;
   if (function_exists($fname)) {
-    $fname(&$form);
+    $fname($form);
   }
 }
 
