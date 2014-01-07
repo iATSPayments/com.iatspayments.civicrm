@@ -23,12 +23,14 @@
 Class iATS_Service_Request {
 
   /* check iATS website for additional supported currencies */
+  /* TODO: in UK, use a different url! */
   CONST CURRENCIES = 'CAD,USD,AUD,GBP,EUR,NZD';
   // iATS transaction mode definitions:
   CONST iATS_TXN_NS = 'xmlns';
   CONST iATS_TXN_TRACE = TRUE;
   CONST iATS_TXN_SUCCESS = 'Success';
   CONST iATS_TXN_OK = 'OK';
+  CONST iATS_CSV_CUSTOMER_CODE_COLUMN = 4;
   CONST iATS_URL_PROCESSLINK = 'https://www.iatspayments.com/NetGate/ProcessLink.asmx?WSDL';
   CONST iATS_URL_REPORTLINK = 'https://www.iatspayments.com/NetGate/ReportLink.asmx?WSDL';
   CONST iATS_URL_CUSTOMERLINK = 'https://www.iatspayments.com/NetGate/CustomerLink.asmx?WSDL';
@@ -145,8 +147,15 @@ Class iATS_Service_Request {
     if (!empty($this->options['log']['all']) || !empty($this->options['log']['response'])) {
       watchdog('iats_civicrm_ca', 'iATS SOAP response: !request', array('!request' => '<pre>' . print_r($soapResponse, TRUE) . '</pre>', WATCHDOG_DEBUG));
     }
-    $xml_response = $soapResponse->$response->any;
-    return new SimpleXMLElement($xml_response);
+    if (isset($soapResponse->$response->any)) {
+      $xml_response = $soapResponse->$response->any;
+      return new SimpleXMLElement($xml_response);
+    }
+    else { // deal with bad iats soap
+      $hack = new stdClass();
+      $hack->FILE = strip_tags($soapClient->__getLastResponse());
+      return $hack;
+    }
   }
 
   function file($response) {
@@ -265,8 +274,8 @@ Class iATS_Service_Request {
             'title' => 'ACH-EFT Payment Box Journal CSV',
             'description'=> $desc. 'GetACHEFTPaymentBoxJournalCSV V1',
             'method' => 'GetACHEFTPaymentBoxJournalCSV',
-            'message' => 'GetACHEFTPaymentBoxJournalCSV_x0020_V1',
-            'response' => 'GetACHEFTPaymentBoxJournalCSV_x0020_V1Result',
+            'message' => 'GetACHEFTPaymentBoxJournalCSVV1',
+            'response' => 'GetACHEFTPaymentBoxJournalCSVV1Result',
           ),
           'acheft_payment_box_reject_csv' => array(
             'title' => 'ACH-EFT Payment Box Reject CSV',

@@ -43,3 +43,18 @@ CREATE TABLE `civicrm_iats_response_log` (
   KEY (`remote_id`),
   KEY (`response_datetime`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='Table for response log';
+
+CREATE TABLE `civicrm_iats_verify` (
+  `id` int unsigned NOT NULL AUTO_INCREMENT  COMMENT 'Verification Id',
+  `customer_code` varchar(255) NOT NULL COMMENT 'Customer code returned from iATS',
+  `cid` int(10) unsigned DEFAULT '0' COMMENT 'CiviCRM contact id',
+  `contribution_id` int(10) unsigned DEFAULT '0' COMMENT 'CiviCRM contribution table id',
+  `recur_id` int(10) unsigned DEFAULT '0' COMMENT 'CiviCRM recurring_contribution table id',
+  `contribution_status_id` int(10) unsigned DEFAULT '0' COMMENT 'CiviCRM new status id',
+  `verify_datetime` datetime COMMENT 'Date time of verification',
+  PRIMARY KEY ( `id` ),
+  KEY (`customer_code`),
+  KEY (`cid`),
+  KEY (`contribution_id`),
+  KEY (`recur_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='Table to store verification information';
