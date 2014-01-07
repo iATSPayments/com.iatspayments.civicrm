@@ -82,6 +82,10 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
         'toDate' => date('Y-m-d',strtotime('-1 day')), 
         'customerIPAddress' => (function_exists('ip_address') ? ip_address() : $_SERVER['REMOTE_ADDR']),
       );
+      /* if ($contribution_status_id == 1) {
+        $request['fromDate'] = '2012-04-25';
+        $request['toDate'] = '2012-04-25';
+      } */
       // make the soap request, should return a csv file
       $response = $iats->request($credentials,$request);
       if (is_object($response)) {
@@ -93,6 +97,7 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
           for ($i = 1; $i < count($box); $i++) {
             $counter++;
             $data = str_getcsv($box[$i]);
+            if (empty($data[iATS_SERVICE_REQUEST::iATS_CSV_CUSTOMER_CODE_COLUMN])) continue;
             $customer_code = $data[iATS_SERVICE_REQUEST::iATS_CSV_CUSTOMER_CODE_COLUMN];
             if (isset($pending[$customer_code])) {
               $found++;

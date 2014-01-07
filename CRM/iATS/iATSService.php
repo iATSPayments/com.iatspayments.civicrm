@@ -274,8 +274,10 @@ Class iATS_Service_Request {
             'title' => 'ACH-EFT Payment Box Journal CSV',
             'description'=> $desc. 'GetACHEFTPaymentBoxJournalCSV V1',
             'method' => 'GetACHEFTPaymentBoxJournalCSV',
-            'message' => 'GetACHEFTPaymentBoxJournalCSVV1',
-            'response' => 'GetACHEFTPaymentBoxJournalCSVV1Result',
+            'message' => 'GetACHEFTPaymentBoxJournalCSV_x0020_V1',
+            'response' => 'GetACHEFTPaymentBoxJournalCSV_x0020_V1Result',
+            /* 'message' => 'GetACHEFTPaymentBoxJournalCSVV1',
+            'response' => 'GetACHEFTPaymentBoxJournalCSVV1Result', */
           ),
           'acheft_payment_box_reject_csv' => array(
             'title' => 'ACH-EFT Payment Box Reject CSV',
