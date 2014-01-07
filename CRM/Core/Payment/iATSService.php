@@ -191,7 +191,7 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
       }
     }
     $request['creditCardExpiry'] = sprintf('%02d/%02d', $params['month'], ($params['year'] % 100));
-    $request['total'] = sprintf('%01.2f', CiviCRM_Utils_Rule::cleanMoney($params['amount']));
+    $request['total'] = sprintf('%01.2f', CRM_Utils_Rule::cleanMoney($params['amount']));
     // place for ugly hacks
     switch($method) {
       case 'cc_create_customer_code':

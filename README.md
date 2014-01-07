@@ -57,3 +57,12 @@ iATS' Agent Code and Password. Please remember that iATS master accounts (ending
 monies into via web services. So when setting up your Account with iATS - ask them to create another (set of)
 Agent Codes for you: e.g. 80 or 90, etc. 
 
+ACH/EFT
+
+The ACH/EFT testing value for the account is:
+
+1234111111111111
+
+So use:
+1234 for the Bank Account Number
+111111111111 for the Bank number + branch transit number

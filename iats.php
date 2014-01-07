@@ -1,5 +1,8 @@
 <?php
 
+define('IATS_CIVICRM_NSCD_FID',_iats_civicrm_nscd_fid());
+
+
 require_once 'iats.civix.php';
 
 /**
@@ -195,14 +198,14 @@ function iats_civicrm_pre($op, $objectName, $objectId, &$params) {
               // we have already taken the first payment, so calculate the next one
               $params['contribution_status_id'] = 1;
               $next = strtotime('+'.$params['frequency_interval'].' '.$params['frequency_unit']);
-              $params['next_sched_contribution'] = date('YmdHis',$next);
+              $params[IATS_CIVICRM_NSCD_FID] = date('YmdHis',$next);
               break;
             case 'iATSServiceACHEFT': // 
               // watchdog('iats_civicrm_recur','<pre>'.print_r($params,TRUE).'</pre>');
               $params['payment_instrument_id'] = 2;
               $params['contribution_status_id'] = 1;
               $next = strtotime('+'.$params['frequency_interval'].' '.$params['frequency_unit']);
-              $params['next_sched_contribution'] = date('YmdHis',$next);
+              $params[IATS_CIVICRM_NSCD_FID] = date('YmdHis',$next);
               break;
           }
         }
@@ -295,4 +298,18 @@ function iats_civicrm_buildForm_CRM_Contribute_Form_Contribution_Main(&$form) {
   /* foreach (array("account_holder","bank_identification_number","bank_name","bank_account_number") as $field){
     $form->addElement("hidden",$field);
   } */
+}
+
+function _iats_civicrm_version() {
+  static $version;
+  if (empty($version)) {
+    $result = civicrm_api('Domain', 'getsingle', array('version' => 3));
+    $version = explode('.',$result['version']);
+  }
+  return $version;
+}
+
+function _iats_civicrm_nscd_fid() {
+  $version = _iats_civicrm_version();
+  return (($version[0] <= 4) && ($version[1] <= 3)) ? 'next_sched_contribution' : 'next_sched_contribution_date';
 }

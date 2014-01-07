@@ -58,7 +58,7 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
   }
   else { // if (!empty($params['scheduled'])) { 
     //normally, process all recurring contributions due today
-    $select .= ' AND cr.next_sched_contribution <= %2';
+    $select .= ' AND cr.'.IATS_CIVICRM_NSCD_FID.' <= %2';
     $args[2] = array($dtCurrentDayEnd, 'String');
     // ' AND cr.next_sched_contribution >= %2 
     // $args[2] = array($dtCurrentDayStart, 'String');
@@ -173,7 +173,7 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
 
     CRM_Core_DAO::executeQuery("
       UPDATE civicrm_contribution_recur 
-         SET next_sched_contribution = %1 
+         SET ".IATS_CIVICRM_NSCD_FID." = %1 
        WHERE id = %2
     ", array(
          1 => array($next_collectionDate, 'String'),
