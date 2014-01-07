@@ -193,7 +193,7 @@ class CRM_Core_Payment_iATSServiceACHEFT extends CRM_Core_Payment {
         $request[$r] = $params[$p];
       }
     }
-    $request['total'] = sprintf('%01.2f', $params['amount']);
+    $request['total'] = sprintf('%01.2f', CiviCRM_Utils_Rule::cleanMoney($params['amount']));
     // place for ugly hacks
     switch($method) {
       case 'acheft_create_customer_code':
