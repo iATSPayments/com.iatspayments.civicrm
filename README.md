@@ -3,7 +3,13 @@ ca.civicrm.iats
 
 CiviCRM Extension for iATS Web Services Payment Processor
 
-To install (4.3 instructions - 4.2 instructions are similar but slightly different so I'll give you the paths as well):
+Requirements
+
+CiviCRM 4.2+. These are instructions are based on 4.3, the 4.2 instructions are similar. The support for jobs in 4.2/civix is a bit iffy.
+
+Your PHP needs to include the SOAP extension (php.net/manual/en/soap.setup.php).  
+
+Installation 
 
 1. create a directory for your CiviCRM Extensions (if you don't already have one).
 
