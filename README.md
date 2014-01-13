@@ -32,6 +32,7 @@ hit Refresh - you should see iATS Payments now -> hit Install in the far right c
  Administer -> System Settings -> Payment Processor + Add Payment Processor
  Select iATS Payments Credit Card
  The "Name" is what your visitors will see when they select a payment method, so typically use "Credit Card" here, or "Credit Card, C$" (or US$) if there's any doubt about the currency. Your iATS account is configured for a single currency, so when you set up the payment page, you'll have to manually ensure you set the right currency (not an issue if you're only handling one currency).
+ Use the url https://www.iatspayments.com/NetGate/, or https://www.uk.iatspayments.com/NetGate/ for the Site URL and Recurring payments URL. Only the domain is actually used, but it's important to let the payment processor plugin know whether your account is on the UK or NA server.
  To test your new processor using live workflows: use Agent Code = TEST88 and Password = TEST88 for both Live and Test.
 
 6. Create a Contribution Page (or go to an existing one)
@@ -84,7 +85,7 @@ Use test VISA:  4222222222222220 security code = 123 and any future Expiration d
 ACH/EFT
 -------
 
-ACH/EFT is pretty new, suggestions to improve this function welcome!
+ACH/EFT is pretty new, suggestions to improve this function welcome! It is currently only implemented for North American accounts and recurring contributions.
 
 The ACH/EFT testing value for the TEST88 account is:
 
@@ -94,6 +95,6 @@ So use:
 1234 for the Bank Account Number
 111111111111 for the Bank number + branch transit number
 
-ACH/EFT contributions are forced by this extension to be recurring only. The initial contribution goes in with a pending status until a process at iATS confirms the payment went through (or not). There's a Scheduled Job that must be enabled that checks iATS daily for approvals/rejections. Unfortunately, all test contributions are rejected, so we have no way of testing approvals yet.
+ACH/EFT contributions are forced by this extension to be recurring only. Support for the UK server has been excluded due to different legal issues with EU direct payment. The initial contribution goes in with a pending status until a process at iATS confirms the payment went through (or not). There's a Scheduled Job that must be enabled that checks iATS daily for approvals/rejections. Unfortunately, all test contributions are rejected, so we have no way of testing approvals yet.
 
 Please post an issue to the github repository if you have any questions.

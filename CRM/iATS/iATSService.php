@@ -22,31 +22,29 @@
 
 Class iATS_Service_Request {
 
-  /* check iATS website for additional supported currencies */
-  /* TODO: in UK, use a different url! */
-  CONST CURRENCIES = 'CAD,USD,AUD,GBP,EUR,NZD';
   // iATS transaction mode definitions:
   CONST iATS_TXN_NS = 'xmlns';
   CONST iATS_TXN_TRACE = TRUE;
   CONST iATS_TXN_SUCCESS = 'Success';
   CONST iATS_TXN_OK = 'OK';
   CONST iATS_CSV_CUSTOMER_CODE_COLUMN = 4;
-  CONST iATS_URL_PROCESSLINK = 'https://www.iatspayments.com/NetGate/ProcessLink.asmx?WSDL';
-  CONST iATS_URL_REPORTLINK = 'https://www.iatspayments.com/NetGate/ReportLink.asmx?WSDL';
-  CONST iATS_URL_CUSTOMERLINK = 'https://www.iatspayments.com/NetGate/CustomerLink.asmx?WSDL';
+  CONST iATS_URL_PROCESSLINK = '/NetGate/ProcessLink.asmx?WSDL';
+  CONST iATS_URL_REPORTLINK = '/NetGate/ReportLink.asmx?WSDL';
+  CONST iATS_URL_CUSTOMERLINK = '/NetGate/CustomerLink.asmx?WSDL';
 
   function __construct($method, $options = array()) {
     $type = isset($options['type']) ? $options['type'] : 'process';
+    $iats_domain = $options['iats_domain'];
     switch($type) {
       case 'report':
-        $this->_wsdl_url = self::iATS_URL_REPORTLINK;
+        $this->_wsdl_url = 'https://' . $iats_domain . self::iATS_URL_REPORTLINK;
         break;
       case 'customer':
-        $this->_wsdl_url = self::iATS_URL_CUSTOMERLINK;
+        $this->_wsdl_url = 'https://' . $iats_domain . self::iATS_URL_CUSTOMERLINK;
         break;
       case 'process':
       default:
-        $this->_wsdl_url = self::iATS_URL_PROCESSLINK;
+        $this->_wsdl_url = 'https://' . $iats_domain . self::iATS_URL_PROCESSLINK;
         break;
     }
     // TODO: check that the method is allowed!
@@ -54,15 +52,35 @@ Class iATS_Service_Request {
     // initialize the request array
     $this->request = array();
     // name space url
-    $this->_wsdl_url_ns = 'https://www.iatspayments.com/NetGate/';
+    $this->_wsdl_url_ns = 'https://' . $iats_domain . '/NetGate/';
     // TODO: go through options and ensure defaults
     $this->options = $options;
     $user_system = _iats_civicrm_domain_info('userSystem');
     $this->options['log'] = _iats_civicrm_domain_info('userFrameworkLogging') && !empty($user_system->is_drupal);
     $this->options['debug'] = _iats_civicrm_domain_info('debug');
-
+    // check for valid currencies with domain/method combinations
+    if (isset($options['currencyID'])) {
+      $valid = FALSE;
+      switch($iats_domain) {
+        case 'www.iatspayments.com':
+           if (in_array($options['currencyID'], array('USD', 'CAD'))) {
+             $valid = TRUE;
+           }
+           break; 
+        case 'www.uk.iatspayments.com':
+           if (in_array($options['currencyID'], array('USD','EUR','GBP','IEE','CHF','HKD','JPY','SGD','MXN'))) {
+             if ('cc' == substr($method,0,2)) {
+               $valid = TRUE;
+             }
+           }
+           break; 
+      }
+      if (!$valid) { // TODO how about a nicer error here!
+        die('Invalid currency selection: '.$options['currencyID'].' for domain '.$iats_domain);
+      } 
+    }
   }
-
+  /* check iATS website for additional supported currencies */
   /**
    * Submits an API request through the iATS SOAP API Toolkit.
    *
@@ -173,24 +191,19 @@ Class iATS_Service_Request {
   */
  
   function result($response, $log = TRUE) {
-    $processresult = $response->PROCESSRESULT;
-    $auth_result = trim(current($processresult->AUTHORIZATIONRESULT));
-    $result = array('auth_result' => $auth_result,
-                    'remote_id' => current($processresult->TRANSACTIONID)
-    );
-    // If we didn't get an approval response code...
-    // Note: do not use SUCCESS property, which just means iATS said "hello"
-    $result['status'] = (substr($auth_result,0,2) == self::iATS_TXN_OK) ? 1 : 0;
+    $result = array('auth_result' => '', 'remote_id' => '', 'status' => '');
+    if (!empty($response->PROCESSRESULT)) {
+      $processresult = $response->PROCESSRESULT;
+      $result['auth_result'] = trim(current($processresult->AUTHORIZATIONRESULT));
+      $result['remote_id'] = current($processresult->TRANSACTIONID);
+      // If we didn't get an approval response code...
+      // Note: do not use SUCCESS property, which just means iATS said "hello"
+      $result['status'] = (substr($result['auth_result'],0,2) == self::iATS_TXN_OK) ? 1 : 0;
+    }
 
     // If the payment failed, display an error and rebuild the form.
-    if (!$result['status']) {
-      $result['reasonMessage'] = $this->reasonMessage($auth_result);
-      if ($auth_result == 'REJECT: 5') {
-        //drupal_set_message('You may have interrupted an authorization in progress - please contact us to process/complete your order.', 'error');
-      }
-      else {
-        //drupal_set_message('Please enter your information again or try a different card.', 'error');
-      }
+    if (empty($result['status'])) {
+      $result['reasonMessage'] = $result['auth_result'] ? $this->reasonMessage($result['auth_result']) : 'Unexpected Server Error, please see your logs';
     }
     if ($log) {
       $query_params = array(

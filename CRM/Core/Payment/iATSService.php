@@ -37,6 +37,8 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
     $config = CRM_Core_Config::singleton();
     // live or test
     $this->_profile['mode'] = $mode;
+    // we only use the domain of the configured url, which is different for NA vs. UK
+    $this->_profile['iats_domain'] = parse_url($this->_paymentProcessor['url_site'], PHP_URL_HOST);
   }
 
   static function &singleton($mode, &$paymentProcessor) {
@@ -57,10 +59,7 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
     $isRecur =  CRM_Utils_Array::value('is_recur', $params) && $params['contributionRecurID'];
     $method = $isRecur ? 'cc_create_customer_code':'cc';
     // to add debugging info in the drupal log, assign 1 to log['all'] below
-    $iats = new iATS_Service_Request($method,array('log' => array('all' => 0),'trace' => FALSE));
-    if (!in_array($params['currencyID'], explode(',', $iats::CURRENCIES))) {
-      return self::error('Invalid currency selection, must be one of ' . $iats::CURRENCIES);
-    }
+    $iats = new iATS_Service_Request($method,array('type' => 'process', 'iats_domain' => $this->_profile['iats_domain'], 'currencyID' => $params['currencyID']));
     $request = $this->convertParams($params, $method);
     $request['customerIPAddress'] = (function_exists('ip_address') ? ip_address() : $_SERVER['REMOTE_ADDR']);
     $credentials = array('agentCode' => $this->_paymentProcessor['user_name'],

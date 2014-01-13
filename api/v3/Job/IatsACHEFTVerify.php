@@ -28,10 +28,6 @@ function _civicrm_api3_job_iatsacheftverify_spec(&$spec) {
  */
 function civicrm_api3_job_iatsacheftverify($iats_service_params) {
 
-  /* $params will be passed as arguments to iats service request, allow overriding of logging/tracing */
-  // TODO: update default logging and tracing to none
-  $iats_service_params = $iats_service_params + array('log' => array('all' => 1),'trace' => TRUE);
-  $iats_service_params['type'] = 'report';
   // find all pending iats acheft contributions, and their corresponding recurring contribution id 
   // TODO: needs to be updated if we ever accept one-off ach/eft
   $select = 'SELECT c.*, cr.contribution_status_id as cr_contribution_status_id, icc.customer_code as customer_code, icc.cid as icc_contact_id FROM civicrm_contribution c 
@@ -63,26 +59,28 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
   $found = 0;
   $output = array();
   /* do this loop for each relevant payment processor of type ACHEFT (usually only one or none) */
-  $select = 'SELECT id FROM civicrm_payment_processor WHERE class_name = %1 AND is_test = 0';
+  $select = 'SELECT id,url_site FROM civicrm_payment_processor WHERE class_name = %1 AND is_test = 0';
   $args = array(
     1 => array('Payment_iATSServiceACHEFT', 'String'),
   );
   $dao = CRM_Core_DAO::executeQuery($select,$args);
   while ($dao->fetch()) {
     /* get rejections and then approvals for this payment processor */
+    $iats_service_params = array('type' => 'report', 'iats_domain' => parse_url($dao->url_site, PHP_URL_HOST)) + $iats_service_params;
     foreach (array('acheft_payment_box_reject_csv' => 4, 'acheft_payment_box_journal_csv' => 1) as $method => $contribution_status_id) {
-      $iats = new iATS_Service_Request($method, $iats_service_params);
-      $credentials = $iats->credentials($dao->id);
       // TODO: this is set to capture approvals and canellations from the past month, for testing purposes
       // it doesn't hurt, but on a live environment, this maybe should be limited to the past week, or less?
+      // or, it could be configurable for the job
+      $iats = new iATS_Service_Request($method, $iats_service_params);
+      $credentials = $iats->credentials($dao->id);
       /* Initialize the default values for the iATS service request */
-      /* iATS service is finicky about order! */
+      /* note: iATS service is finicky about order! */
       $request = array(
         'fromDate' => date('Y-m-d',strtotime('-30 days')), 
         'toDate' => date('Y-m-d',strtotime('-1 day')), 
         'customerIPAddress' => (function_exists('ip_address') ? ip_address() : $_SERVER['REMOTE_ADDR']),
       );
-      /* if ($contribution_status_id == 1) {
+      /* if ($contribution_status_id == 1) { 
         $request['fromDate'] = '2012-04-25';
         $request['toDate'] = '2012-04-25';
       } */
@@ -97,8 +95,10 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
           for ($i = 1; $i < count($box); $i++) {
             $counter++;
             $data = str_getcsv($box[$i]);
+            // skip any rows that don't include a custom code - TODO: log this as an error?
             if (empty($data[iATS_SERVICE_REQUEST::iATS_CSV_CUSTOMER_CODE_COLUMN])) continue;
             $customer_code = $data[iATS_SERVICE_REQUEST::iATS_CSV_CUSTOMER_CODE_COLUMN];
+            // I'm only interested in custom codes that are still in a pending state
             if (isset($pending[$customer_code])) {
               $found++;
               $contribution = $pending[$customer_code];
@@ -113,21 +113,7 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
                 $params['id'] = $contribution['contribution_recur_id'];
                 $result = civicrm_api('ContributionRecur', 'create', $params);
               }
-              $result = civicrm_api('activity', 'create', array(
-                'version'       => 3,
-                'activity_type_id'  => 6, // 6 = contribution
-                'source_contact_id'   => $contribution['contact_id'],
-                'assignee_contact_id' => $contribution['contact_id'],
-                'subject'       => ts('Updated status of iATS Payments ACH/EFT Recurring Contribution %1 to status %2 for contact %3',
-                  array(
-                    1 => $contribution['id'],
-                    2 => $contribution_status_id,
-                    3 => $contribution['contact_id'],
-                  )),
-                'status_id'       => 2, // TODO: what should this be?
-                'activity_date_time'  => date("YmdHis"),
-              ));
-              if (!empty($iats_service_params['log']['all'])) {
+              if (TRUE) { // always log these requests in civicrm for auditing type purposes
                 $query_params = array(
                   1 => array($customer_code, 'String'),
                   2 => array($contribution['contact_id'], 'Integer'),
@@ -143,6 +129,21 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
                     (customer_code, cid, contribution_id, recur_id, contribution_status_id, verify_datetime) VALUES (%1, %2, %3, %4, %5, NOW())", $query_params);
                 }
               }
+              // also log it as an activity for administrative reference
+              $result = civicrm_api('activity', 'create', array(
+                'version'       => 3,
+                'activity_type_id'  => 6, // 6 = contribution
+                'source_contact_id'   => $contribution['contact_id'],
+                'assignee_contact_id' => $contribution['contact_id'],
+                'subject'       => ts('Updated status of iATS Payments ACH/EFT Recurring Contribution %1 to status %2 for contact %3',
+                  array(
+                    1 => $contribution['id'],
+                    2 => $contribution_status_id,
+                    3 => $contribution['contact_id'],
+                  )),
+                'status_id'       => 2, // TODO: what should this be?
+                'activity_date_time'  => date("YmdHis"),
+              ));
               if ($result['is_error']) {
                 $output[] = ts(
                   'An error occurred while creating activity record for contact id %1: %2',

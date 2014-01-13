@@ -41,7 +41,7 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
   $dtCurrentDayEnd   = $dtCurrentDay."235959";
   $expiry_limit = date('ym');
   // Select the recurring payments for iATSService, where current date is equal to next scheduled date
-  $select = 'SELECT cr.*, icc.customer_code, icc.expiry as icc_expiry, icc.cid as icc_contact_id, pp.class_name as pp_class_name FROM civicrm_contribution_recur cr 
+  $select = 'SELECT cr.*, icc.customer_code, icc.expiry as icc_expiry, icc.cid as icc_contact_id, pp.class_name as pp_class_name, pp.url_site as url_site FROM civicrm_contribution_recur cr 
       INNER JOIN civicrm_payment_processor pp ON cr.payment_processor_id = pp.id
       INNER JOIN civicrm_iats_customer_codes icc ON cr.id = icc.recur_id
       WHERE 
@@ -139,8 +139,8 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
           $method = 'cc_with_customer_code';
           break;
       }
-      // to add debugging info in the drupal log, assign 1 to log['all'] below
-      $iats = new iATS_Service_Request($method,array('log' => array('all' => 1),'trace' => TRUE));
+      $iats_service_params = array('type' => 'process', 'iats_domain' => parse_url($dao->url_site, PHP_URL_HOST));
+      $iats = new iATS_Service_Request($method, $iats_service_params);
       // build the request array
       $request = array(
         'customerCode' => $dao->customer_code,
