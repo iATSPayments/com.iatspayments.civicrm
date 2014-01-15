@@ -45,6 +45,7 @@ Class iATS_Service_Request {
       case 'process':
       default:
         $this->_wsdl_url = 'https://' . $iats_domain . self::iATS_URL_PROCESSLINK;
+        $this->_tag_order = array('agentCode','password','customerIPAddress','invoiceNum','ccNum','ccExp','firstName','lastName','address','city','state','zipCode','cvv2','total');
         break;
     }
     // TODO: check that the method is allowed!
@@ -125,14 +126,14 @@ Class iATS_Service_Request {
     try {
       /* until iATS fixes it's box verify, we need to have trace on to make the hack below work */
       $soapClient = new SoapClient($this->_wsdl_url, array('trace' => 1));
-      // $soapClient = new SoapClient($this->_wsdl_url, array('trace' => $this->options['debug']));
-      // watchdog('iats_civicrm_ca', 'Soap Client: !obj', array('!obj' => print_r($soapClient, TRUE)), WATCHDOG_NOTICE);
       /* build the request manually as per the iATS docs */
       $xml = '<'.$message.' xmlns="'.$this->_wsdl_url_ns.'">';
-      // $request = array_merge($this->request,(array) $payment, (array) $credentials);
       $request = array_merge($this->request,(array) $credentials, (array) $payment);
-      foreach($request as $k => $v) {
-         $xml .= '<'.$k.'>'.$v.'</'.$k.'>';
+      $tags = (!empty($this->_tag_order)) ? $this->_tag_order : array_keys($request);
+      foreach($tags as $k) {
+        if (isset($request[$k])) {
+          $xml .= '<'.$k.'>'.$request[$k].'</'.$k.'>';
+        }
       }
       $xml .= '</'.$message.'>';
       if (!empty($this->options['log'])) {
