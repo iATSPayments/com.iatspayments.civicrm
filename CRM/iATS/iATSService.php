@@ -53,7 +53,7 @@ Class iATS_Service_Request {
     // initialize the request array
     $this->request = array();
     // name space url
-    $this->_wsdl_url_ns = 'https://' . $iats_domain . '/NetGate/';
+    $this->_wsdl_url_ns = 'https://www.iatspayments.com/NetGate/';
     // TODO: go through options and ensure defaults
     $this->options = $options;
     $user_system = _iats_civicrm_domain_info('userSystem');
