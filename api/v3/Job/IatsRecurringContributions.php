@@ -77,7 +77,7 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
     $hash = md5(uniqid(rand(), true));
     $contribution_recur_id    = $dao->id;
     // $sourceURL = CRM_Utils_System::url('civicrm/contact/view/contributionrecur', 'reset=1&id='. $dao->id .'&cid='. $dao->contact_id .'&context=contribution');
-    $subtype = substr($dao->pp_class_name,17);
+    $subtype = substr($dao->pp_class_name,19);
     $source = "iATS Payments $subtype Recurring Contribution (id=$contribution_recur_id)"; 
     $receive_date = date("YmdHis"); // i.e. now
     // check if we already have an error
@@ -103,10 +103,10 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
       'total_amount'       => $total_amount,
       'payment_instrument_id'  => $dao->payment_instrument_id,
       'contribution_recur_id'  => $contribution_recur_id,
-      'trxn_id'        => $hash,
+      'trxn_id'        => $hash, /* placeholder: just something unique that can also be seen as the same as invoice_id */
       'invoice_id'       => $hash,
       'source'         => $source,
-      'contribution_status_id' => 2,
+      'contribution_status_id' => 4, /* default is failed, unless we actually take the money successfully */
       'currency'  => $dao->currency,
       'payment_processor'   => $dao->payment_processor_id,
     );
@@ -116,20 +116,18 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
     else { // 4.3+
        $contribution['financial_type_id'] = $dao->financial_type_id;
     }
-    $result = civicrm_api('contribution', 'create', $contribution);
-    if ($result['is_error']) {
-      $errors[] = $result['error_message'];
-    }
     if (count($errors)) {
       ++$error_count;
       ++$counter;
+      /* create the failed contribution record */
+      $result = civicrm_api('contribution', 'create', $contribution);
+      if ($result['is_error']) {
+        $errors[] = $result['error_message'];
+      }
       continue;
     }
     else { 
-      // now try to trigger the payment, update the status on success, or provide error message on failure
-      $contribution = reset($result['values']);
-      $contribution_id = $contribution['id'];
-      $output[] = ts('Created contribution record for contact id %1, recurring contribution id %2', array(1 => $contact_id, 2 => $contribution_recur_id));
+      // so far so, good ... now try to trigger the payment on iATS
       require_once("CRM/iATS/iATSService.php");
       switch($subtype) {
         case 'ACHEFT':
@@ -139,29 +137,34 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
           $method = 'cc_with_customer_code';
           break;
       }
-      $iats_service_params = array('type' => 'process', 'iats_domain' => parse_url($dao->url_site, PHP_URL_HOST));
-      $iats = new iATS_Service_Request($method, $iats_service_params);
+      $iats_service_params = array('method' => $method, 'type' => 'process', 'iats_domain' => parse_url($dao->url_site, PHP_URL_HOST));
+      $iats = new iATS_Service_Request($iats_service_params);
       // build the request array
       $request = array(
         'customerCode' => $dao->customer_code,
-  /*      'cvv2' => $dao->icc_cvv2, */
         'invoiceNum' => $hash,
         'total' => $total_amount,
       );
       $request['customerIPAddress'] = (function_exists('ip_address') ? ip_address() : $_SERVER['REMOTE_ADDR']);
 
       $credentials = $iats->credentials($dao->payment_processor_id);
-      // TODO: enable override of the default url in the request object
-      // $url = $this->_paymentProcessor['url_site'];
       // make the soap request
       $response = $iats->request($credentials,$request);
       // process the soap response into a readable result
       $result = $iats->result($response);
       if (empty($result['status'])) {
+        /* create the contribution record in civicrm with the failed status */
+        $contribution['source'] .= ' '.$result['reasonMessage'];
+        civicrm_api('contribution', 'create', $contribution);
         $output[] = ts('Failed to process recurring contribution id %1: ', array(1 => $contribution_recur_id)).$result['reasonMessage'];
       } 
-      // success, update the contribution record
-      civicrm_api('contribution','create',array('version' => 3, 'id' => $contribution_id, 'trxn_id' => $result['auth_result'],'contribution_status_id' => 1));
+      else {
+        /* success, create the contribution record with corrected status + trxn_id */
+        $contribution['trxn_id'] = $result['remote_id'] . ':' . time();
+        $contribution['contribution_status_id'] = 1; 
+        civicrm_api('contribution','create', $contribution);
+        $output[] = ts('Successfully processed recurring contribution id %1: ', array(1 => $contribution_recur_id)).$result['auth_result'];
+      }
     }
 
     //$mem_end_date = $member_dao->end_date;

@@ -12,8 +12,11 @@
  * TODO: provide logging options for the request, exception and response
  *
  * Expected usage:
- * $iats = new iATS_Service_Request($method_code, $options)
- * where: method code is 'cc', etc., options allows for logging options
+ * $iats = new iATS_Service_Request($options)
+ * where options usually include
+ *   type: 'report', 'customer', 'process'
+ *   method: 'cc', etc. as appropriate for that type
+ *   iats_domain: the domain for the api (us or uk currently)
  * $response = $iats->request($credentials,$payment)
  * the request method encapsulates the soap inteface and requires iATS client details + payment info (cc + amount + billing info)
  * $result = $iats->response($response)
@@ -32,8 +35,9 @@ Class iATS_Service_Request {
   CONST iATS_URL_REPORTLINK = '/NetGate/ReportLink.asmx?WSDL';
   CONST iATS_URL_CUSTOMERLINK = '/NetGate/CustomerLink.asmx?WSDL';
 
-  function __construct($method, $options = array()) {
+  function __construct($options) {
     $type = isset($options['type']) ? $options['type'] : 'process';
+    $method = $options['method'];
     $iats_domain = $options['iats_domain'];
     switch($type) {
       case 'report':
@@ -45,7 +49,9 @@ Class iATS_Service_Request {
       case 'process':
       default:
         $this->_wsdl_url = 'https://' . $iats_domain . self::iATS_URL_PROCESSLINK;
-        $this->_tag_order = array('agentCode','password','customerIPAddress','invoiceNum','ccNum','ccExp','firstName','lastName','address','city','state','zipCode','cvv2','total');
+        if ($method == 'cc') { /* as suggested by iATS, though not necessary I believe */
+          $this->_tag_order = array('agentCode','password','customerIPAddress','invoiceNum','ccNum','ccExp','firstName','lastName','address','city','state','zipCode','cvv2','total');
+        }
         break;
     }
     // TODO: check that the method is allowed!
@@ -54,7 +60,6 @@ Class iATS_Service_Request {
     $this->request = array();
     // name space url
     $this->_wsdl_url_ns = 'https://www.iatspayments.com/NetGate/';
-    // TODO: go through options and ensure defaults
     $this->options = $options;
     $user_system = _iats_civicrm_domain_info('userSystem');
     $this->options['log'] = _iats_civicrm_domain_info('userFrameworkLogging') && !empty($user_system->is_drupal);

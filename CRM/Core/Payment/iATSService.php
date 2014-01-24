@@ -58,8 +58,7 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
     require_once("CRM/iATS/iATSService.php");
     $isRecur =  CRM_Utils_Array::value('is_recur', $params) && $params['contributionRecurID'];
     $method = $isRecur ? 'cc_create_customer_code':'cc';
-    // to add debugging info in the drupal log, assign 1 to log['all'] below
-    $iats = new iATS_Service_Request($method,array('type' => 'process', 'iats_domain' => $this->_profile['iats_domain'], 'currencyID' => $params['currencyID']));
+    $iats = new iATS_Service_Request(array('type' => 'process', 'method' => $method, 'iats_domain' => $this->_profile['iats_domain'], 'currencyID' => $params['currencyID']));
     $request = $this->convertParams($params, $method);
     $request['customerIPAddress'] = (function_exists('ip_address') ? ip_address() : $_SERVER['REMOTE_ADDR']);
     $credentials = array('agentCode' => $this->_paymentProcessor['user_name'],

@@ -71,7 +71,8 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
       // TODO: this is set to capture approvals and canellations from the past month, for testing purposes
       // it doesn't hurt, but on a live environment, this maybe should be limited to the past week, or less?
       // or, it could be configurable for the job
-      $iats = new iATS_Service_Request($method, $iats_service_params);
+      $iats_service_params['method'] = $method;
+      $iats = new iATS_Service_Request($iats_service_params);
       $credentials = $iats->credentials($dao->id);
       /* Initialize the default values for the iATS service request */
       /* note: iATS service is finicky about order! */
