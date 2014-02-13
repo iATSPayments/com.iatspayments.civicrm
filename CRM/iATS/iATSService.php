@@ -50,7 +50,7 @@ Class iATS_Service_Request {
       default:
         $this->_wsdl_url = 'https://' . $iats_domain . self::iATS_URL_PROCESSLINK;
         if ($method == 'cc') { /* as suggested by iATS, though not necessary I believe */
-          $this->_tag_order = array('agentCode','password','customerIPAddress','invoiceNum','ccNum','ccExp','firstName','lastName','address','city','state','zipCode','cvv2','total');
+          $this->_tag_order = array('agentCode','password','customerIPAddress','invoiceNum','creditCardNum','ccNum','creditCardExpiry','ccExp','firstName','lastName','address','city','state','zipCode','cvv2','total');
         }
         break;
     }
