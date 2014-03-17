@@ -203,7 +203,7 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
       'Visa' => 'VISA',
       'MasterCard' => 'MC',
       'Amex' => 'AMX',
-      'Discover' => 'DISC',
+      'Discover' => 'DSC',
     );
     $request['mop'] = $mop[$params['credit_card_type']];
     return $request;

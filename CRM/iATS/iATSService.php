@@ -465,7 +465,7 @@ Class iATS_Service_Request {
       'VI' => t('Visa'),
       'MC' => t('MasterCard'),
       'AMX' => t('American Express'),
-      'DISC' => t('Discover Card'),
+      'DSC' => t('Discover Card'),
     );
   }
 
