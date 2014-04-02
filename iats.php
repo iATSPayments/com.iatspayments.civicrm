@@ -250,7 +250,6 @@ function _iats_civicrm_is_iats($payment_processor_id) {
 
 /* ACH/EFT modifications from the default direct debit form */
 function iats_civicrm_buildForm_CRM_Contribute_Form_Contribution_Main(&$form) {
-  $form->addElement( 'text', 'creditor_iban',  ts('IBAN'),array("size"=>34,"maxlength"=>34));
   if (empty($form->_paymentProcessors)) {
     return;
   }
@@ -263,7 +262,7 @@ function iats_civicrm_buildForm_CRM_Contribute_Form_Contribution_Main(&$form) {
       break;
     }
   }
-  // I only need to mangle formst that allow ACH/EFT
+  // I only need to mangle forms that allow ACH/EFT
   if (0 == count($acheft)) {
     return;
   }
