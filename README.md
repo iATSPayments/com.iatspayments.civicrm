@@ -1,4 +1,4 @@
-ca.civicrm.iats
+com.iatspayments.com
 ===============
 
 CiviCRM Extension for iATS Web Services Payment Processor
@@ -22,8 +22,9 @@ Installation
 2. Administer -> System Settings -> Directories or /civicrm/admin/setting/path?reset=1
 add the CiviCRM Extensions Directory you just created
 
+[optional: if you want to run a version different from one of the standard releases]
 3. in a shell cd to your CiviCRM Extensions Directory and:
-git clone https://github.com/adixon/ca.civicrm.iats.git ca.civicrm.iats
+git clone https://github.com/adixon/com.iatspayments.com.git com.iatspayments.com
 
 4. Administer -> Customize Data and Screens -> Manage Extensions
 hit Refresh - you should see iATS Payments now -> hit Install in the far right column - and click through

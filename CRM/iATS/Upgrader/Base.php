@@ -39,7 +39,7 @@ class CRM_iATS_Upgrader_Base {
     if (! self::$instance) {
       // FIXME auto-generate
       self::$instance = new CRM_iATS_Upgrader(
-        'ca.civicrm.iats',
+        'com.iatspayments.com',
         realpath(__DIR__ .'/../../../')
       );
     }
