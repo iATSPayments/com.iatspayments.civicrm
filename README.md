@@ -3,7 +3,7 @@ ca.civicrm.iats
 
 CiviCRM Extension for iATS Web Services Payment Processor
 
-Date: Jan 9, 2013, version 1.1-beta1
+Date: Apr 3, 2014, version 1.2
 
 
 Requirements
@@ -96,5 +96,7 @@ So use:
 111111111111 for the Bank number + branch transit number
 
 ACH/EFT contributions are forced by this extension to be recurring only. Support for the UK server has been excluded due to different legal issues with EU direct payment. The initial contribution goes in with a pending status until a process at iATS confirms the payment went through (or not). There's a Scheduled Job that must be enabled that checks iATS daily for approvals/rejections. Unfortunately, all test contributions are rejected, so we have no way of testing approvals yet.
+
+'Backend' ACH/EFT is not supported by CiviCRM core. Having an enabled ACH/EFT payment processor actually breaks the backend live credit card payment page in core, so this module fixes that and instead provides links to easily allow administrators to input ACH/EFT on behalf of constituents.
 
 Please post an issue to the github repository if you have any questions.

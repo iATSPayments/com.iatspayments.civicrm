@@ -248,13 +248,10 @@ function _iats_civicrm_is_iats($payment_processor_id) {
   return ('Payment_iATSService' == $type) ? 'iATSService'.$subtype  : FALSE;
 }
 
-/* ACH/EFT modifications from the default direct debit form */
-function iats_civicrm_buildForm_CRM_Contribute_Form_Contribution_Main(&$form) {
-  if (empty($form->_paymentProcessors)) {
-    return;
-  }
+/* internal utility function: return the id's of any iats ach/eft processors */
+function iats_civicrm_acheft_processors($processors) {
   $acheft = array();
-  foreach($form->_paymentProcessors as $id => $paymentProcessor) {
+  foreach($processors as $id => $paymentProcessor) {
     $params = array('version' => 3, 'sequential' => 1, 'id' => $id);
     $result = civicrm_api('PaymentProcessor', 'getsingle', $params);
     if (!empty($result['class_name']) && ('Payment_iATSServiceACHEFT' == $result['class_name'])) {
@@ -262,6 +259,15 @@ function iats_civicrm_buildForm_CRM_Contribute_Form_Contribution_Main(&$form) {
       break;
     }
   }
+  return $acheft;
+}
+
+/* ACH/EFT modifications from the default direct debit form */
+function iats_civicrm_buildForm_CRM_Contribute_Form_Contribution_Main(&$form) {
+  if (empty($form->_paymentProcessors)) {
+    return;
+  }
+  $acheft = iats_civicrm_acheft_processors($form->_paymentProcessors);
   // I only need to mangle forms that allow ACH/EFT
   if (0 == count($acheft)) {
     return;
@@ -274,9 +280,11 @@ function iats_civicrm_buildForm_CRM_Contribute_Form_Contribution_Main(&$form) {
     CRM_Core_Session::setStatus(ts('You must configure iATS ACH/EFT for recurring contributions.'), ts('Invalid form setting!'), 'alert');
   }
  
-  // In addition, I need to mangle the ajax-bit of the form if I've just selected an ach/eft option
+  /* In addition, I need to mangle the ajax-bit of the form if I've just selected an ach/eft option 
+   * I need to include an extra field for iATS
+   * TODO: make this form nicer by include a sample check with instructions for getting the account number
+   */
   if (!empty($acheft[$form->_paymentProcessor['id']])){ 
-    /* TODO: this is only for Canada */
     $element = $form->getElement('account_holder');
     $element->setLabel(ts('Name of Account Holder'));
     $element = $form->getElement('bank_identification_number');
@@ -291,11 +299,58 @@ function iats_civicrm_buildForm_CRM_Contribute_Form_Contribution_Main(&$form) {
 
     // watchdog('iats_acheft',kprint_r($form,TRUE));
   }
-  // TODO: add legal requirements for electronic acceptance of 
-  //workaround the notice message, as ContributionBase assumes these fields exist in the confirm step
-  /* foreach (array("account_holder","bank_identification_number","bank_name","bank_account_number") as $field){
-    $form->addElement("hidden",$field);
-  } */
+  // TODO: add legal requirement notice and perhaps checkbox acceptance for electronic acceptance of ACH/EFT ? Country dependent!
+}
+
+/*  Fix the backend contribution form.
+ *  1. take out my ACH/EFT processors 
+ *  2. if I took them out, provide helpful links to backend-ish payment pages
+ *  This should get fixed in core.
+ */
+function iats_civicrm_buildForm_CRM_Contribute_Form_Contribution(&$form) {
+  if (empty($form->_processors)) {
+    return;
+  }
+  $acheft = iats_civicrm_acheft_processors($form->_processors);
+  // I only need to mangle forms that allow ACH/EFT
+  if (0 == count($acheft)) {
+    return;
+  }
+  $acheft_backoffice_links = array();
+  // yes, there's a more efficient/clever way to find the right element
+  foreach($form->_elements as $form_id => $element) {
+    if ($element->_attributes['name'] == 'payment_processor_id') {
+      $pp_form_id = $form_id;
+      break;
+    }
+  }
+  foreach(array_keys($acheft) as $pp_id) {
+    unset($form->_processors[$pp_id]);
+    if (!empty($form->_recurPaymentProcessors[$pp_id])) {
+      unset($form->_recurPaymentProcessors[$pp_id]);
+    }
+    $element = $form->_elements[$pp_form_id];
+    if (is_array($element->_options)) {
+      foreach($element->_options as $option_id => $option) {
+        if ($option['attr']['value'] == $pp_id) {
+          unset($element->_options[$option_id]);
+        }
+      }
+    }
+    // and now try to provide a different mechanism for 'backoffice' type contributions using this ACH/EFT payment processor
+    $params = array('version' => 3, 'sequential' => 1, 'payment_processor' => $pp_id);
+    $result = civicrm_api('ContributionPage', 'get', $params);
+    if (0 == $result['is_error'] && count($result['values']) > 0) {
+      foreach($result['values'] as $page) {
+        $url = CRM_Utils_System::url('civicrm/contribute/transact','reset=1&cid='.$form->_contactID.'&id='.$page['id']);
+        $acheft_backoffice_links[] = '<a href="'.$url.'">'.$page['title'].'</a>';
+      }
+    }
+  }
+  if (count($acheft_backoffice_links)) {
+    // a hackish way to inject these links into the form, they are display nicely using some javascript
+    $form->addElement('hidden','acheft_backoffice_links',json_encode($acheft_backoffice_links));
+  }
 }
 
 function _iats_civicrm_domain_info($key) {
