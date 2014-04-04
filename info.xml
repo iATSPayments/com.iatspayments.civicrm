@@ -5,8 +5,9 @@
   <description>iATS Payments Web Services Payment Processor</description>
   <urls>
     <url desc="Main Extension Page">http://blackflysolutions.ca/project/iats-webservices-civicrm-extension</url>
-    <url desc="Documentation"></url>
-    <url desc="Support"></url>
+    <url desc="Support">https://github.com/iATSPayments/com.iatspayments.civicrm/issues?state=open</url>
+    <url desc="Installation Instructions">https://github.com/iATSPayments/com.iatspayments.civicrm</url>
+    <url desc="Documentation">https://github.com/iATSPayments/com.iatspayments.civicrm</url>
   </urls>
   <license>AGPL</license>
   <maintainer>
