@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<extension key="com.iatspayments.com" type="module">
+<extension key="com.iatspayments.civicrm" type="module">
   <file>iats</file>
   <name>iATS Payments</name>
   <description>iATS Payments Web Services Payment Processor</description>

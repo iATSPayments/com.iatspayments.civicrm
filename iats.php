@@ -69,7 +69,7 @@ function iats_civicrm_upgrade($op, CRM_Queue_Queue $queue = NULL) {
  */
 function iats_civicrm_managed(&$entities) {
   $entities[] = array(
-    'module' => 'com.iatspayments.com',
+    'module' => 'com.iatspayments.civicrm',
     'name' => 'iATS Payments',
     'entity' => 'PaymentProcessorType',
     'params' => array(
@@ -90,7 +90,7 @@ function iats_civicrm_managed(&$entities) {
     ),
   );
   $entities[] = array(
-    'module' => 'com.iatspayments.com',
+    'module' => 'com.iatspayments.civicrm',
     'name' => 'iATS Payments ACH/EFT',
     'entity' => 'PaymentProcessorType',
     'params' => array(
