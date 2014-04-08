@@ -42,6 +42,9 @@ function iats_civicrm_xmlMenu(&$files) {
  * Implementation of hook_civicrm_install
  */
 function iats_civicrm_install() {
+  if (!class_exists('SoapClient')) {
+    CRM_Core_Session:setStatus(ts('The PHP SOAP extension is not installed on this server, but is required for this extension'));
+  }
   return _iats_civix_civicrm_install();
 }
 
@@ -56,6 +59,9 @@ function iats_civicrm_uninstall() {
  * Implementation of hook_civicrm_enable
  */
 function iats_civicrm_enable() {
+  if (!class_exists('SoapClient')) {
+    CRM_Core_Session:setStatus(ts('The PHP SOAP extension is not installed on this server, but is required for this extension'));
+  }
   return _iats_civix_civicrm_enable();
 }
 
