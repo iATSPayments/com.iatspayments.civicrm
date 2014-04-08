@@ -14,8 +14,8 @@
     <author>Alan Dixon</author>
     <email>iats@blackflysolutions.ca</email>
   </maintainer>
-  <releaseDate>2014-04-03</releaseDate>
-  <version>1.2.1</version>
+  <releaseDate>2014-04-08</releaseDate>
+  <version>1.2.2</version>
   <develStage>stable</develStage>
   <compatibility>
     <ver>4.2</ver>
