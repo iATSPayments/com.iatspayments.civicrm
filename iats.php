@@ -1,5 +1,23 @@
 <?php
 
+/* Copyright iATS Payments (c) 2014
+ * Author: Alan Dixon
+ *
+ * This file is a part of CiviCRM published extension.
+ * 
+ * This extension is free software; you can copy, modify, and distribute it  
+ * under the terms of the GNU Affero General Public License           
+ * Version 3, 19 November 2007.
+ *                                                                    
+ * It is distributed in the hope that it will be useful, but     
+ * WITHOUT ANY WARRANTY; without even the implied warranty of         
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.               
+ * See the GNU Affero General Public License for more details.        
+ *                                                                    
+ * You should have received a copy of the GNU Affero General Public   
+ * License with this program; if not, see http://www.gnu.org/licenses/
+ */
+
 define('IATS_CIVICRM_NSCD_FID',_iats_civicrm_nscd_fid());
 
 require_once 'iats.civix.php';

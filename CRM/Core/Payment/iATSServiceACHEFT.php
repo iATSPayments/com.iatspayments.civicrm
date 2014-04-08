@@ -1,15 +1,22 @@
 <?php
-/*
- | License info here
- +--------------------------------------------------------------------+
-*/
-
-/**
- *
+/* Copyright iATS Payments (c) 2014
  * @author Alan Dixon
  *
- * This code provides glue between CiviCRM payment model and the iATS Payment model encapsulated in the iATS_Service_Request object
+ * This file is a part of CiviCRM published extension.
+ * 
+ * This extension is free software; you can copy, modify, and distribute it  
+ * under the terms of the GNU Affero General Public License           
+ * Version 3, 19 November 2007.
+ *                                                                    
+ * It is distributed in the hope that it will be useful, but     
+ * WITHOUT ANY WARRANTY; without even the implied warranty of         
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.               
+ * See the GNU Affero General Public License for more details.        
+ *                                                                    
+ * You should have received a copy of the GNU Affero General Public   
+ * License with this program; if not, see http://www.gnu.org/licenses/
  *
+ * This code provides glue between CiviCRM payment model and the iATS Payment model encapsulated in the iATS_Service_Request object
  */
 class CRM_Core_Payment_iATSServiceACHEFT extends CRM_Core_Payment {
 
