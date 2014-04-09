@@ -43,7 +43,8 @@ function iats_civicrm_xmlMenu(&$files) {
  */
 function iats_civicrm_install() {
   if (!class_exists('SoapClient')) {
-    CRM_Core_Session:setStatus(ts('The PHP SOAP extension is not installed on this server, but is required for this extension'));
+    $session = CRM_Core_Session::singleton();
+    $session->setStatus(ts('The PHP SOAP extension is not installed on this server, but is required for this extension'), ts('iATS Payments Installation'), 'error');
   }
   return _iats_civix_civicrm_install();
 }
@@ -60,7 +61,8 @@ function iats_civicrm_uninstall() {
  */
 function iats_civicrm_enable() {
   if (!class_exists('SoapClient')) {
-    CRM_Core_Session:setStatus(ts('The PHP SOAP extension is not installed on this server, but is required for this extension'));
+    $session = CRM_Core_Session::singleton();
+    $session->setStatus(ts('The PHP SOAP extension is not installed on this server, but is required for this extension'), ts('iATS Payments Installation'), 'error');
   }
   return _iats_civix_civicrm_enable();
 }
