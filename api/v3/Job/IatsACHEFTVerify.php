@@ -30,7 +30,9 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
 
   // find all pending iats acheft contributions, and their corresponding recurring contribution id 
   // TODO: needs to be updated if we ever accept one-off ach/eft
-  $select = 'SELECT c.*, cr.contribution_status_id as cr_contribution_status_id, icc.customer_code as customer_code, icc.cid as icc_contact_id FROM civicrm_contribution c 
+  // Note: I'm not going to bother checking for is_test = 1 contributions, since these are never verified 
+  $select = 'SELECT c.*, cr.contribution_status_id as cr_contribution_status_id, icc.customer_code as customer_code, icc.cid as icc_contact_id, pp.is_test 
+      FROM civicrm_contribution c 
       INNER JOIN civicrm_contribution_recur cr ON c.contribution_recur_id = cr.id
       INNER JOIN civicrm_payment_processor pp ON cr.payment_processor_id = pp.id
       INNER JOIN civicrm_iats_customer_codes icc ON cr.id = icc.recur_id
@@ -59,7 +61,8 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
   $found = 0;
   $output = array();
   /* do this loop for each relevant payment processor of type ACHEFT (usually only one or none) */
-  $select = 'SELECT id,url_site FROM civicrm_payment_processor WHERE class_name = %1 AND is_test = 0';
+  /* since test payments are NEVER verified by iATS, don't bother checking them [unless/until they change this] */
+  $select = 'SELECT id,url_site,is_test FROM civicrm_payment_processor WHERE class_name = %1 AND is_test = 0';
   $args = array(
     1 => array('Payment_iATSServiceACHEFT', 'String'),
   );
@@ -73,7 +76,7 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
       // or, it could be configurable for the job
       $iats_service_params['method'] = $method;
       $iats = new iATS_Service_Request($iats_service_params);
-      $credentials = $iats->credentials($dao->id);
+      $credentials = $iats->credentials($dao->id, $dao->is_test);
       /* Initialize the default values for the iATS service request */
       /* note: iATS service is finicky about order! */
       $request = array(

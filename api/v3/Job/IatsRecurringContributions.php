@@ -41,14 +41,15 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
   $dtCurrentDayEnd   = $dtCurrentDay."235959";
   $expiry_limit = date('ym');
   // Select the recurring payments for iATSService, where current date is equal to next scheduled date
-  $select = 'SELECT cr.*, icc.customer_code, icc.expiry as icc_expiry, icc.cid as icc_contact_id, pp.class_name as pp_class_name, pp.url_site as url_site FROM civicrm_contribution_recur cr 
+  $select = 'SELECT cr.*, icc.customer_code, icc.expiry as icc_expiry, icc.cid as icc_contact_id, pp.class_name as pp_class_name, pp.url_site as url_site, pp.is_test 
+      FROM civicrm_contribution_recur cr 
       INNER JOIN civicrm_payment_processor pp ON cr.payment_processor_id = pp.id
       INNER JOIN civicrm_iats_customer_codes icc ON cr.id = icc.recur_id
       WHERE 
         cr.contribution_status_id = 1
         AND pp.class_name LIKE %1
-        AND pp.is_test = 0
         AND (cr.end_date IS NULL OR cr.end_date > NOW())';
+  //      AND pp.is_test = 0
   $args = array(
     1 => array('Payment_iATSService%', 'String'),
   );
@@ -109,6 +110,7 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
       'contribution_status_id' => 4, /* default is failed, unless we actually take the money successfully */
       'currency'  => $dao->currency,
       'payment_processor'   => $dao->payment_processor_id,
+      'is_test'        => $dao->is_test, /* propagate the is_test value from the parent contribution */
     );
     if (isset($dao->contribution_type_id)) {  // 4.2
        $contribution['contribution_type_id'] = $dao->contribution_type_id;
@@ -147,7 +149,7 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
       );
       $request['customerIPAddress'] = (function_exists('ip_address') ? ip_address() : $_SERVER['REMOTE_ADDR']);
 
-      $credentials = $iats->credentials($dao->payment_processor_id);
+      $credentials = $iats->credentials($dao->payment_processor_id, $contribution['is_test']);
       // make the soap request
       $response = $iats->request($credentials,$request);
       // process the soap response into a readable result
