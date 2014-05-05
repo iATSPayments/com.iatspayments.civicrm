@@ -299,8 +299,7 @@ function iats_civicrm_buildForm_CRM_Contribute_Form_Contribution_Main(&$form) {
     return;
   }
   if (isset($form->_elementIndex['is_recur'])) {
-    $form->getElement('is_recur')->setValue(1); // force recurring contrib option
-    $form->getElement('is_recur')->freeze(); 
+    $form->getElement('is_recur')->setValue(1); // make recurring contrib opt-out by default
   }
   elseif (empty($form->_values['is_recur'])) {
     CRM_Core_Session::setStatus(ts('You must configure iATS ACH/EFT for recurring contributions.'), ts('Invalid form setting!'), 'alert');
