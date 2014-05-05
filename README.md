@@ -3,7 +3,7 @@ com.iatspayments.civicrm
 
 CiviCRM Extension for iATS Web Services Payment Processor
 
-Date: Apr 3, 2014, version 1.2
+Date: May 5, 2014, version 1.2
 
 
 Requirements
@@ -85,7 +85,7 @@ Also remember to turn off debugging/logging on any production environment!
 ACH/EFT
 -------
 
-ACH/EFT is pretty new, suggestions to improve this function welcome! It is currently only implemented for North American accounts and recurring contributions.
+ACH/EFT is pretty new, suggestions to improve this function welcome! It is currently only implemented for North American accounts.
 
 The ACH/EFT testing value for the TEST88 account is: 1234111111111111
 
@@ -93,8 +93,12 @@ So use:
   * 1234 for the Bank Account Number
   * 111111111111 for the Bank number + branch transit number
 
-ACH/EFT contributions are forced by this extension to be recurring only. Support for the UK server has been excluded due to different legal issues with EU direct payment. The initial contribution goes in with a pending status until a process at iATS confirms the payment went through (or not). There's a Scheduled Job that must be enabled that checks iATS daily for approvals/rejections. Unfortunately, all test contributions are rejected, so we have no way of testing approvals yet.
+When you enable this payment processor for a contribution page, it modifies the form to set recurring contributions as the default, but no longer forces recurring contributions as it did up until version 1.2.3.
 
-'Backend' ACH/EFT is not supported by CiviCRM core. Having an enabled ACH/EFT payment processor actually breaks the backend live credit card payment page in core, so this module fixes that and instead provides links to easily allow administrators to input ACH/EFT on behalf of constituents.
+Support for the UK server has been excluded due to special legal requirements with UK direct payment. We expect to have a solution to this sometime in 2014. 
+
+ACH/EFT contributions go in with a pending status until a process at iATS confirms the payment went through (or not). There's a Scheduled Job that must be enabled that checks iATS daily for approvals/rejections. Unfortunately, all test contributions are rejected, so we have no way of testing approvals except with a live transaction.
+
+'Backend' ACH/EFT is not supported by CiviCRM core. Having an enabled ACH/EFT payment processor broke the backend live credit card payment page in core (until it was fixed here https://issues.civicrm.org/jira/browse/CRM-14442), so this module fixes that if it's an issue, and also provides links to easily allow administrators to input ACH/EFT on behalf of constituents.
 
 Please post an issue to the github repository if you have any questions.
