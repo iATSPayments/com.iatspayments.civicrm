@@ -288,7 +288,26 @@ function iats_civicrm_acheft_processors($processors) {
   return $acheft;
 }
 
-/* ACH/EFT modifications from the default direct debit form */
+/* as above, but return all non-test, active ach/eft iats processors */  
+function iats_civicrm_acheft_processors_live() {
+  $acheft = array();
+  $params = array('version' => 3, 'sequential' => 1, 'is_test' => 0, 'is_active' => 1);
+  $result = civicrm_api('PaymentProcessor', 'get', $params);
+  if (0 == $result['is_error'] && count($result['values']) > 0) {
+    foreach($result['values'] as $paymentProcessor) {
+      if (!empty($paymentProcessor['class_name']) && ('Payment_iATSServiceACHEFT' == $paymentProcessor['class_name'])) {
+        $acheft[$paymentProcessor['id']] = TRUE; 
+      }
+    }
+  }
+  return $acheft;
+}
+
+/* ACH/EFT modifications to a (public) contribution form if iATS ACH/EFT is enabled
+ *  1. set recurring to be the default, if enabled
+ *  2. [previously forced recurring, removed in 1.2.4]
+ *  3. add extra fields/modify labels
+ */
 function iats_civicrm_buildForm_CRM_Contribute_Form_Contribution_Main(&$form) {
   if (empty($form->_paymentProcessors)) {
     return;
@@ -300,9 +319,6 @@ function iats_civicrm_buildForm_CRM_Contribute_Form_Contribution_Main(&$form) {
   }
   if (isset($form->_elementIndex['is_recur'])) {
     $form->getElement('is_recur')->setValue(1); // make recurring contrib opt-out by default
-  }
-  elseif (empty($form->_values['is_recur'])) {
-    CRM_Core_Session::setStatus(ts('You must configure iATS ACH/EFT for recurring contributions.'), ts('Invalid form setting!'), 'alert');
   }
  
   /* In addition, I need to mangle the ajax-bit of the form if I've just selected an ach/eft option 
@@ -327,22 +343,20 @@ function iats_civicrm_buildForm_CRM_Contribute_Form_Contribution_Main(&$form) {
   // TODO: add legal requirement notice and perhaps checkbox acceptance for electronic acceptance of ACH/EFT ? Country dependent!
 }
 
-/*  Fix the backend contribution form.
- *  1. take out my ACH/EFT processors 
- *  2. if I took them out, provide helpful links to backend-ish payment pages
- *  This should get fixed in core.
+/*  Fix the backend contribution form, by removing my ACH/EFT processors
+ *  Now fixed in core: https://issues.civicrm.org/jira/browse/CRM-14442)
  */
 function iats_civicrm_buildForm_CRM_Contribute_Form_Contribution(&$form) {
   if (empty($form->_processors)) {
     return;
   }
   $acheft = iats_civicrm_acheft_processors($form->_processors);
-  // I only need to mangle forms that allow ACH/EFT
+  // I only need to mangle the form if it (still) allows ACH/EFT
   if (0 == count($acheft)) {
     return;
   }
-  $acheft_backoffice_links = array();
   // yes, there's a more efficient/clever way to find the right element
+  // but since this code is only fixing old CiviCRM instances, let's not worry
   foreach($form->_elements as $form_id => $element) {
     if ($element->_attributes['name'] == 'payment_processor_id') {
       $pp_form_id = $form_id;
@@ -362,18 +376,31 @@ function iats_civicrm_buildForm_CRM_Contribute_Form_Contribution(&$form) {
         }
       }
     }
-    // and now try to provide a different mechanism for 'backoffice' type contributions using this ACH/EFT payment processor
-    $params = array('version' => 3, 'sequential' => 1, 'payment_processor' => $pp_id);
+  }
+}
+
+/*
+ *  Provide helpful links to backend-ish payment pages for ACH/EFT, since the backend credit card pages don't work/apply
+ */
+function iats_civicrm_buildForm_CRM_Contribute_Form_Search(&$form) {
+  $contactID = $form->_defaultValues['contact_id'];
+  $acheft = iats_civicrm_acheft_processors_live();
+  $acheft_backoffice_links = array();
+  // for each ACH/EFT payment processor, try to provide a different mechanism for 'backoffice' type contributions 
+  // note: only offer payment pages that provide iATS ACH/EFT exclusively
+  foreach(array_keys($acheft) as $pp_id) {
+    $params = array('version' => 3, 'sequential' => 1, 'is_active' => 1, 'payment_processor' => $pp_id);
     $result = civicrm_api('ContributionPage', 'get', $params);
     if (0 == $result['is_error'] && count($result['values']) > 0) {
       foreach($result['values'] as $page) {
-        $url = CRM_Utils_System::url('civicrm/contribute/transact','reset=1&cid='.$form->_contactID.'&id='.$page['id']);
-        $acheft_backoffice_links[] = '<a href="'.$url.'">'.$page['title'].'</a>';
+        $url = CRM_Utils_System::url('civicrm/contribute/transact','reset=1&cid='.$contactID.'&id='.$page['id']);
+        $acheft_backoffice_links[] = array('url' => $url, 'title' => $page['title']); 
       }
     }
   }
   if (count($acheft_backoffice_links)) {
-    // a hackish way to inject these links into the form, they are display nicely using some javascript
+    // a hackish way to inject these links into the form, they are displayed nicely using some javascript
+    // that is added using the Tab.extra.tpl mechanism
     $form->addElement('hidden','acheft_backoffice_links',json_encode($acheft_backoffice_links));
   }
 }
