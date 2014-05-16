@@ -139,9 +139,19 @@ function iats_civicrm_managed(&$entities) {
   return _iats_civix_civicrm_managed($entities);
 }
 
+function _iats_getMenuKeyMax($menuArray) {
+  $max = array(max(array_keys($menuArray)));
+  foreach($menuArray as $v) { 
+    if (!empty($v['child'])) {
+      $max[] = _iats_getMenuKeyMax($v['child']); 
+    } 
+  }
+  return max($max);
+} 
+
 function iats_civicrm_navigationMenu(&$params) {
   // get the maximum key of $params
-  $maxKey = 1 + (max(array_keys($params)));
+  $maxKey = 1 + _iats_getMenuKeyMax($params);
   foreach($params as $key => $value) {
     if ('Contributions' == $value['attributes']['name']) {
       $params[$key]['child'][$maxKey] =  array (
