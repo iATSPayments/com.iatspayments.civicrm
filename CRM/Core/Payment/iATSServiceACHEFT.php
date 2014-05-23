@@ -201,6 +201,7 @@ class CRM_Core_Payment_iATSServiceACHEFT extends CRM_Core_Payment {
     $request['total'] = sprintf('%01.2f', CRM_Utils_Rule::cleanMoney($params['amount']));
     // place for ugly hacks
     switch($method) {
+      case 'acheft':
       case 'acheft_create_customer_code':
         // add bank number + transit to account number
         // TODO: verification?

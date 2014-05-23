@@ -313,6 +313,27 @@ function iats_civicrm_acheft_processors_live() {
   return $acheft;
 }
 
+/*
+ * Utility function to customize direct debit forms
+ * Modify labels, add an exta field
+ * TODO: make this currency-specific and pluggable for each currency
+ * e.g. add legal requirement notice and perhaps checkbox acceptance for electronic acceptance of ACH/EFT, and
+ * make this form nicer by include a sample check with instructions for getting the account number
+ */
+function _iats_acheft_form_customize($form) {
+  $element = $form->getElement('account_holder');
+  $element->setLabel(ts('Name of Account Holder'));
+  $element = $form->getElement('bank_identification_number');
+  $element->setLabel(ts('Bank number + branch transit number'));
+  //$element = $form->getElement('bank_name');
+  //$element->setLabel(ts('Bank name'));
+  $form->addElement('select', 'bank_account_type', ts('Account type'), array('CHECKING' => 'Checking', 'SAVING' => 'Saving'));
+  $form->addRule('bank_account_type', ts('%1 is a required field.', array(1 => ts('Account type'))), 'required');
+  CRM_Core_Region::instance('billing-block')->add(array(
+    'template' => 'CRM/iATS/BillingBlockDirectDebitExtra.tpl'
+  ));
+}
+
 /* ACH/EFT modifications to a (public) contribution form if iATS ACH/EFT is enabled
  *  1. set recurring to be the default, if enabled
  *  2. [previously forced recurring, removed in 1.2.4]
@@ -333,24 +354,26 @@ function iats_civicrm_buildForm_CRM_Contribute_Form_Contribution_Main(&$form) {
  
   /* In addition, I need to mangle the ajax-bit of the form if I've just selected an ach/eft option 
    * I need to include an extra field for iATS
-   * TODO: make this form nicer by include a sample check with instructions for getting the account number
    */
   if (!empty($acheft[$form->_paymentProcessor['id']])){ 
-    $element = $form->getElement('account_holder');
-    $element->setLabel(ts('Name of Account Holder'));
-    $element = $form->getElement('bank_identification_number');
-    $element->setLabel(ts('Bank number + branch transit number'));
-    //$element = $form->getElement('bank_name');
-    //$element->setLabel(ts('Bank name'));
-    $form->addElement('select', 'bank_account_type', ts('Account type'), array('CHECKING' => 'Checking', 'SAVING' => 'Saving'));
-    $form->addRule('bank_account_type', ts('%1 is a required field.', array(1 => ts('Account type'))), 'required');
-    CRM_Core_Region::instance('billing-block')->add(array(
-      'template' => 'CRM/iATS/BillingBlockDirectDebitExtra.tpl'
-    ));
-
+    _iats_acheft_form_customize($form);
     // watchdog('iats_acheft',kprint_r($form,TRUE));
   }
-  // TODO: add legal requirement notice and perhaps checkbox acceptance for electronic acceptance of ACH/EFT ? Country dependent!
+}
+
+function iats_civicrm_buildForm_CRM_Event_Form_Registration_Register(&$form) {
+  if (empty($form->_paymentProcessors)) {
+    return;
+  }
+  $acheft = iats_civicrm_acheft_processors($form->_paymentProcessors);
+  // I only need to mangle forms that allow ACH/EFT
+  if (0 == count($acheft)) {
+    return;
+  }
+  if (!empty($acheft[$form->_paymentProcessor['id']])){ 
+    _iats_acheft_form_customize($form);
+    // watchdog('iats_acheft',kprint_r($form,TRUE));
+  }
 }
 
 /*  Fix the backend contribution form, by removing my ACH/EFT processors
