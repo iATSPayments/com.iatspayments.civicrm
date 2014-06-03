@@ -18,8 +18,6 @@
  * License with this program; if not, see http://www.gnu.org/licenses/
  */
 
-define('IATS_CIVICRM_NSCD_FID',_iats_civicrm_nscd_fid());
-
 require_once 'iats.civix.php';
 
 /**
@@ -233,14 +231,14 @@ function iats_civicrm_pre($op, $objectName, $objectId, &$params) {
               // we have already taken the first payment, so calculate the next one
               $params['contribution_status_id'] = 1;
               $next = strtotime('+'.$params['frequency_interval'].' '.$params['frequency_unit']);
-              $params[IATS_CIVICRM_NSCD_FID] = date('YmdHis',$next);
+              $params[_iats_civicrm_nscd_fid()] = date('YmdHis',$next);
               break;
             case 'iATSServiceACHEFT': //
               // watchdog('iats_civicrm_recur','<pre>'.print_r($params,TRUE).'</pre>');
               $params['payment_instrument_id'] = 2;
               $params['contribution_status_id'] = 1;
               $next = strtotime('+'.$params['frequency_interval'].' '.$params['frequency_unit']);
-              $params[IATS_CIVICRM_NSCD_FID] = date('YmdHis',$next);
+              $params[_iats_civicrm_nscd_fid()] = date('YmdHis',$next);
               break;
           }
         }
@@ -442,6 +440,7 @@ function _iats_civicrm_domain_info($key) {
   if (empty($domain)) {
     $domain = civicrm_api('Domain', 'getsingle', array('version' => 3, 'current_domain' => TRUE));
   }
+
   switch($key) {
     case 'version':
       return explode('.',$domain['version']);
