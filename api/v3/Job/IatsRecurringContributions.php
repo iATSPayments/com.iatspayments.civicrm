@@ -41,11 +41,11 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
   $dtCurrentDayEnd   = $dtCurrentDay."235959";
   $expiry_limit = date('ym');
   // Select the recurring payments for iATSService, where current date is equal to next scheduled date
-  $select = 'SELECT cr.*, icc.customer_code, icc.expiry as icc_expiry, icc.cid as icc_contact_id, pp.class_name as pp_class_name, pp.url_site as url_site, pp.is_test 
-      FROM civicrm_contribution_recur cr 
+  $select = 'SELECT cr.*, icc.customer_code, icc.expiry as icc_expiry, icc.cid as icc_contact_id, pp.class_name as pp_class_name, pp.url_site as url_site, pp.is_test
+      FROM civicrm_contribution_recur cr
       INNER JOIN civicrm_payment_processor pp ON cr.payment_processor_id = pp.id
       INNER JOIN civicrm_iats_customer_codes icc ON cr.id = icc.recur_id
-      WHERE 
+      WHERE
         cr.contribution_status_id = 1
         AND pp.class_name LIKE %1
         AND (cr.end_date IS NULL OR cr.end_date > NOW())';
@@ -57,11 +57,11 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
     $select .= ' AND icc.recur_id = %2';
     $args[2] = array($params['recur_id'], 'Int');
   }
-  else { // if (!empty($params['scheduled'])) { 
+  else { // if (!empty($params['scheduled'])) {
     //normally, process all recurring contributions due today
     $select .= ' AND cr.'.IATS_CIVICRM_NSCD_FID.' <= %2';
     $args[2] = array($dtCurrentDayEnd, 'String');
-    // ' AND cr.next_sched_contribution >= %2 
+    // ' AND cr.next_sched_contribution >= %2
     // $args[2] = array($dtCurrentDayStart, 'String');
   }
   // NOTE: if called with neither parameter - all recurring payments will be invoked!
@@ -79,13 +79,13 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
     $contribution_recur_id    = $dao->id;
     // $sourceURL = CRM_Utils_System::url('civicrm/contact/view/contributionrecur', 'reset=1&id='. $dao->id .'&cid='. $dao->contact_id .'&context=contribution');
     $subtype = substr($dao->pp_class_name,19);
-    $source = "iATS Payments $subtype Recurring Contribution (id=$contribution_recur_id)"; 
+    $source = "iATS Payments $subtype Recurring Contribution (id=$contribution_recur_id)";
     $receive_date = date("YmdHis"); // i.e. now
     // check if we already have an error
     $errors = array();
     if (empty($dao->customer_code)) {
       $errors[] = ts('Recur id %1 is missing a customer code.', array(1 => $contribution_recur_id));
-    } 
+    }
     else {
       if ($dao->contact_id != $dao->icc_contact_id) {
         $errors[] = ts('Recur id %1 is has a mismatched contact id for the customer code.', array(1 => $contribution_recur_id));
@@ -128,7 +128,7 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
       }
       continue;
     }
-    else { 
+    else {
       // so far so, good ... now try to trigger the payment on iATS
       require_once("CRM/iATS/iATSService.php");
       switch($subtype) {
@@ -159,11 +159,11 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
         $contribution['source'] .= ' '.$result['reasonMessage'];
         civicrm_api('contribution', 'create', $contribution);
         $output[] = ts('Failed to process recurring contribution id %1: ', array(1 => $contribution_recur_id)).$result['reasonMessage'];
-      } 
+      }
       else {
         /* success, create the contribution record with corrected status + trxn_id */
         $contribution['trxn_id'] = $result['remote_id'] . ':' . time();
-        $contribution['contribution_status_id'] = 1; 
+        $contribution['contribution_status_id'] = 1;
         civicrm_api('contribution','create', $contribution);
         $output[] = ts('Successfully processed recurring contribution id %1: ', array(1 => $contribution_recur_id)).$result['auth_result'];
       }
@@ -177,8 +177,8 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
     $next_collectionDate = date('YmdHis', $next_collectionDate);
 
     CRM_Core_DAO::executeQuery("
-      UPDATE civicrm_contribution_recur 
-         SET ".IATS_CIVICRM_NSCD_FID." = %1 
+      UPDATE civicrm_contribution_recur
+         SET ".IATS_CIVICRM_NSCD_FID." = %1
        WHERE id = %2
     ", array(
          1 => array($next_collectionDate, 'String'),
