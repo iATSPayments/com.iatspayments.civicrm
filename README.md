@@ -2,7 +2,6 @@ com.iatspayments.civicrm
 ===============
 
 CiviCRM Extension for iATS Web Services Payment Processor
-
 Date: May 5, 2014, version 1.2
 
 
@@ -11,10 +10,10 @@ Requirements
 
 CiviCRM 4.2+. These are instructions are based on 4.3, the 4.2 instructions are similar. The support for jobs in 4.2/civix is a bit iffy.
 
-Your PHP needs to include the SOAP extension (php.net/manual/en/soap.setup.php).  
+Your PHP needs to include the SOAP extension (php.net/manual/en/soap.setup.php).
 
 
-Installation 
+Installation
 ------------
 
 This extension follows the standard installation method - if you've got the right CiviCRM version and you've set up your extensions directory, it'll appear in the extensions list as 'iATS Payments'.
@@ -46,9 +45,9 @@ Testing
 
 2. Contribution Links -> online Contribution -> Live.
 
-3. Use test VISA:  4222222222222220 security code = 123 and any future Expiration date - to process any $amount. 
+3. Use test VISA:  4222222222222220 security code = 123 and any future Expiration date - to process any $amount.
 
-4. iATS has another test VISA: 41111111111111111 security code = 123 and any future Expiration date 
+4. iATS has another test VISA: 41111111111111111 security code = 123 and any future Expiration date
 
 5. Reponses depend on the $amount processed - as follows
   * 1.00 OK: 678594;
@@ -75,9 +74,9 @@ Testing
 
 9. Also test recurring contributions - try creating a recurring contribution for every day and then go back the next day and manually trigger the corresponding Scheduled Job.
 
-Once you're happy all is well - then all you need to do is update the Payment Processor data - with your own iATS' Agent Code and Password. 
+Once you're happy all is well - then all you need to do is update the Payment Processor data - with your own iATS' Agent Code and Password.
 
-Remember that iATS master accounts (ending in 01) can NOT be used to push monies into via web services. So when setting up your Account with iATS - ask them to create another (set of) Agent Codes for you: e.g. 80 or 90, etc. 
+Remember that iATS master accounts (ending in 01) can NOT be used to push monies into via web services. So when setting up your Account with iATS - ask them to create another (set of) Agent Codes for you: e.g. 80 or 90, etc.
 
 Also remember to turn off debugging/logging on any production environment!
 
@@ -95,7 +94,7 @@ So use:
 
 When you enable this payment processor for a contribution page, it modifies the form to set recurring contributions as the default, but no longer forces recurring contributions as it did up until version 1.2.3.
 
-Support for the UK server has been excluded due to special legal requirements with UK direct payment. We expect to have a solution to this sometime in 2014. 
+Support for the UK server has been excluded due to special legal requirements with UK direct payment. We expect to have a solution to this sometime in 2014.
 
 ACH/EFT contributions go in with a pending status until a process at iATS confirms the payment went through (or not). There's a Scheduled Job that must be enabled that checks iATS daily for approvals/rejections. Unfortunately, all test contributions are rejected, so we have no way of testing approvals except with a live transaction.
 
