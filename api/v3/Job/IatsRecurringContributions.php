@@ -59,7 +59,7 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
   }
   else { // if (!empty($params['scheduled'])) {
     //normally, process all recurring contributions due today
-    $select .= ' AND cr.'.IATS_CIVICRM_NSCD_FID.' <= %2';
+    $select .= ' AND cr.'._iats_civicrm_nscd_fid().' <= %2';
     $args[2] = array($dtCurrentDayEnd, 'String');
     // ' AND cr.next_sched_contribution >= %2
     // $args[2] = array($dtCurrentDayStart, 'String');
