@@ -418,7 +418,7 @@ function iats_civicrm_buildForm_CRM_Contribute_Form_Search(&$form) {
 function _iats_civicrm_domain_info($key) {
   static $domain;
   if (empty($domain)) {
-    $domain = civicrm_api('Domain', 'getsingle', array('version' => 3));
+    $domain = civicrm_api('Domain', 'getsingle', array('version' => 3, 'current_domain' => TRUE));
   }
   switch($key) {
     case 'version':
