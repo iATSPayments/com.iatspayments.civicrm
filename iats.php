@@ -4,17 +4,17 @@
  * Author: Alan Dixon
  *
  * This file is a part of CiviCRM published extension.
- * 
- * This extension is free software; you can copy, modify, and distribute it  
- * under the terms of the GNU Affero General Public License           
+ *
+ * This extension is free software; you can copy, modify, and distribute it
+ * under the terms of the GNU Affero General Public License
  * Version 3, 19 November 2007.
- *                                                                    
- * It is distributed in the hope that it will be useful, but     
- * WITHOUT ANY WARRANTY; without even the implied warranty of         
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.               
- * See the GNU Affero General Public License for more details.        
- *                                                                    
- * You should have received a copy of the GNU Affero General Public   
+ *
+ * It is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public
  * License with this program; if not, see http://www.gnu.org/licenses/
  */
 
@@ -141,13 +141,13 @@ function iats_civicrm_managed(&$entities) {
 
 function _iats_getMenuKeyMax($menuArray) {
   $max = array(max(array_keys($menuArray)));
-  foreach($menuArray as $v) { 
+  foreach($menuArray as $v) {
     if (!empty($v['child'])) {
-      $max[] = _iats_getMenuKeyMax($v['child']); 
-    } 
+      $max[] = _iats_getMenuKeyMax($v['child']);
+    }
   }
   return max($max);
-} 
+}
 
 function iats_civicrm_navigationMenu(&$params) {
   // get the maximum key of $params
@@ -197,8 +197,8 @@ function iats_civicrm_buildForm($formName, &$form) {
 
 function iats_civicrm_pre($op, $objectName, $objectId, &$params) {
   if ('create' == $op) {
-    if (('Contribution' == $objectName) 
-      && !empty($params['contribution_status_id']) 
+    if (('Contribution' == $objectName)
+      && !empty($params['contribution_status_id'])
       && !empty($params['contribution_recur_id'])) {
       if (2 == $params['contribution_status_id']) {
         // watchdog('iats_civicrm','hook_civicrm_pre for Contribution recur @id',array('@id' => $params['contribution_recur_id']));
@@ -216,7 +216,7 @@ function iats_civicrm_pre($op, $objectName, $objectId, &$params) {
                 // $params['contribution_status_id'] = 1;
                 break;
             }
-            
+
           }
         }
       }
@@ -235,7 +235,7 @@ function iats_civicrm_pre($op, $objectName, $objectId, &$params) {
               $next = strtotime('+'.$params['frequency_interval'].' '.$params['frequency_unit']);
               $params[IATS_CIVICRM_NSCD_FID] = date('YmdHis',$next);
               break;
-            case 'iATSServiceACHEFT': // 
+            case 'iATSServiceACHEFT': //
               // watchdog('iats_civicrm_recur','<pre>'.print_r($params,TRUE).'</pre>');
               $params['payment_instrument_id'] = 2;
               $params['contribution_status_id'] = 1;
@@ -250,7 +250,7 @@ function iats_civicrm_pre($op, $objectName, $objectId, &$params) {
   }
 }
 
-/* 
+/*
  * The contribution itself doesn't tell you which payment processor it came from
  * So we have to dig back via the contribution_recur_id that it is associated with.
  */
@@ -291,14 +291,14 @@ function iats_civicrm_acheft_processors($processors) {
     $params = array('version' => 3, 'sequential' => 1, 'id' => $id);
     $result = civicrm_api('PaymentProcessor', 'getsingle', $params);
     if (!empty($result['class_name']) && ('Payment_iATSServiceACHEFT' == $result['class_name'])) {
-      $acheft[$id] = TRUE; 
+      $acheft[$id] = TRUE;
       break;
     }
   }
   return $acheft;
 }
 
-/* as above, but return all non-test, active ach/eft iats processors */  
+/* as above, but return all non-test, active ach/eft iats processors */
 function iats_civicrm_acheft_processors_live() {
   $acheft = array();
   $params = array('version' => 3, 'sequential' => 1, 'is_test' => 0, 'is_active' => 1);
@@ -306,7 +306,7 @@ function iats_civicrm_acheft_processors_live() {
   if (0 == $result['is_error'] && count($result['values']) > 0) {
     foreach($result['values'] as $paymentProcessor) {
       if (!empty($paymentProcessor['class_name']) && ('Payment_iATSServiceACHEFT' == $paymentProcessor['class_name'])) {
-        $acheft[$paymentProcessor['id']] = TRUE; 
+        $acheft[$paymentProcessor['id']] = TRUE;
       }
     }
   }
@@ -330,12 +330,12 @@ function iats_civicrm_buildForm_CRM_Contribute_Form_Contribution_Main(&$form) {
   if (isset($form->_elementIndex['is_recur'])) {
     $form->getElement('is_recur')->setValue(1); // make recurring contrib opt-out by default
   }
- 
-  /* In addition, I need to mangle the ajax-bit of the form if I've just selected an ach/eft option 
+
+  /* In addition, I need to mangle the ajax-bit of the form if I've just selected an ach/eft option
    * I need to include an extra field for iATS
    * TODO: make this form nicer by include a sample check with instructions for getting the account number
    */
-  if (!empty($acheft[$form->_paymentProcessor['id']])){ 
+  if (!empty($acheft[$form->_paymentProcessor['id']])){
     $element = $form->getElement('account_holder');
     $element->setLabel(ts('Name of Account Holder'));
     $element = $form->getElement('bank_identification_number');
@@ -396,7 +396,7 @@ function iats_civicrm_buildForm_CRM_Contribute_Form_Search(&$form) {
   $contactID = $form->_defaultValues['contact_id'];
   $acheft = iats_civicrm_acheft_processors_live();
   $acheft_backoffice_links = array();
-  // for each ACH/EFT payment processor, try to provide a different mechanism for 'backoffice' type contributions 
+  // for each ACH/EFT payment processor, try to provide a different mechanism for 'backoffice' type contributions
   // note: only offer payment pages that provide iATS ACH/EFT exclusively
   foreach(array_keys($acheft) as $pp_id) {
     $params = array('version' => 3, 'sequential' => 1, 'is_active' => 1, 'payment_processor' => $pp_id);
@@ -404,7 +404,7 @@ function iats_civicrm_buildForm_CRM_Contribute_Form_Search(&$form) {
     if (0 == $result['is_error'] && count($result['values']) > 0) {
       foreach($result['values'] as $page) {
         $url = CRM_Utils_System::url('civicrm/contribute/transact','reset=1&cid='.$contactID.'&id='.$page['id']);
-        $acheft_backoffice_links[] = array('url' => $url, 'title' => $page['title']); 
+        $acheft_backoffice_links[] = array('url' => $url, 'title' => $page['title']);
       }
     }
   }
@@ -418,7 +418,7 @@ function iats_civicrm_buildForm_CRM_Contribute_Form_Search(&$form) {
 function _iats_civicrm_domain_info($key) {
   static $domain;
   if (empty($domain)) {
-    $domain = civicrm_api('Domain', 'getsingle', array('version' => 3));
+    $domain = civicrm_api('Domain', 'getsingle', array('version' => 3, 'current_domain' => TRUE));
   }
   switch($key) {
     case 'version':
