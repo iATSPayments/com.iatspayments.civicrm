@@ -122,6 +122,12 @@ class CRM_Core_Payment_iATSServiceACHEFT extends CRM_Core_Payment {
     }
   }
 
+  function changeSubscriptionAmount(&$message = '', $params = array()) {
+    $userAlert = ts('You have updated the amount of this recurring contribution.');
+    CRM_Core_Session::setStatus($userAlert, ts('Warning'), 'alert');
+    return TRUE;
+  }
+
   function &error($error = NULL) {
     $e = CRM_Core_Error::singleton();
     if (is_object($error)) {
