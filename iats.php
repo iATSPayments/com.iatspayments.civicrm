@@ -314,70 +314,71 @@ function iats_civicrm_acheft_processors_live() {
 }
 
 /*
- * Utility function to customize direct debit forms - pluggable for the currency of a specific contribution form
- * e.g. modify labels, add elements and
- * add legal requirement notice and perhaps checkbox acceptance for electronic acceptance of ACH/EFT
+ * Customize direct debit billing blocks, per currency
+ * 
+ * Each country has different rules about direct debit, so only currencies that we explicitly handle will be
+ * customized, others will get a warning.
+ * 
+ * The currency-specific functions will do things like modify labels, add exta fields, 
+ * add legal requirement notice and perhaps checkbox acceptance for electronic acceptance of ACH/EFT, and
+ * make this form nicer by include a sample check with instructions for getting the various numbers
  */
-function _iats_acheft_form_customize($form) {
-  // Add CSS to hide the core fields:
-  CRM_Core_Resources::singleton()->addStyleFile('com.iatspayments.civicrm', 'css/iatspayments_civicrm.css');
 
-  // These are injected by CiviCRM Core - we're going to use some of them:
+function iats_acheft_form_customize($form) {
+  $fname = 'iats_acheft_form_customize_'.$form->_values['currency'];
+  if (function_exists($fname)) {
+    $fname($form);
+  }
+  else { // I'm handling an unexpected currency
+    CRM_Core_Region::instance('billing-block')->add(array(
+      'template' => 'CRM/iATS/BillingBlockDirectDebitExtra_Other.tpl'
+    ));
+  }
+}
+
+/* 
+ * Customization for USD ACH-EFT billing block
+ */
+function iats_acheft_form_customize_USD($form) {
+  $form->addElement('select', 'usd_account_type', ts('Account type'), array('CHECKING' => 'Checking', 'SAVING' => 'Saving'));
+  $form->addRule('usd_account_type', ts('%1 is a required field.', array(1 => ts('Account type'))), 'required');
+  $element = $form->getElement('account_holder');
+  $element->setLabel(ts('Name of Account Holder'));
+  $form->addRule('account_holder', ts('%1 is a required field.', array(1 => ts('Name of Account Holder'))), 'required');
+  $element = $form->getElement('bank_account_number');
+  $element->setLabel(ts('Bank Account Number'));
+  $form->addRule('bank_account_number', ts('%1 is a required field.', array(1 => ts('Bank Account Number'))), 'required');
+  $element = $form->getElement('bank_identification_number');
+  $element->setLabel(ts('Bank Routing Number'));
+  $form->addRule('bank_identification_number', ts('%1 is a required field.', array(1 => ts('Bank Routing Number'))), 'required');
+  CRM_Core_Region::instance('billing-block')->add(array(
+    'template' => 'CRM/iATS/BillingBlockDirectDebitExtra_USD.tpl'
+  ));
+}
+
+/* 
+ * Customization for CAD ACH-EFT billing block
+ */
+function iats_acheft_form_customize_CAD($form) {
+  $form->addElement('text', 'cad_bank_number', ts('Bank Number'));
+  $form->addRule('cad_bank_number', ts('%1 is a required field.', array(1 => ts('Bank Number'))), 'required');
+  $form->addElement('text', 'cad_transit_number', ts('Transit Number'));
+  $form->addRule('cad_transit_number', ts('%1 is a required field.', array(1 => ts('Transit Number'))), 'required');
+  $form->addElement('select', 'cad_account_type', ts('Account type'), array('CHECKING' => 'Checking', 'SAVING' => 'Saving'));
+  $form->addRule('cad_account_type', ts('%1 is a required field.', array(1 => ts('Account type'))), 'required');
+  /* minor customization of labels + make them required */
   $element = $form->getElement('account_holder');
   $element->setLabel(ts('Name of Account Holder'));
   $form->addRule('account_holder', ts('%1 is a required field.', array(1 => ts('Name of Account Holder'))), 'required');
   $element = $form->getElement('bank_account_number');
   $element->setLabel(ts('Account Number'));
   $form->addRule('bank_account_number', ts('%1 is a required field.', array(1 => ts('Account Number'))), 'required');
-  $element = $form->getElement('bank_name');
-  $element->setLabel(ts('Name of Bank'));
-  $form->addRule('bank_name', ts('%1 is a required field.', array(1 => ts('Name of Bank'))), 'required');
-
-  // do NOT want to render this one: - want to replace it with two separate fields
-  // $element = $form->getElement('bank_identification_number');
-  // $element->setLabel(ts('KG DO NOT DISPLAY - Bank number + branch transit number'));
-  // Originally this field was created as:
-  //
-  // $form->_paymentFields['bank_identification_number'] = array(
-  //   'htmlType' => 'text',
-  //   'name' => 'bank_identification_number',
-  //   'title' => ts('Bank Identification Number'),
-  //   'cc_field' => TRUE,
-  //   'attributes' => array('size' => 20, 'maxlength' => 11, 'autocomplete' => 'off'),
-  //   'is_required' => TRUE,
-  // );
-
-  $form->addElement('text', 'iats_bank_number', ts('Bank Number'));
-  $form->addRule('iats_bank_number', ts('%1 is a required field.', array(1 => ts('Bank Number'))), 'required');
-  $form->addElement('text', 'iats_transit_number', ts('Transit Number'));
-  $form->addRule('iats_transit_number', ts('%1 is a required field.', array(1 => ts('Transit Number'))), 'required');
-
-  // Then we need to past these two fields together -> and feed them back to CiviCRM core as bank_identification_number
-  // post form hook?
-  // bank_indentification_number = bank + transit number
-
-  // Finally we're going to add a field of our own:
-  $form->addElement('select', 'bank_account_type', ts('Account type'), array('CHECKING' => 'Checking', 'SAVING' => 'Saving'));
-  $form->addRule('bank_account_type', ts('%1 is a required field.', array(1 => ts('Account type'))), 'required');
-
-  // Name convention for Currency specific templates is:
-  $template = 'BillingBlockDirectDebitExtra_'.$form->_values['currency'].'.tpl';
-
-  // Get some Dir information:
-  $config = CRM_Core_Config::singleton();
-  $extensionsDir = $config->extensionsDir;
-  $templateDir= $extensionsDir.'/com.iatspayments.civicrm/templates/CRM/iATS/'.$template;
-  // Check to see if there is a Currency specific template:
-  if (file_exists($templateDir)) {
-    $cwd = getcwd();
-    // IMGdir needs to start with /sites
-    $imageDir = array_pop(explode($cwd, $extensionsDir)).'/com.iatspayments.civicrm/templates/CRM/iATS/img'.$form->_values['currency'].'.jpg';
-    $form->assign("IMGdir", $imageDir);
-    CRM_Core_Region::instance('billing-block')->add(array(
-      'template' => 'CRM/iATS/'.$template,
-    ));
-  }
-  $test = 1;
+  /* the bank_identification_number is hidden and then populated using jquery, in the custom template */
+  $element = $form->getElement('bank_identification_number');
+  $element->setLabel(ts('Bank Number + Transit Number'));
+  CRM_Core_Region::instance('billing-block')->add(array(
+    'template' => 'CRM/iATS/BillingBlockDirectDebitExtra_CAD.tpl'
+  ));
 }
 
 /* ACH/EFT modifications to a (public) contribution form if iATS ACH/EFT is enabled
@@ -400,8 +401,8 @@ function iats_civicrm_buildForm_CRM_Contribute_Form_Contribution_Main(&$form) {
 
   /* In addition, I need to mangle the ajax-bit of the form if I've just selected an ach/eft option
    */
-  if (!empty($acheft[$form->_paymentProcessor['id']])){
-    _iats_acheft_form_customize($form);
+  if (!empty($acheft[$form->_paymentProcessor['id']])){ 
+    iats_acheft_form_customize($form);
     // watchdog('iats_acheft',kprint_r($form,TRUE));
   }
 }
@@ -415,8 +416,8 @@ function iats_civicrm_buildForm_CRM_Event_Form_Registration_Register(&$form) {
   if (0 == count($acheft)) {
     return;
   }
-  if (!empty($acheft[$form->_paymentProcessor['id']])){
-    _iats_acheft_form_customize($form);
+  if (!empty($acheft[$form->_paymentProcessor['id']])){ 
+    iats_acheft_form_customize($form);
     // watchdog('iats_acheft',kprint_r($form,TRUE));
   }
 }
@@ -504,3 +505,4 @@ function _iats_civicrm_nscd_fid() {
   $version = _iats_civicrm_domain_info('version');
   return (($version[0] <= 4) && ($version[1] <= 3)) ? 'next_sched_contribution' : 'next_sched_contribution_date';
 }
+
