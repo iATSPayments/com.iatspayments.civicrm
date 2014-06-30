@@ -90,8 +90,8 @@ The ACH/EFT testing value for the TEST88 account is: 1234111111111111
 
 So use:
   * 1234 for the Bank Account Number
-  * 111111111111 for the Bank number + branch transit number
-
+  * 111111111111 for the Bank Identification Number (Bank number + branch transit number)
+  
 When you enable this payment processor for a contribution page, it modifies the form to set recurring contributions as the default, but no longer forces recurring contributions as it did up until version 1.2.3.
 
 Support for the UK server has been excluded due to special legal requirements with UK direct payment. We expect to have a solution to this sometime in 2014.
