@@ -326,6 +326,10 @@ function iats_civicrm_acheft_processors_live() {
 
 function iats_acheft_form_customize($form) {
   $fname = 'iats_acheft_form_customize_'.$form->_values['currency'];
+  /* we always want these three fields to be required, in all currencies */
+  $form->addRule('account_holder', ts('%1 is a required field.', array(1 => ts('Name of Account Holder'))), 'required');
+  $form->addRule('bank_account_number', ts('%1 is a required field.', array(1 => ts('Account Number'))), 'required');
+  $form->addRule('bank_name', ts('%1 is a required field.', array(1 => ts('Bank Name'))), 'required');
   if (function_exists($fname)) {
     $fname($form);
   }
@@ -340,14 +344,12 @@ function iats_acheft_form_customize($form) {
  * Customization for USD ACH-EFT billing block
  */
 function iats_acheft_form_customize_USD($form) {
-  $form->addElement('select', 'usd_account_type', ts('Account type'), array('CHECKING' => 'Checking', 'SAVING' => 'Saving'));
-  $form->addRule('usd_account_type', ts('%1 is a required field.', array(1 => ts('Account type'))), 'required');
+  $form->addElement('select', 'bank_account_type', ts('Account type'), array('CHECKING' => 'Checking', 'SAVING' => 'Saving'));
+  $form->addRule('bank_account_type', ts('%1 is a required field.', array(1 => ts('Account type'))), 'required');
   $element = $form->getElement('account_holder');
   $element->setLabel(ts('Name of Account Holder'));
-  $form->addRule('account_holder', ts('%1 is a required field.', array(1 => ts('Name of Account Holder'))), 'required');
   $element = $form->getElement('bank_account_number');
   $element->setLabel(ts('Bank Account Number'));
-  $form->addRule('bank_account_number', ts('%1 is a required field.', array(1 => ts('Bank Account Number'))), 'required');
   $element = $form->getElement('bank_identification_number');
   $element->setLabel(ts('Bank Routing Number'));
   $form->addRule('bank_identification_number', ts('%1 is a required field.', array(1 => ts('Bank Routing Number'))), 'required');
@@ -364,15 +366,13 @@ function iats_acheft_form_customize_CAD($form) {
   $form->addRule('cad_bank_number', ts('%1 is a required field.', array(1 => ts('Bank Number'))), 'required');
   $form->addElement('text', 'cad_transit_number', ts('Transit Number'));
   $form->addRule('cad_transit_number', ts('%1 is a required field.', array(1 => ts('Transit Number'))), 'required');
-  $form->addElement('select', 'cad_account_type', ts('Account type'), array('CHECKING' => 'Checking', 'SAVING' => 'Saving'));
-  $form->addRule('cad_account_type', ts('%1 is a required field.', array(1 => ts('Account type'))), 'required');
+  $form->addElement('select', 'bank_account_type', ts('Account type'), array('CHECKING' => 'Checking', 'SAVING' => 'Saving'));
+  $form->addRule('bank_account_type', ts('%1 is a required field.', array(1 => ts('Account type'))), 'required');
   /* minor customization of labels + make them required */
   $element = $form->getElement('account_holder');
   $element->setLabel(ts('Name of Account Holder'));
-  $form->addRule('account_holder', ts('%1 is a required field.', array(1 => ts('Name of Account Holder'))), 'required');
   $element = $form->getElement('bank_account_number');
   $element->setLabel(ts('Account Number'));
-  $form->addRule('bank_account_number', ts('%1 is a required field.', array(1 => ts('Account Number'))), 'required');
   /* the bank_identification_number is hidden and then populated using jquery, in the custom template */
   $element = $form->getElement('bank_identification_number');
   $element->setLabel(ts('Bank Number + Transit Number'));

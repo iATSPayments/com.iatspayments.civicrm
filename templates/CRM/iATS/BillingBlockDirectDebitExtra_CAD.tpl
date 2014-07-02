@@ -19,9 +19,9 @@
         <div class="clear"></div>
       </div>
 
-      <div class="crm-section cad-account-type-section">
-        <div class="label">{$form.cad_account_type.label}</div>
-        <div class="content">{$form.cad_account_type.html}</div>
+      <div class="crm-section bank-account-type-section">
+        <div class="label">{$form.bank_account_type.label}</div>
+        <div class="content">{$form.bank_account_type.html}</div>
         <div class="clear"></div>
       </div>
 
