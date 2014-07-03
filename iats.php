@@ -18,6 +18,10 @@
  * License with this program; if not, see http://www.gnu.org/licenses/
  */
 
+/* this constant is used because civicrm has changed the field name of 
+ * the 'next scheduled contribution date' field in version 4.3 and above
+ * TODO: remove this when we no longer support 4.2
+ */
 define('IATS_CIVICRM_NSCD_FID',_iats_civicrm_nscd_fid());
 
 require_once 'iats.civix.php';
@@ -187,63 +191,57 @@ function iats_civicrm_buildForm($formName, &$form) {
 /*
  * hook_civicrm_pre
  *
- * CiviCRM assumes all recurring contributions need to be reverified
- * using the IPN mechanism.
- * After saving any contribution, test for status = 2 and using IATS Payments
- * and set to status = 1 instead.
- * Applies only to the initial contribution and the recurring contribution record.
- * The recurring contribution status id is set explicitly in the job that creates it, and doesn't need this modification.
+ * Handle special cases of creating contribution (regular and recurring) records when using IATS Payments
+ *
+ * 1. CiviCRM assumes all recurring contributions need to be confirmed using the IPN mechanism. This is not true for iATS recurring contributions.
+ * So when creating a contribution that is part of a recurring series, test for status = 2, and set to status = 1 instead.
+ * Do this for the initial and recurring contribution record.
+ * The (subsequent) recurring contributions' status id is set explicitly in the job that creates it, and doesn't need this modification.
+ * 
+ * 2. For ACH/EFT, we also have the opposite problem - all contributions will need to verified by iATS and only later set to status success or 
+ * failed via the acheft verify job. We also want to modify the payment instrument from CC to ACH/EFT
+ *
+ * TODO: update this code with constants for the various id values of 1 and 2.
+ * TODO: CiviCRM should have nicer ways to handle this.
  */
 
 function iats_civicrm_pre($op, $objectName, $objectId, &$params) {
-  if ('create' == $op) {
-    if (('Contribution' == $objectName)
-      && !empty($params['contribution_status_id'])
-      && !empty($params['contribution_recur_id'])) {
-      if (2 == $params['contribution_status_id']) {
-        // watchdog('iats_civicrm','hook_civicrm_pre for Contribution recur @id',array('@id' => $params['contribution_recur_id']));
-        if ($payment_processor_id = _iats_civicrm_get_payment_processor_id($params['contribution_recur_id'])) {
-          // watchdog('iats_civicrm','hook_civicrm_pre for PP id @id',array('@id' => $payment_processor_id));
-          if ($type = _iats_civicrm_is_iats($payment_processor_id)) {
-            // watchdog('iats_civicrm','Convert to status of 1');
-            switch ($type) {
-              case 'iATSService': // cc
-                $params['contribution_status_id'] = 1;
-                break;
-              case 'iATSServiceACHEFT': // cc
-                $params['payment_instrument_id'] = 2;
-                // watchdog('iats_civicrm_regular','<pre>'.print_r($params,TRUE).'</pre>');
-                // $params['contribution_status_id'] = 1;
-                break;
-            }
-
+  // since this function gets called a lot, quickly determine if I care about the record being created
+  if (('create' == $op) && ('Contribution' == $objectName || 'ContributionRecur' == $objectName) && !empty($params['contribution_status_id'])) {
+    // watchdog('iats_civicrm','hook_civicrm_pre for Contribution <pre>@params</pre>',array('@params' => print_r($params));
+    // figure out the payment processor id, not nice
+    $payment_processor_id = ('ContributionRecur' == $objectName) ? $params['payment_processor_id'] : 
+                              (!empty($params['payment_processor']) ? $params['payment_processor'] :
+                                (!empty($params['contribution_recur_id']) ? _iats_civicrm_get_payment_processor_id($params['contribution_recur_id']) :
+                                 0)
+                              );
+    if ($type = _iats_civicrm_is_iats($payment_processor_id)) {
+      switch ($type.$objectName) {
+        case 'iATSServiceContribution': // cc contribution, test if it's been set to status 2 on a recurring contribution
+          if ((2 == $params['contribution_status_id']) 
+            && !empty($params['contribution_recur_id'])) {
+            $params['contribution_status_id'] = 1;
           }
-        }
-      }
-    }
-    elseif ('ContributionRecur' == $objectName) {
-      // watchdog('iats_civicrm','hook_civicrm_pre for ContributionRecur params @id',array('@id' => print_r($params, TRUE)));
-      if (2 == $params['contribution_status_id']
-          && !empty($params['payment_processor_id'])
-      ) {
-        if ($type = _iats_civicrm_is_iats($params['payment_processor_id'])) {
-          // watchdog('iats_civicrm','Convert to status of 1');
-          switch ($type) {
-            case 'iATSService': // cc
-              // we have already taken the first payment, so calculate the next one
-              $params['contribution_status_id'] = 1;
-              $next = strtotime('+'.$params['frequency_interval'].' '.$params['frequency_unit']);
-              $params[IATS_CIVICRM_NSCD_FID] = date('YmdHis',$next);
-              break;
-            case 'iATSServiceACHEFT': //
-              // watchdog('iats_civicrm_recur','<pre>'.print_r($params,TRUE).'</pre>');
-              $params['payment_instrument_id'] = 2;
-              $params['contribution_status_id'] = 1;
-              $next = strtotime('+'.$params['frequency_interval'].' '.$params['frequency_unit']);
-              $params[IATS_CIVICRM_NSCD_FID] = date('YmdHis',$next);
-              break;
-          }
-        }
+          break;
+        case 'iATSServiceContributionRecur': // cc recurring contribution record
+          // we've already taken the first payment, so calculate the next one
+          $params['contribution_status_id'] = 1;
+          $next = strtotime('+'.$params['frequency_interval'].' '.$params['frequency_unit']);
+          $params[IATS_CIVICRM_NSCD_FID] = date('YmdHis',$next);
+          break;
+        case 'iATSServiceACHEFTContribution': // ach/eft contribution: update the payment instrument and ensure the status is 2 i.e. for one-time contributions
+          $params['payment_instrument_id'] = 2;
+          $params['contribution_status_id'] = 2;
+          // watchdog('iats_civicrm_regular','<pre>'.print_r($params,TRUE).'</pre>');
+          // $params['contribution_status_id'] = 1;
+          break;
+        case 'iATSServiceACHEFTContributionRecur': // ach/eft recurring contribution record
+          // watchdog('iats_civicrm_recur','<pre>'.print_r($params,TRUE).'</pre>');
+          $params['payment_instrument_id'] = 2;
+          $params['contribution_status_id'] = 1; // we set this to 1 because even if the first one hasn't been verified, we still want to be attempting later ones
+          $next = strtotime('+'.$params['frequency_interval'].' '.$params['frequency_unit']);
+          $params[IATS_CIVICRM_NSCD_FID] = date('YmdHis',$next);
+          break;
       }
     }
     // watchdog('iats_civicrm','ignoring hook_civicrm_pre for objectName @id',array('@id' => $objectName));
@@ -396,10 +394,10 @@ function iats_civicrm_buildForm_CRM_Contribute_Form_Contribution_Main(&$form) {
     return;
   }
   if (isset($form->_elementIndex['is_recur'])) {
-    $form->getElement('is_recur')->setValue(1); // make recurring contrib opt-out by default
+    $form->setDefaults(array('is_recur' => 1)); // make recurring contrib default to true
   }
 
-  /* In addition, I need to mangle the ajax-bit of the form if I've just selected an ach/eft option
+  /* In addition, I need to mangle (in a currency-dependent way) the ajax-bit of the form if I've just selected an ach/eft option
    */
   if (!empty($acheft[$form->_paymentProcessor['id']])){ 
     iats_acheft_form_customize($form);
@@ -424,6 +422,7 @@ function iats_civicrm_buildForm_CRM_Event_Form_Registration_Register(&$form) {
 
 /*  Fix the backend contribution form, by removing my ACH/EFT processors
  *  Now fixed in core: https://issues.civicrm.org/jira/browse/CRM-14442)
+ *  TODO: test for old versions of civicrm before running this code?
  */
 function iats_civicrm_buildForm_CRM_Contribute_Form_Contribution(&$form) {
   if (empty($form->_processors)) {
@@ -505,4 +504,3 @@ function _iats_civicrm_nscd_fid() {
   $version = _iats_civicrm_domain_info('version');
   return (($version[0] <= 4) && ($version[1] <= 3)) ? 'next_sched_contribution' : 'next_sched_contribution_date';
 }
-
