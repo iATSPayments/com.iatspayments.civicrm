@@ -29,7 +29,6 @@ function _civicrm_api3_job_iatsacheftverify_spec(&$spec) {
 function civicrm_api3_job_iatsacheftverify($iats_service_params) {
 
   // find all pending iats acheft contributions, and their corresponding recurring contribution id 
-  // TODO: needs to be updated if we ever accept one-off ach/eft
   // Note: I'm not going to bother checking for is_test = 1 contributions, since these are never verified 
   $select = 'SELECT c.*, cr.contribution_status_id as cr_contribution_status_id, icc.customer_code as customer_code, icc.cid as icc_contact_id, pp.is_test 
       FROM civicrm_contribution c 
@@ -53,12 +52,28 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
     $pending[$dao->customer_code] = get_object_vars($dao);
   }
 
+  // also get the one-off "QuickClients" that still need approval
+  $select = 'SELECT id,trxn_id,invoice_id,contact_id
+      FROM civicrm_contribution  
+      WHERE 
+        contribution_status_id = 2
+        AND payment_instrument_id = 2
+        AND is_test = 0';
+  $args = array();
+  $dao = CRM_Core_DAO::executeQuery($select,$args);
+  $quick = array();
+  while ($dao->fetch()) {
+    /* we use a combination of transaction id and invoice number to compare what iATS gives us and what we have */
+    $key = substr($dao->trxn_id,0,8).substr($dao->invoice_id,0,10);
+    $quick[$key] = get_object_vars($dao);
+  }
+
   /* get "recent" approvals and rejects from iats and match them up with my pending list via the customer code */
   require_once("CRM/iATS/iATSService.php");
   /* initialize some values so I can report at the end */
   $error_count = 0;
-  $counter = 0; // number of reject/accept records from iats analysed
-  $found = 0;
+  $counter = array(1 => 0, 4 => 0); // number of reject/accept records from iats analysed
+  $qfound = $found = 0;
   $output = array();
   /* do this loop for each relevant payment processor of type ACHEFT (usually only one or none) */
   /* since test payments are NEVER verified by iATS, don't bother checking them [unless/until they change this] */
@@ -70,8 +85,8 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
   while ($dao->fetch()) {
     /* get rejections and then approvals for this payment processor */
     $iats_service_params = array('type' => 'report', 'iats_domain' => parse_url($dao->url_site, PHP_URL_HOST)) + $iats_service_params;
-    foreach (array('acheft_payment_box_reject_csv' => 4, 'acheft_payment_box_journal_csv' => 1) as $method => $contribution_status_id) {
-      // TODO: this is set to capture approvals and canellations from the past month, for testing purposes
+    foreach (array('acheft_payment_box_journal_csv' => 1, 'acheft_payment_box_reject_csv' => 4) as $method => $contribution_status_id) {
+      // TODO: this is set to capture approvals and cancellations from the past month, for testing purposes
       // it doesn't hurt, but on a live environment, this maybe should be limited to the past week, or less?
       // or, it could be configurable for the job
       $iats_service_params['method'] = $method;
@@ -79,11 +94,22 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
       $credentials = $iats->credentials($dao->id, $dao->is_test);
       /* Initialize the default values for the iATS service request */
       /* note: iATS service is finicky about order! */
-      $request = array(
-        'fromDate' => date('Y-m-d',strtotime('-30 days')), 
-        'toDate' => date('Y-m-d',strtotime('-1 day')), 
-        'customerIPAddress' => (function_exists('ip_address') ? ip_address() : $_SERVER['REMOTE_ADDR']),
-      );
+      switch($method) {
+        default: // the new and right way to do it
+        case 'acheft_payment_box_reject_csv':
+          $request = array(
+            'fromDate' => date('Y-m-d',strtotime('-30 days')), 
+            'toDate' => date('Y-m-d',strtotime('-1 day')), 
+          );
+          break;
+        case 'acheft_payment_box_journal_csv': // I'm using the old deprecated 0x0020 version that has different parameter names!
+          $request = array(
+            'from' => date('Y-m-d',strtotime('-30 days')), 
+            'to' => date('Y-m-d',strtotime('-1 day')), 
+          );
+          break;
+      }
+      $request['customerIPAddress'] = (function_exists('ip_address') ? ip_address() : $_SERVER['REMOTE_ADDR']);
       /* if ($contribution_status_id == 1) { 
         $request['fromDate'] = '2012-04-25';
         $request['toDate'] = '2012-04-25';
@@ -97,13 +123,37 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
           // TODO: all I care about it my customer code, but maybe I should check some other columns as a sanity check?
           // $labels = array_flip(str_getcsv($result[0]));
           for ($i = 1; $i < count($box); $i++) {
-            $counter++;
+            if (empty($box[$i])) continue;
+            $counter[$contribution_status_id]++;
             $data = str_getcsv($box[$i]);
             // skip any rows that don't include a custom code - TODO: log this as an error?
             if (empty($data[iATS_SERVICE_REQUEST::iATS_CSV_CUSTOMER_CODE_COLUMN])) continue;
             $customer_code = $data[iATS_SERVICE_REQUEST::iATS_CSV_CUSTOMER_CODE_COLUMN];
-            // I'm only interested in custom codes that are still in a pending state
-            if (isset($pending[$customer_code])) {
+            $contribution = NULL; // use this later to trigger an activity if it's not NULL
+            if ('Quick Client' == $customer_code) {
+              /* a one off : try to update the contribution status */
+              $key = $data[0].$data[1];
+              if (!empty($data[0]) && !empty($data[1]) && !empty($quick[$key])) {
+                $qfound++;
+                $contribution = $quick[$key];
+                $params = array('version' => 3, 'sequential' => 1, 'contribution_status_id' => $contribution_status_id);
+                $params['id'] = $contribution['id'];
+                $result = civicrm_api('Contribution', 'create', $params); // update the contribution
+                if (TRUE) { // always log these requests in civicrm for auditing type purposes
+                  $query_params = array(
+                    1 => array($customer_code, 'String'),
+                    2 => array($contribution['contact_id'], 'Integer'),
+                    3 => array($contribution['id'], 'Integer'),
+                    4 => array(0, 'Integer'),
+                    5 => array($contribution_status_id, 'Integer'),
+                  );
+                  CRM_Core_DAO::executeQuery("INSERT INTO civicrm_iats_verify
+                    (customer_code, cid, contribution_id, recur_id, contribution_status_id, verify_datetime) VALUES (%1, %2, %3, %4, %5, NOW())", $query_params);
+                }
+              }
+            }
+            // I'm only interested in customer codes that are still in a pending state
+            elseif (isset($pending[$customer_code])) {
               $found++;
               $contribution = $pending[$customer_code];
               // first update the contribution status
@@ -133,13 +183,15 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
                     (customer_code, cid, contribution_id, recur_id, contribution_status_id, verify_datetime) VALUES (%1, %2, %3, %4, %5, NOW())", $query_params);
                 }
               }
-              // also log it as an activity for administrative reference
+            }
+            if (!empty($contribution)) {
+              // log it as an activity for administrative reference
               $result = civicrm_api('activity', 'create', array(
                 'version'       => 3,
                 'activity_type_id'  => 6, // 6 = contribution
                 'source_contact_id'   => $contribution['contact_id'],
                 'assignee_contact_id' => $contribution['contact_id'],
-                'subject'       => ts('Updated status of iATS Payments ACH/EFT Recurring Contribution %1 to status %2 for contact %3',
+                'subject'       => ts('Updated status of iATS Payments ACH/EFT Contribution %1 to status %2 for contact %3',
                   array(
                     1 => $contribution['id'],
                     2 => $contribution_status_id,
@@ -175,23 +227,27 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
   // If errors ..
   if ($error_count) {
     return civicrm_api3_create_error(
-      ts("Completed, but with %1 errors. %2 records processed.",
+      ts("Completed, but with %1 errors. %2 accept and %3 rejection records processed.",
         array(
           1 => $error_count,
-          2 => $counter
+          2 => $counter[1],
+          3 => $counter[4],
         )
       ) . "<br />" . implode("<br />", $output)
     );
   }
   // If no errors and records processed ..
-  if ($counter) {
+  if ($counter[1] > 0 || $counter[4] > 0) {
     return civicrm_api3_create_success(
       ts(
-        'For %1 pending contributions, %2 rejection record(s) were analysed, %3 applied.',
+        'For %1 pending recurring contributions and %2 on-off contributions, %3 accept and %4 rejection record(s) were analysed, %5 recurring contribution results applied, %6 on-off contribution records applied.',
         array(
           1 => count($pending),
-          2 => $counter,
-          3 => $found
+          2 => count($quick),
+          3 => $counter[1],
+          4 => $counter[4],
+          5 => $found,
+          6 => $qfound
         )
       ) . "<br />" . implode("<br />", $output)
     );
