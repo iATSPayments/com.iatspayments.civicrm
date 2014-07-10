@@ -25,29 +25,26 @@
   <tr>
     <th>{ts}Invoice Number{/ts}</th>
     <th>{ts}Contact{/ts}</th>
-    <th>{ts}IP{/ts}</th>
+    <th>{ts}Request IP{/ts}</th>
     <th>{ts}CC{/ts}</th>
     <th>{ts}Total{/ts}</th>
     <th>{ts}Request Datetime{/ts}</th>
     <th>{ts}Auth Result{/ts}</th>
-    <th>{ts}Remote ID{/ts}</th>
+    <th>{ts}iATS Client Code{/ts}</th>
     <th>{ts}Response Datetime{/ts}</th>
   </tr>
   {foreach from=$iATSLog item=row}
     <tr>
       {if $row.contributionURL != ''}
       <td><a href="{$row.contributionURL}">{$row.invoice_num}</a></td>
-     {else}
-        <td>{$row.invoice_num}</td>
-     {/if}
-     
-     {if $row.contactURL != ''}
-     	<td><a href="{$row.contactURL}">{$row.sort_name}</a></td>
-     
-     {else}
-        <td></td>
-     
-     {/if}
+      {else}
+      <td>{$row.invoice_num}</td>
+      {/if}
+      {if $row.contactURL != ''}
+      <td><a href="{$row.contactURL}">{$row.sort_name}</a></td>
+      {else}
+      <td></td>
+      {/if}
       <td>{$row.ip}</td>
       <td>{$row.cc}</td>
       <td>{$row.total}</td>

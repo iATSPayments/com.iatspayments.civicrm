@@ -46,11 +46,11 @@ class CRM_iATS_Page_iATSAdmin extends CRM_Core_Page {
       }
     }
     $where = empty($filter) ?  '' : " WHERE ".implode(' AND ',$filter);
-    $sql = "SELECT *
-    FROM civicrm_iats_request_log request 
-    LEFT JOIN civicrm_iats_response_log response ON request.invoice_num = response.invoice_num
-    left join civicrm_contribution contrib ON request.invoice_num = contrib.invoice_id
-    LEFT JOIN civicrm_contact contact ON contrib.contact_id = contact.id
+    $sql = "SELECT request.*,response.*,contrib.contact_id,contact.sort_name
+      FROM civicrm_iats_request_log request 
+      LEFT JOIN civicrm_iats_response_log response ON request.invoice_num = response.invoice_num
+      LEFT join civicrm_contribution contrib ON request.invoice_num = contrib.invoice_id
+      LEFT JOIN civicrm_contact contact ON contrib.contact_id = contact.id
      $where ORDER BY request.id DESC LIMIT $n";
      
     $dao = CRM_Core_DAO::executeQuery($sql);
@@ -70,15 +70,9 @@ class CRM_iATS_Page_iATSAdmin extends CRM_Core_Page {
         $entry += $result;
         $entry['contributionURL'] = CRM_Utils_System::url('civicrm/contact/view/contribution', 'reset=1&id='.$entry['contribution_id'].'&cid='.$entry['contact_id'].'&action=view&selectedChild=Contribute');
       }
-      
-        
-      
-      if( !empty($result['contact_id']) ) {
-      		$entry['contactURL'] = CRM_Utils_System::url('civicrm/contact/view', 'reset=1&cid='.$entry['contact_id']);
-      
-   
+      if (!empty($result['contact_id'])) {
+        $entry['contactURL'] = CRM_Utils_System::url('civicrm/contact/view', 'reset=1&cid='.$entry['contact_id']);
       }
-      
       $log[] = $entry;
     }
     return $log;
