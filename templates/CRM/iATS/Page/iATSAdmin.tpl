@@ -42,7 +42,7 @@
      {/if}
      
      {if $row.contactURL != ''}
-     	<td><a href="{$row.contactURL}">{$row.contact_name}</a></td>
+     	<td><a href="{$row.contactURL}">{$row.sort_name}</a></td>
      
      {else}
         <td></td>
