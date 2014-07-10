@@ -129,7 +129,7 @@ Class iATS_Service_Request {
     // the agent user and password only get put in here so they don't end up in a log above
     try {
       /* until iATS fixes it's box verify, we need to have trace on to make the hack below work */
-      $soapClient = new SoapClient($this->_wsdl_url, array('trace' => 1));
+      $soapClient = new SoapClient($this->_wsdl_url, array('trace' => 1,'soap_version' => SOAP_1_2));
       /* build the request manually as per the iATS docs */
       $xml = '<'.$message.' xmlns="'.$this->_wsdl_url_ns.'">';
       $request = array_merge($this->request,(array) $credentials, (array) $payment);
@@ -150,6 +150,12 @@ Class iATS_Service_Request {
       }
       $soapResponse = $soapClient->$method($soapRequest);
       if (!empty($this->options['log']) && !empty($this->options['debug'])) {
+         $request_log = "\n HEADER:\n";
+         $request_log .= $soapClient->__getLastRequestHeaders();
+         $request_log .= "\n BODY:\n";
+         $request_log .= $soapClient->__getLastRequest();
+         $request_log .= "\n BODYEND:\n";
+         watchdog('civicrm_iatspayments_com', 'Request: !request', array('!request' => '<pre>' . $request_log . '</pre>'), WATCHDOG_NOTICE);
          $response_log = "\n HEADER:\n";
          $response_log .= $soapClient->__getLastResponseHeaders();
          $response_log .= "\n BODY:\n";
