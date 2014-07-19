@@ -4,7 +4,7 @@
     <div id="iats-direct-debit-extra">
       <div class="crm-section cad-instructions-section">
         <div class="label"><em>{ts domain='com.iatspayments.civicrm'}You can find your Transit number, Bank number and Account number by inspecting a cheque.{/ts}</em></div>
-        <div class="content"><img width=292 height=148 src="{crmResURL ext=com.iatspayments.civicrm file=templates/CRM/iATS/imgCAD.jpg}"></div>
+        <div class="content"><img width=500 height=303 src="{crmResURL ext=com.iatspayments.civicrm file=templates/CRM/iATS/CDN_cheque_500x.jpg}"></div>
         <div class="clear"></div>
       </div>
       <div class="crm-section cad-transit-number-section">
@@ -37,7 +37,7 @@ function iatsSetBankIdenficationNumber() {
   cj('#bank_identification_number').val(bin);
 }
 
-cj( function( ) { 
+cj( function( ) {
   /* move my custom fields up where they belong */
   cj('.direct_debit_info-section').prepend(cj('#iats-direct-debit-extra'));
   /* hide the bank identiication number field */
