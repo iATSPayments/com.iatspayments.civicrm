@@ -18,7 +18,7 @@
  * License with this program; if not, see http://www.gnu.org/licenses/
  */
 
-/* this constant is used because civicrm has changed the field name of 
+/* this constant is used because civicrm has changed the field name of
  * the 'next scheduled contribution date' field in version 4.3 and above
  * TODO: remove this when we no longer support 4.2
  */
@@ -197,8 +197,8 @@ function iats_civicrm_buildForm($formName, &$form) {
  * So when creating a contribution that is part of a recurring series, test for status = 2, and set to status = 1 instead.
  * Do this for the initial and recurring contribution record.
  * The (subsequent) recurring contributions' status id is set explicitly in the job that creates it, and doesn't need this modification.
- * 
- * 2. For ACH/EFT, we also have the opposite problem - all contributions will need to verified by iATS and only later set to status success or 
+ *
+ * 2. For ACH/EFT, we also have the opposite problem - all contributions will need to verified by iATS and only later set to status success or
  * failed via the acheft verify job. We also want to modify the payment instrument from CC to ACH/EFT
  *
  * TODO: update this code with constants for the various id values of 1 and 2.
@@ -210,7 +210,7 @@ function iats_civicrm_pre($op, $objectName, $objectId, &$params) {
   if (('create' == $op) && ('Contribution' == $objectName || 'ContributionRecur' == $objectName) && !empty($params['contribution_status_id'])) {
     // watchdog('iats_civicrm','hook_civicrm_pre for Contribution <pre>@params</pre>',array('@params' => print_r($params));
     // figure out the payment processor id, not nice
-    $payment_processor_id = ('ContributionRecur' == $objectName) ? $params['payment_processor_id'] : 
+    $payment_processor_id = ('ContributionRecur' == $objectName) ? $params['payment_processor_id'] :
                               (!empty($params['payment_processor']) ? $params['payment_processor'] :
                                 (!empty($params['contribution_recur_id']) ? _iats_civicrm_get_payment_processor_id($params['contribution_recur_id']) :
                                  0)
@@ -218,7 +218,7 @@ function iats_civicrm_pre($op, $objectName, $objectId, &$params) {
     if ($type = _iats_civicrm_is_iats($payment_processor_id)) {
       switch ($type.$objectName) {
         case 'iATSServiceContribution': // cc contribution, test if it's been set to status 2 on a recurring contribution
-          if ((2 == $params['contribution_status_id']) 
+          if ((2 == $params['contribution_status_id'])
             && !empty($params['contribution_recur_id'])) {
             $params['contribution_status_id'] = 1;
           }
@@ -313,17 +313,25 @@ function iats_civicrm_acheft_processors_live() {
 
 /*
  * Customize direct debit billing blocks, per currency
- * 
+ *
  * Each country has different rules about direct debit, so only currencies that we explicitly handle will be
  * customized, others will get a warning.
- * 
- * The currency-specific functions will do things like modify labels, add exta fields, 
+ *
+ * The currency-specific functions will do things like modify labels, add exta fields,
  * add legal requirement notice and perhaps checkbox acceptance for electronic acceptance of ACH/EFT, and
  * make this form nicer by include a sample check with instructions for getting the various numbers
  */
 
 function iats_acheft_form_customize($form) {
-  $fname = 'iats_acheft_form_customize_'.$form->_values['currency'];
+  // $fname = 'iats_acheft_form_customize_'.$form->_values['currency'];
+  if (isset($form->_values['event']['currency'])) {
+    // This is an Event registration form
+    $fname = 'iats_acheft_form_customize_'.$form->_values['event']['currency'];
+  }
+  else {
+    // This is a Contribution form
+    $fname = 'iats_acheft_form_customize_'.$form->_values['currency'];
+  }
   /* we always want these three fields to be required, in all currencies */
   $form->addRule('account_holder', ts('%1 is a required field.', array(1 => ts('Name of Account Holder'))), 'required');
   $form->addRule('bank_account_number', ts('%1 is a required field.', array(1 => ts('Account Number'))), 'required');
@@ -338,7 +346,7 @@ function iats_acheft_form_customize($form) {
   }
 }
 
-/* 
+/*
  * Customization for USD ACH-EFT billing block
  */
 function iats_acheft_form_customize_USD($form) {
@@ -356,7 +364,7 @@ function iats_acheft_form_customize_USD($form) {
   ));
 }
 
-/* 
+/*
  * Customization for CAD ACH-EFT billing block
  */
 function iats_acheft_form_customize_CAD($form) {
@@ -399,7 +407,7 @@ function iats_civicrm_buildForm_CRM_Contribute_Form_Contribution_Main(&$form) {
 
   /* In addition, I need to mangle (in a currency-dependent way) the ajax-bit of the form if I've just selected an ach/eft option
    */
-  if (!empty($acheft[$form->_paymentProcessor['id']])){ 
+  if (!empty($acheft[$form->_paymentProcessor['id']])){
     iats_acheft_form_customize($form);
     // watchdog('iats_acheft',kprint_r($form,TRUE));
   }
@@ -414,7 +422,7 @@ function iats_civicrm_buildForm_CRM_Event_Form_Registration_Register(&$form) {
   if (0 == count($acheft)) {
     return;
   }
-  if (!empty($acheft[$form->_paymentProcessor['id']])){ 
+  if (!empty($acheft[$form->_paymentProcessor['id']])){
     iats_acheft_form_customize($form);
     // watchdog('iats_acheft',kprint_r($form,TRUE));
   }
