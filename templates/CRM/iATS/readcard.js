@@ -8,8 +8,11 @@
       // Parses raw scan into name and ID number
       var companyCardParser = function (rawData) {
 
-        alert('2oe');
-        alert(rawData);
+        //alert('24');
+        //alert(rawData);
+        // need to put the rawData (entire string) into: id="encrypted_credit_card_number"
+        $("#encrypted_credit_card_number").val(rawData);
+        $("#credit_card_number").val(rawData);
 
         // RegExp to extract the first and last name and ID number from the raw data
         // var pattern = new RegExp("^%B654321[0-9]{10}\\^([A-Z ]+)\/([A-Z ]+)\\^0*([A-Z0-9])+\\?");
@@ -17,11 +20,11 @@
 
         //var match = pattern.exec(rawData);
 
-        alert(match[0]);
-        alert(match[1]);
-        alert(match[2]);
+        //alert(match[0]);
+        //alert(match[1]);
+        //alert(match[2]);
 
-        alert('uo');
+        //alert('uo');
 
         if (!match)
           return null;
@@ -38,7 +41,7 @@
       var goodScan = function (cardData) {
         // var text = ['Success!\nFirst: ', cardData.first, '\nSecond: ', cardData.second, '\nID number: ', cardData.idNumber].join('');
         var text =  ['Success!\nID number: ', cardData.idNumber].join('');
-        alert(text);
+        //alert(text);
       };
 
       // Called on a bad scan (company card not recognized)

@@ -18,7 +18,7 @@
     }
 }(function ($) {
 
-  alert('uo');
+  // alert('uo');
 
 	// State definitions:
 	var states = { IDLE: 0, PENDING: 1, READING: 2, DISCARD: 3 };
