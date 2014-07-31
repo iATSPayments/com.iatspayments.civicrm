@@ -12,6 +12,13 @@ CiviCRM 4.2+. These are instructions are based on 4.3, the 4.2 instructions are 
 
 Your PHP needs to include the SOAP extension (php.net/manual/en/soap.setup.php).
 
+You must have an iATS Payments account - and have configured it to accept payment though WebServices. Our recommended configuration would look like this:
+
+2ABC01 account: configured to access via iATSpayments.com only (no WebServices) - full refund/journal capability - the works. Password is unique to the 01 account. 
+
+2ABC80 account: subaccount configured to connected with iATS WebServices - can also access iATSpayments.com - but journal functionality only (no refund capability). The 80 account has a different password than the 01 account - use the 80(+) accounts to configure your Payment Processor(s) in CiviCRM. 
+
+2ABC81 etc - same as 2ABC80. If this was a school; a payment processor connecting to subaccount 80 could be cafeteria monies; 81 could be tuition deposits; 82 could be special event tickets, etc. Passwords for the 80, 81, 82 etc accounts can all be the same. Essentially they are deposit only accounts.
 
 Installation
 ------------
