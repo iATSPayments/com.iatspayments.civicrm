@@ -225,7 +225,7 @@ function iats_civicrm_pre($op, $objectName, $objectId, &$params) {
           break;
         case 'iATSServiceContributionRecur': // cc recurring contribution record
           // we've already taken the first payment, so calculate the next one
-          $params['contribution_status_id'] = 1;
+          $params['contribution_status_id'] = 5;
           $next = strtotime('+'.$params['frequency_interval'].' '.$params['frequency_unit']);
           $params[IATS_CIVICRM_NSCD_FID] = date('YmdHis',$next);
           break;
@@ -238,7 +238,7 @@ function iats_civicrm_pre($op, $objectName, $objectId, &$params) {
         case 'iATSServiceACHEFTContributionRecur': // ach/eft recurring contribution record
           // watchdog('iats_civicrm_recur','<pre>'.print_r($params,TRUE).'</pre>');
           $params['payment_instrument_id'] = 2;
-          $params['contribution_status_id'] = 1; // we set this to 1 because even if the first one hasn't been verified, we still want to be attempting later ones
+          $params['contribution_status_id'] = 5; // we set this to 'in-progress' because even if the first one hasn't been verified, we still want to be attempting later ones
           $next = strtotime('+'.$params['frequency_interval'].' '.$params['frequency_unit']);
           $params[IATS_CIVICRM_NSCD_FID] = date('YmdHis',$next);
           break;

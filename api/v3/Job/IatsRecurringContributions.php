@@ -40,27 +40,49 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
   $dtCurrentDayStart = $dtCurrentDay."000000";
   $dtCurrentDayEnd   = $dtCurrentDay."235959";
   $expiry_limit = date('ym');
+  // restrict this method of recurring contribution processing to only these two payment processors
+  $args = array(
+    1 => array('Payment_iATSService', 'String'),
+    2 => array('Payment_iATSServiceACHEFT', 'String'),
+  );
+  // first update complete/in-progress values
+  // deal with the extension of the end_date to a completed cycle 
+  $update = 'UPDATE civicrm_contribution_recur cr 
+      INNER JOIN civicrm_payment_processor pp ON cr.payment_processor_id = pp.id
+      SET
+        cr.contribution_status_id = 5 
+      WHERE
+        cr.contribution_status_id = 1 
+        AND (pp.class_name = %1 OR pp.class_name = %2)
+        AND (cr.end_date IS NULL OR cr.end_date > NOW())';
+  $dao = CRM_Core_DAO::executeQuery($update,$args);
+  // expire completed cycles
+  $update = 'UPDATE civicrm_contribution_recur cr 
+      INNER JOIN civicrm_payment_processor pp ON cr.payment_processor_id = pp.id
+      SET
+        cr.contribution_status_id = 5 
+      WHERE
+        cr.contribution_status_id = 1 
+        AND (pp.class_name = %1 OR pp.class_name = %2)
+        AND (NOT(cr.end_date IS NULL) AND cr.end_date <= NOW())';
+  $dao = CRM_Core_DAO::executeQuery($update,$args);
   // Select the recurring payments for iATSService, where current date is equal to next scheduled date
   $select = 'SELECT cr.*, icc.customer_code, icc.expiry as icc_expiry, icc.cid as icc_contact_id, pp.class_name as pp_class_name, pp.url_site as url_site, pp.is_test 
       FROM civicrm_contribution_recur cr 
       INNER JOIN civicrm_payment_processor pp ON cr.payment_processor_id = pp.id
       INNER JOIN civicrm_iats_customer_codes icc ON cr.id = icc.recur_id
       WHERE 
-        cr.contribution_status_id = 1
-        AND pp.class_name LIKE %1
-        AND (cr.end_date IS NULL OR cr.end_date > NOW())';
+        cr.contribution_status_id = 5
+        AND (pp.class_name = %1 OR pp.class_name = %2)';
   //      AND pp.is_test = 0
-  $args = array(
-    1 => array('Payment_iATSService%', 'String'),
-  );
   if (!empty($params['recur_id'])) { // can be called to execute a specific recurring contribution id
-    $select .= ' AND icc.recur_id = %2';
-    $args[2] = array($params['recur_id'], 'Int');
+    $select .= ' AND icc.recur_id = %3';
+    $args[3] = array($params['recur_id'], 'Int');
   }
   else { // if (!empty($params['scheduled'])) { 
     //normally, process all recurring contributions due today
-    $select .= ' AND cr.'.IATS_CIVICRM_NSCD_FID.' <= %2';
-    $args[2] = array($dtCurrentDayEnd, 'String');
+    $select .= ' AND cr.'.IATS_CIVICRM_NSCD_FID.' <= %3';
+    $args[3] = array($dtCurrentDayEnd, 'String');
     // ' AND cr.next_sched_contribution >= %2 
     // $args[2] = array($dtCurrentDayStart, 'String');
   }
