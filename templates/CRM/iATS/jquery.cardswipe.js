@@ -33,6 +33,7 @@
 	var timerHandle = 0;
 
 	// Keypress listener
+  // The state machine starts in the IDLE state, waiting for a % character, which is the leading character on a swipe.
 	var listener = function (e) {
 		switch (state) {
       case states.IDLE:
@@ -40,12 +41,14 @@
 				//if (e.which == 37) {
         // Encrypted reader starts with '0'
         if (e.which == 48) {
-					state = states.PENDING;
+
+          state = states.PENDING;
 					scanbuffer = new Array();
 					processCode(e.which);
 					e.preventDefault();
 					e.stopPropagation();
 					startTimer();
+
 				}
 
 				break;

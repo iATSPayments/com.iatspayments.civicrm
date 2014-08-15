@@ -140,6 +140,27 @@ function iats_civicrm_managed(&$entities) {
       'payment_type' => 2,
     ),
   );
+  $entities[] = array(
+    'module' => 'com.iatspayments.civicrm',
+    'name' => 'iATS Payments SWIPE',
+    'entity' => 'PaymentProcessorType',
+    'params' => array(
+      'version' => 3,
+      'name' => 'iATS Payments SWIPE',
+      'title' => 'iATS Payments SWIPE',
+      'description' => 'iATS credit card payment processor using the encrypted USB IDTECH card reader.',
+      'class_name' => 'Payment_iATSServiceSWIPE',
+      'billing_mode' => 'form',
+      'user_name_label' => 'Agent Code',
+      'password_label' => 'Password',
+      'url_site_default' => 'https://www.iatspayments.com/NetGate/ProcessLink.asmx?WSDL',
+      'url_recur_default' => 'https://www.iatspayments.com/NetGate/ProcessLink.asmx?WSDL',
+      'url_site_test_default' => 'https://www.iatspayments.com/NetGate/ProcessLink.asmx?WSDL',
+      'url_recur_test_default' => 'https://www.iatspayments.com/NetGate/ProcessLink.asmx?WSDL',
+      'is_recur' => 1,
+      'payment_type' => 1,
+    ),
+  );
   return _iats_civix_civicrm_managed($entities);
 }
 
@@ -294,7 +315,7 @@ function _iats_civicrm_is_iats($payment_processor_id) {
   return ('Payment_iATSService' == $type) ? 'iATSService'.$subtype  : FALSE;
 }
 
-/* internal utility function: return the id's of any iats ach/eft processors */
+/* internal utility function: return the id's of any iATS ACH/EFT processors */
 function iats_civicrm_acheft_processors($processors) {
   $acheft = array();
   foreach($processors as $id => $paymentProcessor) {
@@ -308,7 +329,21 @@ function iats_civicrm_acheft_processors($processors) {
   return $acheft;
 }
 
-/* as above, but return all non-test, active ach/eft iats processors */
+/* internal utility function: return the id's of any iATS SWIPE processors */
+function iats_civicrm_swipe_processors($processors) {
+  $swipe = array();
+  foreach($processors as $id => $paymentProcessor) {
+    $params = array('version' => 3, 'sequential' => 1, 'id' => $id);
+    $result = civicrm_api('PaymentProcessor', 'getsingle', $params);
+    if (!empty($result['class_name']) && ('Payment_iATSServiceSWIPE' == $result['class_name'])) {
+      $swipe[$id] = TRUE;
+      break;
+    }
+  }
+  return $swipe;
+}
+
+/* as above, but return all non-test, active ACH/EFT iATS processors */
 function iats_civicrm_acheft_processors_live() {
   $acheft = array();
   $params = array('version' => 3, 'sequential' => 1, 'is_test' => 0, 'is_active' => 1);
@@ -463,18 +498,49 @@ function iats_civicrm_buildForm_CRM_Event_Form_Registration_Register(&$form) {
 function iats_civicrm_buildForm_CRM_Contribute_Form_Contribution(&$form) {
 
   // KG
-  iats_acheft_form_customize_swipe($form);
+  // if iATS SWIPE payment processor exists AND is enabled (is active) remove all other payment processors
+  // from this backend contribution form. Apparently CiviCRM Administrator has determined that
+  // it's mandatory for staff to use SWIPE method for backend transactions during
+  // e.g. tonight's fundraising event.
+  $swipe = iats_civicrm_swipe_processors($form->_processors);
+  if (1 == count($swipe)) {
+    $pp_form_id = $form->_elementIndex['payment_processor_id'];
+
+    $element = $form->_elements[$pp_form_id]->_options;
+    foreach($element as $option_id => $option) {
+      $array_keys_swipe = array_keys($swipe);
+      if ($option['attr']['value'] != $array_keys_swipe[0]) {
+          unset($form->_elements[$pp_form_id]->_options[$option_id]);
+      }
+    }
+
+    $processors = array_keys($form->_processors);
+    foreach($processors as $pp_id) {
+      if ($pp_id != $array_keys_swipe[0]) {
+        unset($form->_processors[$pp_id]);
+      }
+    }
+
+    $recurPaymentProcessors = array_keys($form->_recurPaymentProcessors);
+    foreach($recurPaymentProcessors as $pp_id) {
+      if ($pp_id != $array_keys_swipe[0]) {
+        unset($form->_recurPaymentProcessors[$pp_id]);
+      }
+    }
+
+    iats_acheft_form_customize_swipe($form);
+  }
 
   if (empty($form->_processors)) {
     return;
   }
   $acheft = iats_civicrm_acheft_processors($form->_processors);
-  // I only need to mangle the form if it (still) allows ACH/EFT
+// I only need to mangle the form if it (still) allows ACH/EFT
   if (0 == count($acheft)) {
     return;
   }
-  // yes, there's a more efficient/clever way to find the right element
-  // but since this code is only fixing old CiviCRM instances, let's not worry
+// yes, there's a more efficient/clever way to find the right element
+// but since this code is only fixing old CiviCRM instances, let's not worry
   foreach($form->_elements as $form_id => $element) {
     if ($element->_attributes['name'] == 'payment_processor_id') {
       $pp_form_id = $form_id;
