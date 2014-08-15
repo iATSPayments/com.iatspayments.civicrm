@@ -189,6 +189,18 @@ function iats_civicrm_buildForm($formName, &$form) {
 }
 
 /*
+ * hook_civicrm_merge
+ * Deal with contact merges - our custom iats customer code table contains contact id's as a check, it might need to be updated
+ */
+function iats_civicrm_merge($type, &$data, $mainId = NULL, $otherId = NULL, $tables = NULL) {
+  if ('cidRefs' == $type) {
+    $data['civicrm_iats_customer_codes'] = array('cid');
+    $data['civicrm_iats_verify'] = array('cid');
+  }
+}
+
+
+/*
  * hook_civicrm_pre
  *
  * Handle special cases of creating contribution (regular and recurring) records when using IATS Payments
