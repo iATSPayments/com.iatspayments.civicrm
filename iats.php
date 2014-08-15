@@ -503,6 +503,13 @@ function iats_civicrm_buildForm_CRM_Contribute_Form_Search(&$form) {
   }
 }
 
+/*
+ * Modify the recurring contribution cancelation form to exclude the confusing message about sending the request to the backend
+ */
+function iats_civicrm_buildForm_CRM_Contribute_Form_CancelSubscription(&$form) {
+  $form->removeElement('send_cancel_request');
+}
+
 function _iats_civicrm_domain_info($key) {
   static $domain;
   if (empty($domain)) {
