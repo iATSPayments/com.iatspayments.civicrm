@@ -1,0 +1,35 @@
+(function ($) {
+
+  Drupal.behaviors.cfisReadcard = {
+    attach: function (context, settings) {
+
+      jQuery(function () {
+        // Create a new reader instance
+        var reader = new CardReader();
+
+        alert('to');
+
+        // Feed it an object to observe (this could also be a textbox)
+        reader.observe(window);
+
+        //02B701801F422300039B%*4222********2220^PAYMENTSTESTCARD/IATS^***********************?*;4222********2220=***************?*C061B64B725A582A0F31B67702F0E256B74F1766D66660B86D80F3278AF6CFCEF8ADD6A9E009FB8629B401FB93B8296F9DF6E143826C3DBD3A1782F31116396289445157FA26D34397BB7097F3777E124F1C02C812CB2665FD2D843DCF7D8C159D5862FE94F3BE3BC025CD7A85E2E39072ECC0405546DCF6035E78D7BDCC3A43A5EED1CD223A07AB70232D8A3FC073D3C8170736F266783AFFFF73813900042000832B3903
+        //%B4222222222222220^PAYMENTSTESTCARD/IATS^21081211000000395000000?;4222222222222220=210812110000395?
+
+        // Errback in case of a reading error
+        reader.cardError(function () {
+          alert("A read error occurred");
+        });
+
+        // Callback in case of a successful reading operation
+        reader.cardRead(function (value) {
+          alert(value);
+          $('form input#card_number').val(value);
+          $('from').submit();
+        });
+      });
+
+    }
+
+  };
+
+})(jQuery);

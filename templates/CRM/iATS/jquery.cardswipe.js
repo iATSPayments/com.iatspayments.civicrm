@@ -18,7 +18,7 @@
     }
 }(function ($) {
 
-  // alert('uo');
+  //alert('ooi');
 
 	// State definitions:
 	var states = { IDLE: 0, PENDING: 1, READING: 2, DISCARD: 3 };
@@ -34,22 +34,32 @@
 
 	// Keypress listener
   // The state machine starts in the IDLE state, waiting for a % character, which is the leading character on a swipe.
+  // KG: but not for ID TECH
 	var listener = function (e) {
 		switch (state) {
       case states.IDLE:
 				// Look for '%'
 				//if (e.which == 37) {
         // Encrypted reader starts with '0'
-        if (e.which == 48) {
 
-          state = states.PENDING;
-					scanbuffer = new Array();
-					processCode(e.which);
-					e.preventDefault();
-					e.stopPropagation();
-					startTimer();
+// KG
+        var last_key = 0
+        var tooktime = 1;
+            if (e.which == 48 && $.now()-last_key >1){
+       // if (e.which == 48 && tooktime <1){
+    //      if (e.which == 48) {
 
-				}
+            last_key = 0
+
+            state = states.PENDING;
+				  	scanbuffer = new Array();
+			  		processCode(e.which);
+			  		e.preventDefault();
+		  			e.stopPropagation();
+	  				startTimer();
+
+				  }
+        last_key = $.now()
 
 				break;
 
