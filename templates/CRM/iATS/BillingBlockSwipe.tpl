@@ -54,6 +54,14 @@ function iatsSetCreditCardNumber() {
   }
 }
 
+function clearField() {
+  var field = cj('#encrypted_credit_card_number').val();
+  /* console.log('field: '+field); */
+  if (field == 'click here - then swipe') {
+    cj('#encrypted_credit_card_number').val('');
+    }
+}
+
 cj( function( ) {
   /* move my custom fields up where they belong */
   cj('#payment_information').prepend(cj('#iats-swipe'));
@@ -68,14 +76,9 @@ cj( function( ) {
 
   iatsSetCreditCardNumber();
 
-  var defaultValue = 'click here to swipe';
+  var defaultValue = 'click here - then swipe';
   cj('#encrypted_credit_card_number').val(defaultValue);
-  cj('#encrypted_credit_card_number').focus(function() {
-      if (this.value === this.defaultValue) {
-        this.value = '';
-      }
-    })
-
+  cj('#encrypted_credit_card_number').focus(clearField);
   cj('#encrypted_credit_card_number').blur(iatsSetCreditCardNumber);
 
 });
