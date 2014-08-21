@@ -437,19 +437,17 @@ function iats_acheft_form_customize_CAD($form) {
 /*
  * Customization for iATS secure swipe
  */
-  function iats_acheft_form_customize_swipe($form) {
-   // make everything unrequired:
-   $form->_required = array();
-   $form->addElement('textarea','encrypted_credit_card_number',ts('Encrypted'), array('cols' => '80', 'rows' => '8'));
-   $form->addRule('encrypted_credit_card_number', ts('%1 is a required field.', array(1 => ts('Encrypted'))), 'required');
-   //$form->addRule('credit_card_exp_date', ts('%1 is a required field.', array(1 => ts('Expiry Date'))), 'required');
-   //CRM_Core_Resources::singleton()->addScriptFile('com.iatspayments.civicrm', 'templates/CRM/iATS/jquery.cardswipe.js');
-   //CRM_Core_Resources::singleton()->addScriptFile('com.iatspayments.civicrm', 'templates/CRM/iATS/CardReader/CardReader.js');
-   //CRM_Core_Resources::singleton()->addScriptFile('com.iatspayments.civicrm', 'templates/CRM/iATS/readcard.js');
-   CRM_Core_Region::instance('billing-block')->add(array(
-     'template' => 'CRM/iATS/BillingBlockSwipe.tpl'
-   ));
-  }
+function iats_acheft_form_customize_swipe($form) {
+ // make everything unrequired:
+ $form->_required = array();
+ $form->addElement('textarea','encrypted_credit_card_number',ts('Encrypted'), array('cols' => '80', 'rows' => '8'));
+ $form->addRule('encrypted_credit_card_number', ts('%1 is a required field.', array(1 => ts('Encrypted'))), 'required');
+ //$form->addRule('credit_card_exp_date', ts('%1 is a required field.', array(1 => ts('Expiry Date'))), 'required');
+ //CRM_Core_Resources::singleton()->addScriptFile('com.iatspayments.civicrm', 'templates/CRM/iATS/readcard.js');
+ CRM_Core_Region::instance('billing-block')->add(array(
+   'template' => 'CRM/iATS/BillingBlockSwipe.tpl'
+ ));
+}
 
 /* ACH/EFT modifications to a (public) contribution form if iATS ACH/EFT is enabled
  *  1. set recurring to be the default, if enabled
