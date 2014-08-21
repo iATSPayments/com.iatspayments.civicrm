@@ -17,7 +17,6 @@
  * License with this program; if not, see http://www.gnu.org/licenses/
  *
  * This code provides glue between CiviCRM payment model and the iATS Payment model encapsulated in the iATS_Service_Request object
- *
  */
 class CRM_Core_Payment_iATSServiceSWIPE extends CRM_Core_Payment {
 
@@ -39,7 +38,7 @@ class CRM_Core_Payment_iATSServiceSWIPE extends CRM_Core_Payment {
    */
    function __construct($mode, &$paymentProcessor) {
     $this->_paymentProcessor = $paymentProcessor;
-    $this->_processorName = ts('iATS Payments');
+    $this->_processorName = ts('iATS Payments SWIPE');
 
     // get merchant data from config
     $config = CRM_Core_Config::singleton();
@@ -64,8 +63,10 @@ class CRM_Core_Payment_iATSServiceSWIPE extends CRM_Core_Payment {
     }
     // use the iATSService object for interacting with iATS, mostly the same for recurring contributions
     require_once("CRM/iATS/iATSService.php");
+    // TODO: force bail if it's not recurring?
     $isRecur =  CRM_Utils_Array::value('is_recur', $params) && $params['contributionRecurID'];
-    $method = $isRecur ? 'cc_create_customer_code':'cc';
+    $method = $isRecur ? 'acheft_create_customer_code':'acheft';
+    // to add debugging info in the drupal log, assign 1 to log['all'] below
     $iats = new iATS_Service_Request(array('type' => 'process', 'method' => $method, 'iats_domain' => $this->_profile['iats_domain'], 'currencyID' => $params['currencyID']));
     $request = $this->convertParams($params, $method);
     $request['customerIPAddress'] = (function_exists('ip_address') ? ip_address() : $_SERVER['REMOTE_ADDR']);
@@ -88,8 +89,10 @@ class CRM_Core_Payment_iATSServiceSWIPE extends CRM_Core_Payment {
         // before initiating processCreditCard()
         // CRM_Utils_Hook::alterPaymentProcessorParams($this, $params, $iatslink1);
         $processresult = $response->PROCESSRESULT;
-        $customer_code = $processresult->CUSTOMERCODE;
-        $exp = sprintf('%02d%02d', ($params['year'] % 100), $params['month']);
+        $customer_code = (string) $processresult->CUSTOMERCODE;
+        // $exp = sprintf('%02d%02d', ($params['year'] % 100), $params['month']);
+        $exp = '0000';
+        $email = '';
         if (isset($params['email'])) {
           $email = $params['email'];
         }
@@ -111,7 +114,7 @@ class CRM_Core_Payment_iATSServiceSWIPE extends CRM_Core_Payment {
           (customer_code, ip, expiry, cid, email, recur_id) VALUES (%1, %2, %3, %4, %5, %6)", $query_params);
         $params['contribution_status_id'] = 1;
         // also set next_sched_contribution
-        $params['next_sched_contribution'] = strtotime('+'.$params['frequency_interval'].' '.$params['frequency_unit']);
+        $params[IATS_CIVICRM_NSCD_FID] = strtotime('+'.$params['frequency_interval'].' '.$params['frequency_unit']);
       }
       return $params;
     }
@@ -193,8 +196,8 @@ class CRM_Core_Payment_iATSServiceSWIPE extends CRM_Core_Payment {
       'zipCode' => 'postal_code',
       'country' => 'country',
       'invoiceNum' => 'invoiceID',
-      'creditCardNum' => 'credit_card_number',
-      'cvv2' => 'cvv2',
+    /*  'accountNum' => 'bank_account_number', */
+      'accountType' => 'bank_account_type',
     );
 
     foreach($convert as $r => $p) {
@@ -202,24 +205,16 @@ class CRM_Core_Payment_iATSServiceSWIPE extends CRM_Core_Payment {
         $request[$r] = $params[$p];
       }
     }
-    $request['creditCardExpiry'] = sprintf('%02d/%02d', $params['month'], ($params['year'] % 100));
     $request['total'] = sprintf('%01.2f', CRM_Utils_Rule::cleanMoney($params['amount']));
     // place for ugly hacks
     switch($method) {
-      case 'cc_create_customer_code':
-        $request['ccNum'] = $request['creditCardNum'];
-        unset($request['creditCardNum']);
-        $request['ccExp'] = $request['creditCardExpiry'];
-        unset($request['creditCardExpiry']);
+      case 'acheft':
+      case 'acheft_create_customer_code':
+        // add bank number + transit to account number
+        // TODO: verification?
+        $request['accountNum'] = preg_replace('/^0-9]/','',$params['bank_identification_number'].$params['bank_account_number']);
         break;
     }
-    $mop = array(
-      'Visa' => 'VISA',
-      'MasterCard' => 'MC',
-      'Amex' => 'AMX',
-      'Discover' => 'DSC',
-    );
-    $request['mop'] = $mop[$params['credit_card_type']];
     return $request;
   }
 
