@@ -508,7 +508,7 @@ function iats_civicrm_buildForm_CRM_Contribute_Form_Contribution(&$form) {
     foreach($element as $option_id => $option) {
       $array_keys_swipe = array_keys($swipe);
       if ($option['attr']['value'] != $array_keys_swipe[0]) {
-          unset($form->_elements[$pp_form_id]->_options[$option_id]);
+          //unset($form->_elements[$pp_form_id]->_options[$option_id]);
       }
     }
 
