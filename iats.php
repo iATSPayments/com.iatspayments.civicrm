@@ -515,14 +515,14 @@ function iats_civicrm_buildForm_CRM_Contribute_Form_Contribution(&$form) {
     $processors = array_keys($form->_processors);
     foreach($processors as $pp_id) {
       if ($pp_id != $array_keys_swipe[0]) {
-        unset($form->_processors[$pp_id]);
+        //unset($form->_processors[$pp_id]);
       }
     }
 
     $recurPaymentProcessors = array_keys($form->_recurPaymentProcessors);
     foreach($recurPaymentProcessors as $pp_id) {
       if ($pp_id != $array_keys_swipe[0]) {
-        unset($form->_recurPaymentProcessors[$pp_id]);
+        //unset($form->_recurPaymentProcessors[$pp_id]);
       }
     }
 
