@@ -508,21 +508,21 @@ function iats_civicrm_buildForm_CRM_Contribute_Form_Contribution(&$form) {
     foreach($element as $option_id => $option) {
       $array_keys_swipe = array_keys($swipe);
       if ($option['attr']['value'] != $array_keys_swipe[0]) {
-          //unset($form->_elements[$pp_form_id]->_options[$option_id]);
+          unset($form->_elements[$pp_form_id]->_options[$option_id]);
       }
     }
 
     $processors = array_keys($form->_processors);
     foreach($processors as $pp_id) {
       if ($pp_id != $array_keys_swipe[0]) {
-        //unset($form->_processors[$pp_id]);
+        unset($form->_processors[$pp_id]);
       }
     }
 
     $recurPaymentProcessors = array_keys($form->_recurPaymentProcessors);
     foreach($recurPaymentProcessors as $pp_id) {
       if ($pp_id != $array_keys_swipe[0]) {
-        //unset($form->_recurPaymentProcessors[$pp_id]);
+        unset($form->_recurPaymentProcessors[$pp_id]);
       }
     }
 
