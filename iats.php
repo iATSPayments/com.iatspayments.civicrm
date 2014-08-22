@@ -251,12 +251,14 @@ function iats_civicrm_pre($op, $objectName, $objectId, &$params) {
     if ($type = _iats_civicrm_is_iats($payment_processor_id)) {
       switch ($type.$objectName) {
         case 'iATSServiceContribution': // cc contribution, test if it's been set to status 2 on a recurring contribution
+        case 'iATSServiceSWIPEContribution': 
           if ((2 == $params['contribution_status_id'])
             && !empty($params['contribution_recur_id'])) {
             $params['contribution_status_id'] = 1;
           }
           break;
         case 'iATSServiceContributionRecur': // cc recurring contribution record
+        case 'iATSServiceSWIPEContributionRecur': 
           // we've already taken the first payment, so calculate the next one
           $params['contribution_status_id'] = 5;
           $next = strtotime('+'.$params['frequency_interval'].' '.$params['frequency_unit']);
@@ -495,50 +497,49 @@ function iats_civicrm_buildForm_CRM_Event_Form_Registration_Register(&$form) {
  */
 function iats_civicrm_buildForm_CRM_Contribute_Form_Contribution(&$form) {
 
-  // KG
+  if (empty($form->_processors)) {
+    return;
+  }
+
   // if iATS SWIPE payment processor exists AND is enabled (is active) remove all other payment processors
-  // from this backend contribution form. Apparently CiviCRM Administrator has determined that
-  // it's mandatory for staff to use SWIPE method for backend transactions during
+  // from this backend contribution form. 
+  // Assumes CiviCRM Administrator has determined that
+  // it's mandatory for staff to use SWIPE method for backend transactions while this is true
   // e.g. tonight's fundraising event.
   $swipe = iats_civicrm_swipe_processors($form->_processors);
   if (1 == count($swipe)) {
     $pp_form_id = $form->_elementIndex['payment_processor_id'];
-
+    $swipe_key = current(array_keys($swipe));
     $element = $form->_elements[$pp_form_id]->_options;
     foreach($element as $option_id => $option) {
-      $array_keys_swipe = array_keys($swipe);
-      if ($option['attr']['value'] != $array_keys_swipe[0]) {
+      if ($option['attr']['value'] != $swipe_key) {
         unset($form->_elements[$pp_form_id]->_options[$option_id]);
       }
     }
 
     $processors = array_keys($form->_processors);
     foreach($processors as $pp_id) {
-      if ($pp_id != $array_keys_swipe[0]) {
+      if ($pp_id != $swipe_key) {
         unset($form->_processors[$pp_id]);
       }
     }
 
     $recurPaymentProcessors = array_keys($form->_recurPaymentProcessors);
     foreach($recurPaymentProcessors as $pp_id) {
-      if ($pp_id != $array_keys_swipe[0]) {
+      if ($pp_id != $swipe_key) {
         unset($form->_recurPaymentProcessors[$pp_id]);
       }
     }
-
     iats_acheft_form_customize_swipe($form);
   }
 
-  if (empty($form->_processors)) {
-    return;
-  }
+  // Mangle the form if it (still) allows ACH/EFT
   $acheft = iats_civicrm_acheft_processors($form->_processors);
-// I only need to mangle the form if it (still) allows ACH/EFT
   if (0 == count($acheft)) {
     return;
   }
-// yes, there's a more efficient/clever way to find the right element
-// but since this code is only fixing old CiviCRM instances, let's not worry
+  // yes, there's a more efficient/clever way to find the right element
+  // but since this code is only fixing old CiviCRM instances, let's not worry
   foreach($form->_elements as $form_id => $element) {
     if ($element->_attributes['name'] == 'payment_processor_id') {
       $pp_form_id = $form_id;
