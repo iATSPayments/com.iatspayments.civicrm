@@ -3,17 +3,17 @@
  * @author Alan Dixon
  *
  * This file is a part of CiviCRM published extension.
- * 
- * This extension is free software; you can copy, modify, and distribute it  
- * under the terms of the GNU Affero General Public License           
+ *
+ * This extension is free software; you can copy, modify, and distribute it
+ * under the terms of the GNU Affero General Public License
  * Version 3, 19 November 2007.
- *                                                                    
- * It is distributed in the hope that it will be useful, but     
- * WITHOUT ANY WARRANTY; without even the implied warranty of         
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.               
- * See the GNU Affero General Public License for more details.        
- *                                                                    
- * You should have received a copy of the GNU Affero General Public   
+ *
+ * It is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public
  * License with this program; if not, see http://www.gnu.org/licenses/
  *
  * This code provides glue between CiviCRM payment model and the iATS Payment model encapsulated in the iATS_Service_Request object
@@ -35,7 +35,7 @@ class CRM_Core_Payment_iATSServiceACHEFT extends CRM_Core_Payment {
    * @param string $mode the mode of operation: live or test
    *
    * @return void
-   */ 
+   */
    function __construct($mode, &$paymentProcessor) {
     $this->_paymentProcessor = $paymentProcessor;
     $this->_processorName = ts('iATS Payments ACHEFT');
@@ -77,7 +77,7 @@ class CRM_Core_Payment_iATSServiceACHEFT extends CRM_Core_Payment {
     // $url = $this->_paymentProcessor['url_site'];
 
     // make the soap request
-    $response = $iats->request($credentials,$request); 
+    $response = $iats->request($credentials,$request);
     // process the soap response into a readable result
     $result = $iats->result($response);
     if ($result['status']) {
@@ -88,10 +88,11 @@ class CRM_Core_Payment_iATSServiceACHEFT extends CRM_Core_Payment {
         // Allow further manipulation of the arguments via custom hooks,
         // before initiating processCreditCard()
         // CRM_Utils_Hook::alterPaymentProcessorParams($this, $params, $iatslink1);
-        $processresult = $response->PROCESSRESULT; 
-        $customer_code = $processresult->CUSTOMERCODE;
+        $processresult = $response->PROCESSRESULT;
+        $customer_code = (string) $processresult->CUSTOMERCODE;
         // $exp = sprintf('%02d%02d', ($params['year'] % 100), $params['month']);
         $exp = '0000';
+        $email ='';
         if (isset($params['email'])) {
           $email = $params['email'];
         }
@@ -198,7 +199,7 @@ class CRM_Core_Payment_iATSServiceACHEFT extends CRM_Core_Payment {
     /*  'accountNum' => 'bank_account_number', */
       'accountType' => 'bank_account_type',
     );
- 
+
     foreach($convert as $r => $p) {
       if (isset($params[$p])) {
         $request[$r] = $params[$p];
@@ -216,6 +217,6 @@ class CRM_Core_Payment_iATSServiceACHEFT extends CRM_Core_Payment {
     }
     return $request;
   }
- 
+
 }
 

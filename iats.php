@@ -140,6 +140,27 @@ function iats_civicrm_managed(&$entities) {
       'payment_type' => 2,
     ),
   );
+  $entities[] = array(
+    'module' => 'com.iatspayments.civicrm',
+    'name' => 'iATS Payments SWIPE',
+    'entity' => 'PaymentProcessorType',
+    'params' => array(
+      'version' => 3,
+      'name' => 'iATS Payments SWIPE',
+      'title' => 'iATS Payments SWIPE',
+      'description' => 'iATS credit card payment processor using the encrypted USB IDTECH card reader.',
+      'class_name' => 'Payment_iATSServiceSWIPE',
+      'billing_mode' => 'form',
+      'user_name_label' => 'Agent Code',
+      'password_label' => 'Password',
+      'url_site_default' => 'https://www.iatspayments.com/NetGate/ProcessLink.asmx?WSDL',
+      'url_recur_default' => 'https://www.iatspayments.com/NetGate/ProcessLink.asmx?WSDL',
+      'url_site_test_default' => 'https://www.iatspayments.com/NetGate/ProcessLink.asmx?WSDL',
+      'url_recur_test_default' => 'https://www.iatspayments.com/NetGate/ProcessLink.asmx?WSDL',
+      'is_recur' => 1,
+      'payment_type' => 1,
+    ),
+  );
   return _iats_civix_civicrm_managed($entities);
 }
 
@@ -230,12 +251,14 @@ function iats_civicrm_pre($op, $objectName, $objectId, &$params) {
     if ($type = _iats_civicrm_is_iats($payment_processor_id)) {
       switch ($type.$objectName) {
         case 'iATSServiceContribution': // cc contribution, test if it's been set to status 2 on a recurring contribution
+        case 'iATSServiceSWIPEContribution': 
           if ((2 == $params['contribution_status_id'])
             && !empty($params['contribution_recur_id'])) {
             $params['contribution_status_id'] = 1;
           }
           break;
         case 'iATSServiceContributionRecur': // cc recurring contribution record
+        case 'iATSServiceSWIPEContributionRecur': 
           // we've already taken the first payment, so calculate the next one
           $params['contribution_status_id'] = 5;
           $next = strtotime('+'.$params['frequency_interval'].' '.$params['frequency_unit']);
@@ -294,7 +317,7 @@ function _iats_civicrm_is_iats($payment_processor_id) {
   return ('Payment_iATSService' == $type) ? 'iATSService'.$subtype  : FALSE;
 }
 
-/* internal utility function: return the id's of any iats ach/eft processors */
+/* internal utility function: return the id's of any iATS ACH/EFT processors */
 function iats_civicrm_acheft_processors($processors) {
   $acheft = array();
   foreach($processors as $id => $paymentProcessor) {
@@ -308,7 +331,21 @@ function iats_civicrm_acheft_processors($processors) {
   return $acheft;
 }
 
-/* as above, but return all non-test, active ach/eft iats processors */
+/* internal utility function: return the id's of any iATS SWIPE processors */
+function iats_civicrm_swipe_processors($processors) {
+  $swipe = array();
+  foreach($processors as $id => $paymentProcessor) {
+    $params = array('version' => 3, 'sequential' => 1, 'id' => $id);
+    $result = civicrm_api('PaymentProcessor', 'getsingle', $params);
+    if (!empty($result['class_name']) && ('Payment_iATSServiceSWIPE' == $result['class_name'])) {
+      $swipe[$id] = TRUE;
+      break;
+    }
+  }
+  return $swipe;
+}
+
+/* as above, but return all non-test, active ACH/EFT iATS processors */
 function iats_civicrm_acheft_processors_live() {
   $acheft = array();
   $params = array('version' => 3, 'sequential' => 1, 'is_test' => 0, 'is_active' => 1);
@@ -399,6 +436,20 @@ function iats_acheft_form_customize_CAD($form) {
   ));
 }
 
+/*
+ * Customization for iATS secure swipe
+ */
+function iats_acheft_form_customize_swipe($form) {
+ // make everything unrequired:
+ $form->_required = array();
+ $form->addElement('textarea','encrypted_credit_card_number',ts('Encrypted'), array('cols' => '80', 'rows' => '8'));
+ $form->addRule('encrypted_credit_card_number', ts('%1 is a required field.', array(1 => ts('Encrypted'))), 'required');
+ $form->addRule('credit_card_exp_date', ts('%1 is a required field.', array(1 => ts('Expiry Date'))), 'required');
+ CRM_Core_Region::instance('billing-block')->add(array(
+   'template' => 'CRM/iATS/BillingBlockSwipe.tpl'
+ ));
+}
+
 /* ACH/EFT modifications to a (public) contribution form if iATS ACH/EFT is enabled
  *  1. set recurring to be the default, if enabled
  *  2. [previously forced recurring, removed in 1.2.4]
@@ -445,11 +496,45 @@ function iats_civicrm_buildForm_CRM_Event_Form_Registration_Register(&$form) {
  *  TODO: test for old versions of civicrm before running this code?
  */
 function iats_civicrm_buildForm_CRM_Contribute_Form_Contribution(&$form) {
+
   if (empty($form->_processors)) {
     return;
   }
+
+  // if iATS SWIPE payment processor exists AND is enabled (is active) remove all other payment processors
+  // from this backend contribution form. 
+  // Assumes CiviCRM Administrator has determined that
+  // it's mandatory for staff to use SWIPE method for backend transactions while this is true
+  // e.g. tonight's fundraising event.
+  $swipe = iats_civicrm_swipe_processors($form->_processors);
+  if (1 == count($swipe)) {
+    $pp_form_id = $form->_elementIndex['payment_processor_id'];
+    $swipe_key = current(array_keys($swipe));
+    $element = $form->_elements[$pp_form_id]->_options;
+    foreach($element as $option_id => $option) {
+      if ($option['attr']['value'] != $swipe_key) {
+        unset($form->_elements[$pp_form_id]->_options[$option_id]);
+      }
+    }
+
+    $processors = array_keys($form->_processors);
+    foreach($processors as $pp_id) {
+      if ($pp_id != $swipe_key) {
+        unset($form->_processors[$pp_id]);
+      }
+    }
+
+    $recurPaymentProcessors = array_keys($form->_recurPaymentProcessors);
+    foreach($recurPaymentProcessors as $pp_id) {
+      if ($pp_id != $swipe_key) {
+        unset($form->_recurPaymentProcessors[$pp_id]);
+      }
+    }
+    iats_acheft_form_customize_swipe($form);
+  }
+
+  // Mangle the form if it (still) allows ACH/EFT
   $acheft = iats_civicrm_acheft_processors($form->_processors);
-  // I only need to mangle the form if it (still) allows ACH/EFT
   if (0 == count($acheft)) {
     return;
   }

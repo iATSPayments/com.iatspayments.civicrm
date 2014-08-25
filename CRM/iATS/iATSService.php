@@ -71,18 +71,18 @@ Class iATS_Service_Request {
            if (in_array($options['currencyID'], array('USD', 'CAD'))) {
              $valid = TRUE;
            }
-           break; 
+           break;
         case 'www.uk.iatspayments.com':
            if (in_array($options['currencyID'], array('USD','EUR','GBP','IEE','CHF','HKD','JPY','SGD','MXN'))) {
              if ('cc' == substr($method,0,2)) {
                $valid = TRUE;
              }
            }
-           break; 
+           break;
       }
       if (!$valid) { // TODO how about a nicer error here!
         die('Invalid currency selection: '.$options['currencyID'].' for domain '.$iats_domain);
-      } 
+      }
     }
   }
   /* check iATS website for additional supported currencies */
@@ -124,7 +124,7 @@ Class iATS_Service_Request {
       CRM_Core_DAO::executeQuery("INSERT INTO civicrm_iats_request_log
         (invoice_num, ip, cc, customer_code, total, request_datetime) VALUES (%1, %2, %3, %4, %5, NOW())", $query_params);
       // save the invoiceNum so I can log it for the response
-      $this->invoiceNum = $logged_request['invoiceNum']; 
+      $this->invoiceNum = $logged_request['invoiceNum'];
     }
     // the agent user and password only get put in here so they don't end up in a log above
     try {
@@ -200,7 +200,7 @@ Class iATS_Service_Request {
   * Process the response to the request into a more friendly format in an array $result;
   * Log the result to an internal table while I'm at it, unless explicitly not requested
   */
- 
+
   function result($response, $log = TRUE) {
     $result = array('auth_result' => '', 'remote_id' => '', 'status' => '');
     if (!empty($response->PROCESSRESULT)) {
@@ -488,8 +488,8 @@ Class iATS_Service_Request {
     }
   }
 
-  /* when I'm invoking a payment from the recurring job, I need to look up the credentials, unlike the doDirect payment interface 
-   * I need to pay attention to whether I should use the test credentials, which is the 'mode' in doDirect payment 
+  /* when I'm invoking a payment from the recurring job, I need to look up the credentials, unlike the doDirect payment interface
+   * I need to pay attention to whether I should use the test credentials, which is the 'mode' in doDirect payment
    */
   function credentials($payment_processor_id, $is_test = 0) {
     static $credentials = array();
