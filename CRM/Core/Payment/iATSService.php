@@ -127,6 +127,12 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
     return TRUE;
   }
 
+  function cancelSubscription(&$message = '', $params = array()) {
+    $userAlert = ts('You have cancelled this recurring contribution.');
+    CRM_Core_Session::setStatus($userAlert, ts('Warning'), 'alert');
+    return TRUE;
+  }
+
   function &error($error = NULL) {
     $e = CRM_Core_Error::singleton();
     if (is_object($error)) {
