@@ -22,6 +22,11 @@ class CRM_iATS_Upgrader extends CRM_iATS_Upgrader_Base {
    $this->executeSqlFile('sql/uninstall.sql');
   }
 
+  public function upgrade_1_2_010() {
+    CRM_Core_ManagedEntities::singleton(TRUE)->reconcile();
+    return TRUE;
+  } 
+
   /**
    * Example: Run a simple query when a module is enabled
    *
