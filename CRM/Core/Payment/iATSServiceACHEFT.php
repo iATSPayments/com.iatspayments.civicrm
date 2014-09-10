@@ -113,8 +113,9 @@ class CRM_Core_Payment_iATSServiceACHEFT extends CRM_Core_Payment {
         CRM_Core_DAO::executeQuery("INSERT INTO civicrm_iats_customer_codes
           (customer_code, ip, expiry, cid, email, recur_id) VALUES (%1, %2, %3, %4, %5, %6)", $query_params);
         $params['contribution_status_id'] = 1;
-        // also set next_sched_contribution
-        $params[IATS_CIVICRM_NSCD_FID] = strtotime('+'.$params['frequency_interval'].' '.$params['frequency_unit']);
+        // also set next_sched_contribution, the field name is civicrm version dependent
+        $field_name = _iats_civicrm_nscd_fid();
+        $params[$field_name] = strtotime('+'.$params['frequency_interval'].' '.$params['frequency_unit']);
       }
       return $params;
     }

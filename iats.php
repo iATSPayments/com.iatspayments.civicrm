@@ -22,7 +22,6 @@
  * the 'next scheduled contribution date' field in version 4.3 and above
  * TODO: remove this when we no longer support 4.2
  */
-define('IATS_CIVICRM_NSCD_FID',_iats_civicrm_nscd_fid());
 
 require_once 'iats.civix.php';
 
@@ -279,7 +278,9 @@ function iats_civicrm_pre($op, $objectName, $objectId, &$params) {
           // we've already taken the first payment, so calculate the next one
           $params['contribution_status_id'] = 5;
           $next = strtotime('+'.$params['frequency_interval'].' '.$params['frequency_unit']);
-          $params[IATS_CIVICRM_NSCD_FID] = date('YmdHis',$next);
+          // the next scheduled contribution date field name is civicrm version dependent
+          $field_name = _iats_civicrm_nscd_fid();
+          $params[$field_name] = date('YmdHis',$next);
           break;
         case 'iATSServiceACHEFTContribution': // ach/eft contribution: update the payment instrument and ensure the status is 2 i.e. for one-time contributions
           $params['payment_instrument_id'] = 2;
@@ -292,7 +293,9 @@ function iats_civicrm_pre($op, $objectName, $objectId, &$params) {
           $params['payment_instrument_id'] = 2;
           $params['contribution_status_id'] = 5; // we set this to 'in-progress' because even if the first one hasn't been verified, we still want to be attempting later ones
           $next = strtotime('+'.$params['frequency_interval'].' '.$params['frequency_unit']);
-          $params[IATS_CIVICRM_NSCD_FID] = date('YmdHis',$next);
+          // the next scheduled contribution date field name is civicrm version dependent
+          $field_name = _iats_civicrm_nscd_fid();
+          $params[$field_name] = date('YmdHis',$next);
           break;
       }
     }

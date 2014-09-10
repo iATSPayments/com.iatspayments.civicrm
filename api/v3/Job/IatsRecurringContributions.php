@@ -32,6 +32,8 @@ function _civicrm_api3_job_iatsrecurringcontributions_spec(&$spec) {
 function civicrm_api3_job_iatsrecurringcontributions($params) {
   // TODO: what kind of extra security do we want or need here to prevent it from being triggered inappropriately? Or does it matter?
 
+  // the next scheduled contribution date field name is civicrm version dependent
+  define('IATS_CIVICRM_NSCD_FID',_iats_civicrm_nscd_fid());
   // $config = &CRM_Core_Config::singleton();
   // $debug  = false;
   // do my calculations based on yyyymmddhhmmss representation of the time
