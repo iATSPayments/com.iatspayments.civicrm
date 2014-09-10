@@ -203,10 +203,27 @@ function iats_civicrm_navigationMenu(&$params) {
  * Do a Drupal 7 style thing so we can write smaller functions
  */
 function iats_civicrm_buildForm($formName, &$form) {
-  $fname = 'iats_civicrm_buildForm_'.$formName;
+  // but start by grouping a few forms together for nicer code
+  switch($formName) {
+    case 'CRM_Event_Form_Participant':
+    case 'CRM_Member_Form_Membership':
+    case 'CRM_Contribute_Form_Contribution':
+      // override normal convention, deal with all these backend credit card contribution forms the same way
+      $fname = 'iats_civicrm_buildForm_CreditCard_Backend';
+      break;
+    case 'CRM_Contribute_Form_Contribution_Main':
+    case 'CRM_Event_Form_Registration_Register':
+      // override normal convention, deal with all these front-end contribution forms the same way
+      $fname = 'iats_civicrm_buildForm_Contribution_Frontend';
+      break;
+    default:
+      $fname = 'iats_civicrm_buildForm_'.$formName;
+      break;
+  }
   if (function_exists($fname)) {
     $fname($form);
   }
+  // else echo $fname;
 }
 
 /*
@@ -317,47 +334,26 @@ function _iats_civicrm_is_iats($payment_processor_id) {
   return ('Payment_iATSService' == $type) ? 'iATSService'.$subtype  : FALSE;
 }
 
-/* internal utility function: return the id's of any iATS ACH/EFT processors */
-function iats_civicrm_acheft_processors($processors) {
-  $acheft = array();
-  foreach($processors as $id => $paymentProcessor) {
-    $params = array('version' => 3, 'sequential' => 1, 'id' => $id);
-    $result = civicrm_api('PaymentProcessor', 'getsingle', $params);
-    if (!empty($result['class_name']) && ('Payment_iATSServiceACHEFT' == $result['class_name'])) {
-      $acheft[$id] = TRUE;
-      break;
-    }
-  }
-  return $acheft;
-}
-
-/* internal utility function: return the id's of any iATS SWIPE processors */
-function iats_civicrm_swipe_processors($processors) {
-  $swipe = array();
-  foreach($processors as $id => $paymentProcessor) {
-    $params = array('version' => 3, 'sequential' => 1, 'id' => $id);
-    $result = civicrm_api('PaymentProcessor', 'getsingle', $params);
-    if (!empty($result['class_name']) && ('Payment_iATSServiceSWIPE' == $result['class_name'])) {
-      $swipe[$id] = TRUE;
-      break;
-    }
-  }
-  return $swipe;
-}
-
-/* as above, but return all non-test, active ACH/EFT iATS processors */
-function iats_civicrm_acheft_processors_live() {
-  $acheft = array();
-  $params = array('version' => 3, 'sequential' => 1, 'is_test' => 0, 'is_active' => 1);
+/* internal utility function: return the id's of any iATS processors matching various conditions 
+ * processors: an array of payment processors indexed by id to filter by,
+ *             or if NULL, it searches through all
+ * subtype: the iats service class name subtype
+ * params: an array of additional params to pass to the api call
+ */
+function iats_civicrm_processors($processors, $subtype = '', $params = array()) {
+  $list = array();
+  $class_name = 'Payment_iATSService'.$subtype;
+  $params = $params + array('version' => 3, 'sequential' => 1, 'class_name' => $class_name);
   $result = civicrm_api('PaymentProcessor', 'get', $params);
   if (0 == $result['is_error'] && count($result['values']) > 0) {
     foreach($result['values'] as $paymentProcessor) {
-      if (!empty($paymentProcessor['class_name']) && ('Payment_iATSServiceACHEFT' == $paymentProcessor['class_name'])) {
-        $acheft[$paymentProcessor['id']] = TRUE;
+      $id = $paymentProcessor['id'];
+      if ((is_null($processors)) || !empty($processors[$id])) {
+        $list[$id] = $paymentProcessor;
       }
     }
   }
-  return $acheft;
+  return $list;
 }
 
 /*
@@ -437,137 +433,124 @@ function iats_acheft_form_customize_CAD($form) {
 }
 
 /*
- * Customization for iATS secure swipe
+ * Contribution form customization for iATS secure swipe
  */
-function iats_acheft_form_customize_swipe($form) {
- // make everything unrequired:
+function iats_swipe_form_customize($form) {
+ // start by making all existing fields unrequired
  $form->_required = array();
+ // add a single text area to store/display the encrypted cc number that the swipe device will fill
  $form->addElement('textarea','encrypted_credit_card_number',ts('Encrypted'), array('cols' => '80', 'rows' => '8'));
  $form->addRule('encrypted_credit_card_number', ts('%1 is a required field.', array(1 => ts('Encrypted'))), 'required');
+ // restore exp_date requirement
  $form->addRule('credit_card_exp_date', ts('%1 is a required field.', array(1 => ts('Expiry Date'))), 'required');
  CRM_Core_Region::instance('billing-block')->add(array(
    'template' => 'CRM/iATS/BillingBlockSwipe.tpl'
  ));
 }
 
-/* ACH/EFT modifications to a (public) contribution form if iATS ACH/EFT is enabled
- *  1. set recurring to be the default, if enabled
- *  2. [previously forced recurring, removed in 1.2.4]
- *  3. add extra fields/modify labels
+/* Modifications to a (public/frontend) contribution forms if iATS ACH/EFT or SWIPE is enabled
+ *  1. set recurring to be the default, if enabled (ACH/EFT) [previously forced recurring, removed in 1.2.4]
+ *  2. add extra fields/modify labels
  */
-function iats_civicrm_buildForm_CRM_Contribute_Form_Contribution_Main(&$form) {
+function iats_civicrm_buildForm_Contribution_Frontend(&$form) {
   if (empty($form->_paymentProcessors)) {
     return;
   }
-  $acheft = iats_civicrm_acheft_processors($form->_paymentProcessors);
-  // I only need to mangle forms that allow ACH/EFT
-  if (0 == count($acheft)) {
-    return;
-  }
-  if (isset($form->_elementIndex['is_recur'])) {
-    $form->setDefaults(array('is_recur' => 1)); // make recurring contrib default to true
+  
+  $acheft = iats_civicrm_processors($form->_paymentProcessors,'ACHEFT');
+  $swipe = iats_civicrm_processors($form->_paymentProcessors,'SWIPE');
+
+  // If a form allows ACH/EFT and enables recurring, set recurring to the default
+  if (0 < count($acheft)) {
+    if (isset($form->_elementIndex['is_recur'])) {
+      $form->setDefaults(array('is_recur' => 1)); // make recurring contrib default to true
+    }
   }
 
-  /* In addition, I need to mangle (in a currency-dependent way) the ajax-bit of the form if I've just selected an ach/eft option
-   */
+  /* Mangle (in a currency-dependent way) the ajax-bit of the form if I've just selected an ach/eft option */
   if (!empty($acheft[$form->_paymentProcessor['id']])){
     iats_acheft_form_customize($form);
     // watchdog('iats_acheft',kprint_r($form,TRUE));
   }
-}
 
-function iats_civicrm_buildForm_CRM_Event_Form_Registration_Register(&$form) {
-  if (empty($form->_paymentProcessors)) {
-    return;
-  }
-  $acheft = iats_civicrm_acheft_processors($form->_paymentProcessors);
-  // I only need to mangle forms that allow ACH/EFT
-  if (0 == count($acheft)) {
-    return;
-  }
-  if (!empty($acheft[$form->_paymentProcessor['id']])){
-    iats_acheft_form_customize($form);
-    // watchdog('iats_acheft',kprint_r($form,TRUE));
+  /* now something similar for swipe, though front end forms with swipe is an unusual option */
+  if (!empty($swipe[$form->_paymentProcessor['id']])){
+    iats_swipe_form_customize($form);
   }
 }
 
-/*  Fix the backend contribution form, by removing my ACH/EFT processors
- *  Now fixed in core: https://issues.civicrm.org/jira/browse/CRM-14442)
- *  TODO: test for old versions of civicrm before running this code?
+/*  Fix the backend credit card contribution forms
+ *  Includes CRM_Contribute_Form_Contribution, CRM_Event_Form_Participant, CRM_Member_Form_Membership
+ *  1. Remove my ACH/EFT processors
+ *     Now fixed in core for contribution forms: https://issues.civicrm.org/jira/browse/CRM-14442
+ *  2. Force SWIPE (i.e. remove all others) if it's the default, and mangle the form accordingly.
+ *     For now, this form doesn't refresh when you change payment processors, so I can't use swipe if it's not the default, so i have to remove it.
  */
-function iats_civicrm_buildForm_CRM_Contribute_Form_Contribution(&$form) {
-
+function iats_civicrm_buildForm_CreditCard_Backend(&$form) {
+  // skip if i don't have any processors
   if (empty($form->_processors)) {
     return;
   }
-
-  // if iATS SWIPE payment processor exists AND is enabled (is active) remove all other payment processors
-  // from this backend contribution form. 
-  // Assumes CiviCRM Administrator has determined that
-  // it's mandatory for staff to use SWIPE method for backend transactions while this is true
-  // e.g. tonight's fundraising event.
-  $swipe = iats_civicrm_swipe_processors($form->_processors);
-  if (1 == count($swipe)) {
+  // get all my swipe processors 
+  $swipe = iats_civicrm_processors($form->_processors,'SWIPE');
+  // get all my ACH/EFT processors (should be 0, but I'm fixing old core bugs)
+  $acheft = iats_civicrm_processors($form->_processors,'ACHEFT');
+  // if an iATS SWIPE payment processor is enabled and default remove all other payment processors
+  $swipe_id_default = 0;
+  if (0 < count($swipe)) {
+    foreach($swipe as $id => $pp) {
+      if ($pp['is_default']) { 
+        $swipe_id_default = $id;
+        break;
+      }
+    }
+  }
+  // find the available pp options form element (update this if we ever switch from quickform, uses a quickform internals)
+  // not all invocations of the form include this, so check for non-empty value first
+  if (!empty($form->_elementIndex['payment_processor_id'])) {
     $pp_form_id = $form->_elementIndex['payment_processor_id'];
-    $swipe_key = current(array_keys($swipe));
+    // now cycle through them, either removing everything except the default swipe or just removing the ach/eft
     $element = $form->_elements[$pp_form_id]->_options;
     foreach($element as $option_id => $option) {
-      if ($option['attr']['value'] != $swipe_key) {
+      $pp_id = $option['attr']['value']; // key is set to payment processor id
+      if ($swipe_id_default) {
+        // remove any that are not my swipe default pp
+        if ($pp_id != $swipe_id_default) {
+          unset($form->_elements[$pp_form_id]->_options[$option_id]);
+          unset($form->_processors[$pp_id]);
+          if (!empty($form->_recurPaymentProcessors[$pp_id])) {
+            unset($form->_recurPaymentProcessors[$pp_id]);
+          }
+        }
+      }
+      elseif (!empty($acheft[$pp_id]) || !empty($swipe[$pp_id])) {
+        // remove my ach/eft and swipe, which both require form changes
         unset($form->_elements[$pp_form_id]->_options[$option_id]);
-      }
-    }
-
-    $processors = array_keys($form->_processors);
-    foreach($processors as $pp_id) {
-      if ($pp_id != $swipe_key) {
         unset($form->_processors[$pp_id]);
-      }
-    }
-
-    $recurPaymentProcessors = array_keys($form->_recurPaymentProcessors);
-    foreach($recurPaymentProcessors as $pp_id) {
-      if ($pp_id != $swipe_key) {
-        unset($form->_recurPaymentProcessors[$pp_id]);
-      }
-    }
-    iats_acheft_form_customize_swipe($form);
-  }
-
-  // Mangle the form if it (still) allows ACH/EFT
-  $acheft = iats_civicrm_acheft_processors($form->_processors);
-  if (0 == count($acheft)) {
-    return;
-  }
-  // yes, there's a more efficient/clever way to find the right element
-  // but since this code is only fixing old CiviCRM instances, let's not worry
-  foreach($form->_elements as $form_id => $element) {
-    if ($element->_attributes['name'] == 'payment_processor_id') {
-      $pp_form_id = $form_id;
-      break;
-    }
-  }
-  foreach(array_keys($acheft) as $pp_id) {
-    unset($form->_processors[$pp_id]);
-    if (!empty($form->_recurPaymentProcessors[$pp_id])) {
-      unset($form->_recurPaymentProcessors[$pp_id]);
-    }
-    $element = $form->_elements[$pp_form_id];
-    if (is_array($element->_options)) {
-      foreach($element->_options as $option_id => $option) {
-        if ($option['attr']['value'] == $pp_id) {
-          unset($element->_options[$option_id]);
+        if (!empty($form->_recurPaymentProcessors[$pp_id])) {
+          unset($form->_recurPaymentProcessors[$pp_id]);
         }
       }
     }
+  }
+
+  // if i'm using swipe as default and I've got a billing section, then customize it
+  if ($swipe_id_default && !empty($form->_elementIndex['credit_card_exp_date'])) {
+    iats_swipe_form_customize($form);
   }
 }
 
 /*
  *  Provide helpful links to backend-ish payment pages for ACH/EFT, since the backend credit card pages don't work/apply
+ *  Could do the same for swipe?
  */
 function iats_civicrm_buildForm_CRM_Contribute_Form_Search(&$form) {
+  // ignore invocations that aren't for a specific contact, e.g. the civicontribute dashboard
+  if (empty($form->_defaultValues['contact_id'])) {
+    return;
+  }
   $contactID = $form->_defaultValues['contact_id'];
-  $acheft = iats_civicrm_acheft_processors_live();
+  $acheft = iats_civicrm_processors(NULL,'ACHEFT',array('is_active' => 1, 'is_test' => 0));
   $acheft_backoffice_links = array();
   // for each ACH/EFT payment processor, try to provide a different mechanism for 'backoffice' type contributions
   // note: only offer payment pages that provide iATS ACH/EFT exclusively
