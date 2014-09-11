@@ -220,13 +220,15 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
         unset($request['creditCardExpiry']);
         break;
     }
-    $mop = array(
-      'Visa' => 'VISA',
-      'MasterCard' => 'MC',
-      'Amex' => 'AMX',
-      'Discover' => 'DSC',
-    );
-    $request['mop'] = $mop[$params['credit_card_type']];
+    if (!empty($params['credit_card_type'])) {
+      $mop = array(
+        'Visa' => 'VISA',
+        'MasterCard' => 'MC',
+        'Amex' => 'AMX',
+        'Discover' => 'DSC',
+      );
+      $request['mop'] = $mop[$params['credit_card_type']];
+    }
     return $request;
   }
 
