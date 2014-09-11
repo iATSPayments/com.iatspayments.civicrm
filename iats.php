@@ -439,13 +439,15 @@ function iats_acheft_form_customize_CAD($form) {
  * Contribution form customization for iATS secure swipe
  */
 function iats_swipe_form_customize($form) {
- // start by making all existing fields unrequired
- $form->_required = array();
+ // remove two fields that are replaced by the swipe code data
+ // we need to remove them from the _paymentFields as well or they'll sneak back in!
+ $form->removeElement('credit_card_type',TRUE);
+ $form->removeElement('cvv2',TRUE); 
+ unset($form->_paymentFields['credit_card_type']);
+ unset($form->_paymentFields['cvv2']);
  // add a single text area to store/display the encrypted cc number that the swipe device will fill
  $form->addElement('textarea','encrypted_credit_card_number',ts('Encrypted'), array('cols' => '80', 'rows' => '8'));
  $form->addRule('encrypted_credit_card_number', ts('%1 is a required field.', array(1 => ts('Encrypted'))), 'required');
- // restore exp_date requirement
- $form->addRule('credit_card_exp_date', ts('%1 is a required field.', array(1 => ts('Expiry Date'))), 'required');
  CRM_Core_Region::instance('billing-block')->add(array(
    'template' => 'CRM/iATS/BillingBlockSwipe.tpl'
  ));
@@ -477,7 +479,7 @@ function iats_civicrm_buildForm_Contribution_Frontend(&$form) {
   }
 
   /* now something similar for swipe, though front end forms with swipe is an unusual option */
-  if (!empty($swipe[$form->_paymentProcessor['id']])){
+  if (!empty($swipe[$form->_paymentProcessor['id']]) && !empty($form->_elementIndex['credit_card_exp_date'])) {
     iats_swipe_form_customize($form);
   }
 }
