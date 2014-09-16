@@ -331,6 +331,24 @@ Class iATS_Service_Request {
           ),
         );
         break;
+      case 'customer':
+        $methods = array(
+          'get_customer_code_detail' => array(
+            'title' => 'Get Customer Code Detail',
+            'description'=> $desc. 'GetCustomerCodeDetailV1',
+            'method' => 'GetCustomerCodeDetail',
+            'message' => 'GetCustomerCodeDetailV1',
+            'response' => 'GetCustomerCodeDetailV1Result',
+          ),
+          'direct_debit_acheft_payer_validate' => array(
+            'title' => 'Direct Debit ACHEFT Payer Validate',
+            'description'=> $desc. 'DirectDebitACHEFTPayerValidateV1',
+            'method' => 'DirectDebitACHEFTPayerValidateV1',
+            'message' => 'DirectDebitACHEFTPayerValidateV1',
+            'response' => 'DirectDebitACHEFTPayerValidateV1Result',
+          ),
+        );
+        break;
     }
     if ($method) {
       return $methods[$method];

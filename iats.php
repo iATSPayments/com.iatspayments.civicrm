@@ -160,6 +160,27 @@ function iats_civicrm_managed(&$entities) {
       'payment_type' => 1,
     ),
   );
+  $entities[] = array(
+    'module' => 'com.iatspayments.civicrm',
+    'name' => 'iATS Payments UK Direct Debit',
+    'entity' => 'PaymentProcessorType',
+    'params' => array(
+      'version' => 3,
+      'name' => 'iATS Payments UK Direct Debit',
+      'title' => 'iATS Payments UK Direct Debit',
+      'description' => 'iATS UK Direct Debit payment processor using the web services interface.',
+      'class_name' => 'Payment_iATSServiceUKDD',
+      'billing_mode' => 'form',
+      'user_name_label' => 'Agent Code',
+      'password_label' => 'Password',
+      'url_site_default' => 'https://www.uk.iatspayments.com/NetGate/ProcessLink.asmx?WSDL',
+      'url_recur_default' => 'https://www.uk.iatspayments.com/NetGate/ProcessLink.asmx?WSDL',
+      'url_site_test_default' => 'https://www.uk.iatspayments.com/NetGate/ProcessLink.asmx?WSDL',
+      'url_recur_test_default' => 'https://www.uk.iatspayments.com/NetGate/ProcessLink.asmx?WSDL',
+      'is_recur' => 1,
+      'payment_type' => 2,
+    ),
+  );
   return _iats_civix_civicrm_managed($entities);
 }
 
