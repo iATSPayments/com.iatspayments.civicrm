@@ -347,6 +347,13 @@ Class iATS_Service_Request {
             'message' => 'DirectDebitACHEFTPayerValidateV1',
             'response' => 'DirectDebitACHEFTPayerValidateV1Result',
           ),
+          'direct_debit_create_acheft_customer_code' => array(
+            'title' => 'Direct Debit Create ACHEFT Customer Code',
+            'description'=> $desc. 'DirectDebitCreateACHEFTCustomerCodeV1',
+            'method' => 'DirectDebitCreateACHEFTCustomerCodeV1',
+            'message' => 'DirectDebitCreateACHEFTCustomerCodeV1',
+            'response' => 'DirectDebitCreateACHEFTCustomerCodeV1Result',
+          ),
         );
         break;
     }

@@ -474,6 +474,47 @@ function iats_swipe_form_customize($form) {
  ));
 }
 
+/*
+ * Customize direct debit billing block for UK Direct Debit
+ *
+ * This could be handled by iats_acheft_form_customize, except there's some tricky multi-page stuff for the payer validate step
+ */
+
+function iats_ukdd_form_customize($form) {
+  $payee = _iats_civicrm_domain_info('name');
+  $phone = _iats_civicrm_domain_info('domain_phone'); 
+  $email = _iats_civicrm_domain_info('domain_email'); 
+  $form->addRule('is_recur', ts('You can only use this form to make recurring contributions.'), 'required');
+  /* declaration checkbox at the top */
+  $form->addElement('checkbox', 'payer_validate_declaration', ts('I wish to start a Direct Debit'));
+  $form->addElement('static', 'payer_validate_contact', ts('Contact'), ts('Phone: %1, Email: %2', array('%1' => $phone['phone'], '%2' => $email)));
+  $form->addRule('payer_validate_declaration', ts('%1 is a required field.', array(1 => ts('The Declaration'))), 'required');
+  /* customization of existing elements */
+  $element = $form->getElement('account_holder');
+  $element->setLabel(ts('Account Holder Name'));
+  $form->addRule('account_holder', ts('%1 is a required field.', array(1 => ts('Name of Account Holder'))), 'required');
+  $element = $form->getElement('bank_account_number');
+  $element->setLabel(ts('Account Number'));
+  $form->addRule('bank_account_number', ts('%1 is a required field.', array(1 => ts('Account Number'))), 'required');
+  $element = $form->getElement('bank_identification_number');
+  $element->setLabel(ts('Sort Code'));
+  $form->addRule('bank_identification_number', ts('%1 is a required field.', array(1 => ts('Sort Code'))), 'required');
+  $form->addElement('button','payer_validate_initiate',ts('Continue'));
+  /* new payer validation elements */
+  $form->addElement('textarea', 'payer_validate_address', ts('Name and full postal address of your Bank or Building Society'), array('rows' => '6', 'columns' => '30'));
+  $form->addElement('text', 'payer_validate_service_user_number', ts('Service User Number'));
+  $form->addElement('text', 'payer_validate_reference', ts('Reference'), array('disabled' => 'disabled'));
+  $form->addElement('text', 'payer_validate_date', ts('Date'), array('disabled' => 'disabled'));
+  $form->addElement('static', 'payer_validate_instruction', ts('Instruction to your Bank or Building Society'), ts('Please pay %1 Direct Debits from the account detailed in this instruction subject to the safeguards assured by the Direct Debit Guarantee. I understand that this instruction may remain with TestingTest and, if so, details will be passed electronically to my Bank / Building Society.',array('%1' => "<strong>$payee</strong>")));
+  // $form->addRule('bank_name', ts('%1 is a required field.', array(1 => ts('Bank Name'))), 'required');
+  //$form->addRule('bank_account_type', ts('%1 is a required field.', array(1 => ts('Account type'))), 'required');
+  /* only allow recurring contributions, set date */
+  $form->setDefaults(array('is_recur' => 1, 'payer_validate_date' => date('F m, Y'))); // make recurring contrib default to true
+  CRM_Core_Region::instance('billing-block')->add(array(
+    'template' => 'CRM/iATS/BillingBlockDirectDebitExtra_GBP.tpl'
+  ));
+}
+
 /* Modifications to a (public/frontend) contribution forms if iATS ACH/EFT or SWIPE is enabled
  *  1. set recurring to be the default, if enabled (ACH/EFT) [previously forced recurring, removed in 1.2.4]
  *  2. add extra fields/modify labels
@@ -485,6 +526,7 @@ function iats_civicrm_buildForm_Contribution_Frontend(&$form) {
   
   $acheft = iats_civicrm_processors($form->_paymentProcessors,'ACHEFT');
   $swipe = iats_civicrm_processors($form->_paymentProcessors,'SWIPE');
+  $ukdd = iats_civicrm_processors($form->_paymentProcessors,'UKDD');
 
   // If a form allows ACH/EFT and enables recurring, set recurring to the default
   if (0 < count($acheft)) {
@@ -503,6 +545,13 @@ function iats_civicrm_buildForm_Contribution_Frontend(&$form) {
   if (!empty($swipe[$form->_paymentProcessor['id']]) && !empty($form->_elementIndex['credit_card_exp_date'])) {
     iats_swipe_form_customize($form);
   }
+
+  /* UK Direct debit option */
+  if (!empty($ukdd[$form->_paymentProcessor['id']])){
+    iats_ukdd_form_customize($form);
+    // watchdog('iats_acheft',kprint_r($form,TRUE));
+  }
+
 }
 
 /*  Fix the backend credit card contribution forms
@@ -614,7 +663,7 @@ function _iats_civicrm_domain_info($key) {
       return explode('.',$domain['version']);
     default:
       if (!empty($domain[$key])) {
-        return $key;
+        return $domain[$key];
       }
       $config_backend = unserialize($domain['config_backend']);
       return $config_backend[$key];

@@ -57,13 +57,15 @@ class CRM_Core_Payment_iATSServiceUKDD extends CRM_Core_Payment {
     return self::$_singleton[$processorName];
   }
 
-  function doDirectPayment(&$params) {
-
+  /* function checkParams
+   *
+   * shared code between doPayerValidate and doDirectPayment
+   *
+   */
+  function checkParams(&$params) {
     if (!$this->_profile) {
       return self::error('Unexpected error, missing profile');
     }
-    // use the iATSService object for interacting with iATS
-    require_once("CRM/iATS/iATSService.php");
     $isRecur =  CRM_Utils_Array::value('is_recur', $params) && $params['contributionRecurID'];
     if (!$isRecur) {
       return self::error('Not a recurring contribution: you can only use UK Direct Debit with a recurring contribution.');
@@ -72,11 +74,14 @@ class CRM_Core_Payment_iATSServiceUKDD extends CRM_Core_Payment {
       return self::error(ts('Invalid currency %1, must by GBP',array(1 => $params['currencyID'])));
     }
     if (empty($params['installments'])) {
-      return self::error(ts('You must specify a number of installments, open-ended contributions are not allowed.'));
+      return self::error(ts('You must specify the number of installments, open-ended contributions are not allowed.'));
     } 
-    if (1 >= $params['installments'])) {
+    elseif (1 >= $params['installments']) {
       return self::error(ts('You must specify a number of installments greater than 1.'));
     } 
+  }
+
+  function getSchedule($params) {
     // convert params recurring information into iATS equivalents  
     $scheduleType = NULL;
     $paymentsRecur = $params['installments'] - 1;
@@ -131,11 +136,45 @@ class CRM_Core_Payment_iATSServiceUKDD extends CRM_Core_Payment {
     }
     $endDate = date('Y-m-d', $endTime);
     $beginDate = date('Y-m-d', $beginTime);
+    return array('endDate' => $endDate, 'beginDate' => $beginDate);
+  }
 
+  /* function doPayerValidate(&$params)
+   * 
+   * before submitting the request, there's an extra step that requires the user to validate their payment information 
+   */
+  function doPayerValidate(&$params) {
+    $error = $this->checkParams($params);
+    if (!empty($error)) {
+      return $error;
+    }
+    // use the iATSService object for interacting with iATS
+    require_once("CRM/iATS/iATSService.php");
     $iats = new iATS_Service_Request(array('type' => 'process', 'method' => 'direct_debit_acheft_payer_validate', 'iats_domain' => $this->_profile['iats_domain'], 'currencyID' => $params['currencyID']));
-    $request = $this->convertParamsValidate($params);
-    $request['beginDate'] = $beginDate;
-    $request['endDate'] = $endDate;
+    $request = $this->convertParamsPayerValidate($params) + $this->getSchedule($params);
+    $request['customerIPAddress'] = (function_exists('ip_address') ? ip_address() : $_SERVER['REMOTE_ADDR']);
+    $credentials = array('agentCode' => $this->_paymentProcessor['user_name'],
+                         'password'  => $this->_paymentProcessor['password' ]);
+    // Get the API endpoint URL for the method's transaction mode.
+    // TODO: enable override of the default url in the request object
+    // $url = $this->_paymentProcessor['url_site'];
+
+    // make the soap request
+    $response = $iats->request($credentials,$request); 
+    // process the soap response into a readable result
+    $result = $iats->result($response);
+    return $params;
+  }
+
+  function doDirectPayment(&$params) {
+    $error = $this->checkParams($params);
+    if (!empty($error)) {
+      return $error;
+    }
+    // use the iATSService object for interacting with iATS
+    require_once("CRM/iATS/iATSService.php");
+    $iats = new iATS_Service_Request(array('type' => 'process', 'method' => 'direct_debit_create_acheft_customer_code', 'iats_domain' => $this->_profile['iats_domain'], 'currencyID' => $params['currencyID']));
+    $request = $this->convertParamsCreateCustomerCode($params) + $this->getSchedule($params);
     $request['customerIPAddress'] = (function_exists('ip_address') ? ip_address() : $_SERVER['REMOTE_ADDR']);
     $credentials = array('agentCode' => $this->_paymentProcessor['user_name'],
                          'password'  => $this->_paymentProcessor['password' ]);
@@ -256,7 +295,32 @@ class CRM_Core_Payment_iATSServiceUKDD extends CRM_Core_Payment {
   /*
    * Convert the values in the civicrm params to the request array with keys as expected by iATS
    */
-  function convertParamsValidate($params) {
+  function convertParamsPayerValidate($params) {
+    $request = array();
+    $convert = array(
+      'firstName' => 'billing_first_name',
+      'lastName' => 'billing_last_name',
+      'address' => 'street_address',
+      'city' => 'city',
+      'state' => 'state_province',
+      'zipCode' => 'postal_code',
+      'country' => 'country',
+    );
+ 
+    foreach($convert as $r => $p) {
+      if (isset($params[$p])) {
+        $request[$r] = $params[$p];
+      }
+    }
+    // account custom name is first name + last name, truncated to a maximum of 30 chars
+    $request['accountCustomerName'] = substr($request['firstName'].' '.$request['lastName'],0,30);
+    return $request;
+  }
+
+  /*
+   * Convert the values in the civicrm params to the request array with keys as expected by iATS
+   */
+  function convertParamsCreateCustomerCode($params) {
     $request = array();
     $convert = array(
       'firstName' => 'billing_first_name',
