@@ -51,7 +51,7 @@ class CRM_iATS_Page_iATSAdmin extends CRM_Core_Page {
       LEFT JOIN civicrm_iats_response_log response ON request.invoice_num = response.invoice_num
       LEFT JOIN civicrm_contribution contrib ON request.invoice_num = contrib.invoice_id
       LEFT JOIN civicrm_contact contact ON contrib.contact_id = contact.id
-      LEFT JOIN civicrm_contribution_recur recur ON contrib.recur_id = recur.id
+      LEFT JOIN civicrm_contribution_recur recur ON contrib.contribution_recur_id = recur.id
       LEFT JOIN civicrm_payment_processor pp ON recur.payment_processor_id = pp.id
      $where ORDER BY request.id DESC LIMIT $n";
      
