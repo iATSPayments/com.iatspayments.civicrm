@@ -505,7 +505,7 @@ function iats_ukdd_form_customize($form) {
   /* new payer validation elements */
   $form->addElement('textarea', 'payer_validate_address', ts('Name and full postal address of your Bank or Building Society'), array('rows' => '6', 'columns' => '30'));
   $form->addElement('text', 'payer_validate_service_user_number', ts('Service User Number'));
-  $form->addElement('text', 'payer_validate_reference', ts('Reference'), array('disabled' => 'disabled'));
+  $form->addElement('text', 'payer_validate_reference', ts('Reference'), array('xdisabled' => 'disabled'));
   $form->addElement('text', 'payer_validate_date', ts('Date'), array('disabled' => 'disabled'));
   $form->addElement('static', 'payer_validate_instruction', ts('Instruction to your Bank or Building Society'), ts('Please pay %1 Direct Debits from the account detailed in this instruction subject to the safeguards assured by the Direct Debit Guarantee. I understand that this instruction may remain with TestingTest and, if so, details will be passed electronically to my Bank / Building Society.',array('%1' => "<strong>$payee</strong>")));
   // $form->addRule('bank_name', ts('%1 is a required field.', array(1 => ts('Bank Name'))), 'required');

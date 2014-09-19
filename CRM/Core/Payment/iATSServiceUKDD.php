@@ -58,11 +58,8 @@ class CRM_Core_Payment_iATSServiceUKDD extends CRM_Core_Payment {
   }
 
   /* function checkParams
-   *
-   * shared code between doPayerValidate and doDirectPayment
-   *
    */
-  function checkParams(&$params) {
+  function checkParams($params) {
     if (!$this->_profile) {
       return self::error('Unexpected error, missing profile');
     }
@@ -88,7 +85,7 @@ class CRM_Core_Payment_iATSServiceUKDD extends CRM_Core_Payment {
     // IATS requires begin and end date, calculated here
     // to be converted to date format later
     // begin date has to be at least 12 days from now [allow configurability?]
-    $beginTime = strtotime('+12 days');
+    $beginTime = strtotime($beginDate = $params['payer_validate_start_date']);
     $date = getdate($beginTime);
     $interval = $params['frequency_interval'] ? $params['frequency_interval'] : 1;
     switch ($params['frequency_unit']) {
@@ -134,36 +131,8 @@ class CRM_Core_Payment_iATSServiceUKDD extends CRM_Core_Payment {
         break;
 
     }
-    $endDate = date('Y-m-d', $endTime);
-    $beginDate = date('Y-m-d', $beginTime);
-    return array('endDate' => $endDate, 'beginDate' => $beginDate);
-  }
-
-  /* function doPayerValidate(&$params)
-   * 
-   * before submitting the request, there's an extra step that requires the user to validate their payment information 
-   */
-  function doPayerValidate(&$params) {
-    $error = $this->checkParams($params);
-    if (!empty($error)) {
-      return $error;
-    }
-    // use the iATSService object for interacting with iATS
-    require_once("CRM/iATS/iATSService.php");
-    $iats = new iATS_Service_Request(array('type' => 'process', 'method' => 'direct_debit_acheft_payer_validate', 'iats_domain' => $this->_profile['iats_domain'], 'currencyID' => $params['currencyID']));
-    $request = $this->convertParamsPayerValidate($params) + $this->getSchedule($params);
-    $request['customerIPAddress'] = (function_exists('ip_address') ? ip_address() : $_SERVER['REMOTE_ADDR']);
-    $credentials = array('agentCode' => $this->_paymentProcessor['user_name'],
-                         'password'  => $this->_paymentProcessor['password' ]);
-    // Get the API endpoint URL for the method's transaction mode.
-    // TODO: enable override of the default url in the request object
-    // $url = $this->_paymentProcessor['url_site'];
-
-    // make the soap request
-    $response = $iats->request($credentials,$request); 
-    // process the soap response into a readable result
-    $result = $iats->result($response);
-    return $params;
+    $endDate = date('c', $endTime);
+    return array('scheduleType' => $scheduleType, 'scheduleDate' => $scheduleDate, 'endDate' => $endDate, 'beginDate' => $beginDate);
   }
 
   function doDirectPayment(&$params) {
@@ -173,9 +142,11 @@ class CRM_Core_Payment_iATSServiceUKDD extends CRM_Core_Payment {
     }
     // use the iATSService object for interacting with iATS
     require_once("CRM/iATS/iATSService.php");
-    $iats = new iATS_Service_Request(array('type' => 'process', 'method' => 'direct_debit_create_acheft_customer_code', 'iats_domain' => $this->_profile['iats_domain'], 'currencyID' => $params['currencyID']));
-    $request = $this->convertParamsCreateCustomerCode($params) + $this->getSchedule($params);
+    $iats = new iATS_Service_Request(array('type' => 'customer', 'method' => 'direct_debit_create_acheft_customer_code', 'iats_domain' => $this->_profile['iats_domain'], 'currencyID' => $params['currencyID']));
+    $request = array_merge($this->convertParamsCreateCustomerCode($params),$this->getSchedule($params));
     $request['customerIPAddress'] = (function_exists('ip_address') ? ip_address() : $_SERVER['REMOTE_ADDR']);
+    $request['customerCode'] = '';
+    $request['accountType'] = 'CHECKING';
     $credentials = array('agentCode' => $this->_paymentProcessor['user_name'],
                          'password'  => $this->_paymentProcessor['password' ]);
     // Get the API endpoint URL for the method's transaction mode.
@@ -186,47 +157,42 @@ class CRM_Core_Payment_iATSServiceUKDD extends CRM_Core_Payment {
     $response = $iats->request($credentials,$request); 
     // process the soap response into a readable result
     $result = $iats->result($response);
-    return $params;
-    /* 
+    // drupal_set_message('<pre>'.print_r($result,TRUE).'</pre>');
     if ($result['status']) {
       $params['trxn_id'] = $result['remote_id'] . ':' . time();
       $params['gross_amount'] = $params['amount'];
-      if ($isRecur) {
-        // save the client info in my custom table
-        // Allow further manipulation of the arguments via custom hooks,
-        // before initiating processCreditCard()
-        // CRM_Utils_Hook::alterPaymentProcessorParams($this, $params, $iatslink1);
-        $processresult = $response->PROCESSRESULT; 
-        $customer_code = $processresult->CUSTOMERCODE;
-        $exp = sprintf('%02d%02d', ($params['year'] % 100), $params['month']);
-        if (isset($params['email'])) {
-          $email = $params['email'];
-        }
-        elseif(isset($params['email-5'])) {
-          $email = $params['email-5'];
-        }
-        elseif(isset($params['email-Primary'])) {
-          $email = $params['email-Primary'];
-        }
-        $query_params = array(
-          1 => array($customer_code, 'String'),
-          2 => array($request['customerIPAddress'], 'String'),
-          3 => array($exp, 'String'),
-          4 => array($params['contactID'], 'Integer'),
-          5 => array($email, 'String'),
-          6 => array($params['contributionRecurID'], 'Integer'),
-        );
-        CRM_Core_DAO::executeQuery("INSERT INTO civicrm_iats_customer_codes
-          (customer_code, ip, expiry, cid, email, recur_id) VALUES (%1, %2, %3, %4, %5, %6)", $query_params);
-        $params['contribution_status_id'] = 1;
-        // also set next_sched_contribution
-        $params['next_sched_contribution'] = strtotime('+'.$params['frequency_interval'].' '.$params['frequency_unit']);
+      // save the client info in my custom table
+      // Allow further manipulation of the arguments via custom hooks,
+      $customer_code = $result['CUSTOMERCODE'];
+      if (isset($params['email'])) {
+        $email = $params['email'];
       }
+      elseif(isset($params['email-5'])) {
+        $email = $params['email-5'];
+      }
+      elseif(isset($params['email-Primary'])) {
+        $email = $params['email-Primary'];
+      }
+      $query_params = array(
+        1 => array($customer_code, 'String'),
+        2 => array($request['customerIPAddress'], 'String'),
+        3 => array('', 'String'),
+        4 => array($params['contactID'], 'Integer'),
+        5 => array($email, 'String'),
+        6 => array($params['contributionRecurID'], 'Integer'),
+      );
+      // drupal_set_message('<pre>'.print_r($query_params,TRUE).'</pre>');
+      CRM_Core_DAO::executeQuery("INSERT INTO civicrm_iats_customer_codes
+        (customer_code, ip, expiry, cid, email, recur_id) VALUES (%1, %2, %3, %4, %5, %6)", $query_params);
+      $params['contribution_status_id'] = 1;
+      // also set next_sched_contribution
+      // TODO: add 12 days!
+      $params['next_sched_contribution'] = strtotime('+'.$params['frequency_interval'].' '.$params['frequency_unit']);
       return $params;
     }
     else {
       return self::error($result['reasonMessage']);
-    } */
+    } 
   }
 
   /* TODO: requires custom link
@@ -295,31 +261,6 @@ class CRM_Core_Payment_iATSServiceUKDD extends CRM_Core_Payment {
   /*
    * Convert the values in the civicrm params to the request array with keys as expected by iATS
    */
-  function convertParamsPayerValidate($params) {
-    $request = array();
-    $convert = array(
-      'firstName' => 'billing_first_name',
-      'lastName' => 'billing_last_name',
-      'address' => 'street_address',
-      'city' => 'city',
-      'state' => 'state_province',
-      'zipCode' => 'postal_code',
-      'country' => 'country',
-    );
- 
-    foreach($convert as $r => $p) {
-      if (isset($params[$p])) {
-        $request[$r] = $params[$p];
-      }
-    }
-    // account custom name is first name + last name, truncated to a maximum of 30 chars
-    $request['accountCustomerName'] = substr($request['firstName'].' '.$request['lastName'],0,30);
-    return $request;
-  }
-
-  /*
-   * Convert the values in the civicrm params to the request array with keys as expected by iATS
-   */
   function convertParamsCreateCustomerCode($params) {
     $request = array();
     $convert = array(
@@ -330,6 +271,11 @@ class CRM_Core_Payment_iATSServiceUKDD extends CRM_Core_Payment {
       'state' => 'state_province',
       'zipCode' => 'postal_code',
       'country' => 'country',
+      'ACHEFTReferenceNum' => 'payer_validate_reference',
+      'accountCustomerName' => 'account_holder',
+      'email' => 'email',
+      'recurring' => 'is_recur',
+      'amount' => 'amount',
     );
  
     foreach($convert as $r => $p) {
@@ -338,7 +284,7 @@ class CRM_Core_Payment_iATSServiceUKDD extends CRM_Core_Payment {
       }
     }
     // account custom name is first name + last name, truncated to a maximum of 30 chars
-    $request['accountCustomerName'] = substr($request['firstName'].' '.$request['lastName'],0,30);
+    $request['accountNum'] = trim($params['bank_identification_number']) . trim($params['bank_account_number']);
     return $request;
   }
  

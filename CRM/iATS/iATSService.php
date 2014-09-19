@@ -73,8 +73,13 @@ Class iATS_Service_Request {
            }
            break;
         case 'www.uk.iatspayments.com':
-           if (in_array($options['currencyID'], array('USD','EUR','GBP','IEE','CHF','HKD','JPY','SGD','MXN'))) {
-             if ('cc' == substr($method,0,2)) {
+           if ('cc' == substr($method,0,2)) {
+             if (in_array($options['currencyID'], array('USD','EUR','GBP','IEE','CHF','HKD','JPY','SGD','MXN'))) {
+               $valid = TRUE;
+             }
+           }
+           elseif ('direct_debit' == substr($method,0,12)) {
+             if (in_array($options['currencyID'], array('GBP'))) {
                $valid = TRUE;
              }
            }
@@ -220,9 +225,15 @@ Class iATS_Service_Request {
         }
         break;
       case 'customer':
-        if ($response->STATUS == 'Success' && !empty($response->AUTHRESULT)) {
-          $result = get_object_vars($response->AUTHRESULT);
-          $result['status'] = (substr($result['AUTHSTATUS'],0,2) == self::iATS_TXN_OK) ? 1 : 0;
+        if ($response->STATUS == 'Success') {
+          if (!empty($response->AUTHRESULT)) {
+            $result = get_object_vars($response->AUTHRESULT);
+            $result['status'] = (substr($result['AUTHSTATUS'],0,2) == self::iATS_TXN_OK) ? 1 : 0;
+          }
+          elseif (!empty($response->PROCESSRESULT)) {
+            $result = get_object_vars($response->PROCESSRESULT);
+            $result['status'] = (substr($result['AUTHORIZATIONRESULT'],0,2) == self::iATS_TXN_OK) ? 1 : 0;
+          }
         }
         // If the payment failed, display an error and rebuild the form.
         if (empty($result['status'])) {
