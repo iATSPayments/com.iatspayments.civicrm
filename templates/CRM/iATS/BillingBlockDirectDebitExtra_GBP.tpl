@@ -48,7 +48,12 @@
     <div class="content">{$form.payer_validate_date.html}</div>
     <div class="clear"></div>
   </div>
+  <div class="crm-section payer-validate-start-date" style="display: none">
+    <div class="label">{$form.payer_validate_start_date.label}</div>
+    <div class="content">{$form.payer_validate_start_date.html}</div>
+    <div class="clear"></div>
   </div>
+  <input name="payer_validate_url" type="hidden" value="{crmURL p='civicrm/iatsjson' q='reset=1'}">
 </div>
 <div id="iats-direct-debit-gbp-continue">
   <div class="messages crm-error">
@@ -89,29 +94,88 @@
     else {
       cj('#iats-direct-debit-gbp-continue').hide();
     }
+    /* initiate a payer validation: check for required fields, then do an ajax call to retrieve bank info */
     cj('#payer_validate_initiate').click(function() {
       cj('#payer-validate-required').html('');
       cj('#Main .billing_name_address-group input:visible, #Main input.required:visible').each(function() {
         // console.log(this.value.length);
         if (0 == this.value.length) {
-          var myLabel = $(this).parent('.content').prev('.label').find('label').text().replace('*','');
+          if ('installments' == this.id) {
+            var myLabel = 'Installments';
+          }
+          else { 
+            var myLabel = $(this).parent('.content').prev('.label').find('label').text().replace('*','');
+          }
           cj('#payer-validate-required').append('<li>' + myLabel + ' is a required field.</li>');
         }
       })
       if (0 == cj('#payer-validate-required').html().length) {
         cj('#iats-direct-debit-gbp-continue .crm-error').hide();
-        cj('#payer_validate_reference').val('testref').change();
+        var validatePayer = {};
+        validatePayer.beginDate = cj('#payer_validate_start_date').val();
+        var endDate = new Date(validatePayer.beginDate);
+        var frequencyInterval = cj('input[name=frequency_interval]').val();
+        var frequencyUnit = cj('[name="frequency_unit"]').val();
+        var installments = cj('input[name="installments"]').val();
+        switch(frequencyUnit) {
+          case 'year':
+            var myYear = endDate.getFullYear() + (frequencyInterval * installments);
+            endDate.setFullYear(myYear);
+            break;
+          case 'month':
+            var myMonth = endDate.getMonth() + (frequencyInterval * installments);
+            endDate.setMonth(myMonth);
+            break;
+          case 'week':
+            var myDay = endDate.getDate() + (frequencyInterval * installments * 7);
+            endDate.setDate(myDay);
+            break;
+          case 'day':
+            var myDay = endDate.getDate() + (frequencyInterval * installments * 1);
+            endDate.setDate(myDay);
+            break;
+        }
+        validatePayer.endDate = endDate.toISOString();
+        validatePayer.firstName = cj('#billing_first_name').val();
+        validatePayer.lastName = cj('#billing_last_name').val();
+        validatePayer.address = cj('input[name|="billing_street_address"]').val();
+        validatePayer.city = cj('input[name|="billing_city"]').val();
+        validatePayer.zipCode = cj('input[name|="billing_postal_code"]').val();
+        validatePayer.country = cj('input[name|="billing_country_id"]').find('selected').text();
+        validatePayer.accountCustomerName = cj('#account_holder').val();
+        validatePayer.accountNum = cj('#bank_identification_number').val() + cj('#bank_account_number').val();
+        validatePayer.email = cj('input[name|="email"]').val();
+        validatePayer.ACHEFTReferenceNum = '';
+        validatePayer.companyName = '';
+        validatePayer.type = 'customer';
+        validatePayer.method = 'direct_debit_acheft_payer_validate';
+        validatePayer.payment_processor_id = cj('input[name="payment_processor"]').val();
+        var payerValidateUrl = cj('input[name="payer_validate_url"]').val();
+        // console.log(payerValidateUrl);
+        // console.log(validatePayer);
+        cj.post(payerValidateUrl,validatePayer,function( result ) {
+          // console.log(result);
+          cj('#payer_validate_reference').val(result.ACHREFNUM).change();
+          cj('#bank_name').val(result.BANK_NAME);
+          cj('#payer_validate_address').val(result.BANK_BRANCH + "\n" + result.BANKADDRESS1 + "\n" + result.BANK_CITY + ", " + result.BANK_STATE + "\n" + result.BANK_POSTCODE);
+        },'json');
       }
       else { // add alert symbol
         cj('#iats-direct-debit-gbp-continue .crm-error').show();
       }
     });
     cj('#payer_validate_reference').change(function() {
+      cj('#payer-validate-required').html('').hide();
       if ($(this).val().length) {
-        cj('#payer-validate-required').html('').hide();
         cj('#iats-direct-debit-gbp-continue').hide();
         cj('#iats-direct-debit-gbp-payer-validate').show();
         cj('#crm-submit-buttons .crm-button').show();
+      } 
+      // for testing only!
+      else {
+        cj('#iats-direct-debit-gbp-continue').show();
+        cj('#iats-direct-debit-gbp-payer-validate').hide();
+        cj('#crm-submit-buttons .crm-button').hide();
       }
     });
     

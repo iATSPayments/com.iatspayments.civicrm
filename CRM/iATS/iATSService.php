@@ -226,7 +226,7 @@ Class iATS_Service_Request {
         }
         // If the payment failed, display an error and rebuild the form.
         if (empty($result['status'])) {
-          $result['reasonMessage'] = $result['auth_result'] ? $this->reasonMessage($result['auth_result']) : 'Unexpected Server Error, please see your logs';
+          $result['reasonMessage'] = $result['BANKERROR'];
         }
         break;
     }       

@@ -4,8 +4,15 @@ class CRM_iATS_Page_json {
   function run() {
     // generate json output from iats service calls
     $request = $_POST;
-    $request = $_REQUEST;
-    foreach(array('reset','q','IDS_request_uri','IDS_user_agent') as $key) {
+    $pp_id = (int) $request['payment_processor_id'];
+    if (empty($pp_id)) return;
+    $params = array('version' => 3, 'sequential' => 1, 'id' => $pp_id, 'return' => 'user_name');
+    $result = civicrm_api('PaymentProcessor', 'getvalue', $params);
+    $request['agentCode'] = $result;
+    $params = array('version' => 3, 'sequential' => 1, 'id' => $pp_id, 'return' => 'url_site');
+    $result = civicrm_api('PaymentProcessor', 'getvalue', $params);
+    $request['iats_domain'] = parse_url($result, PHP_URL_HOST);
+    foreach(array('reset','q','IDS_request_uri','IDS_user_agent','payment_processor_id') as $key) {
       if (isset($request[$key])) {
         unset($request[$key]);
       }
@@ -24,21 +31,7 @@ class CRM_iATS_Page_json {
         unset($request[$key]);
       }
     }
-   
-    // testing hacks
-    $request['beginDate'] = date('c',strtotime('+12 days'));
-    $request['endDate'] = date('c',strtotime('+43 days'));
-    $request['firstName'] = 'Fred'; 
-    $request['lastName'] = 'Flintstone'; 
-    $request['address'] = '123 Rubble Way';
-    $request['city'] = 'Bedrock';
-    $request['country'] = 'Great Britain';
-    $request['email'] = 'fred@civicrm.ca';
-    $request['zipCode'] = 'A1234';
-    $request['ACHEFTReferenceNum'] = '';
-    $request['companyName'] = '';
-    $request['accountCustomerName'] = $request['firstName'].' '.$request['lastName'];
-    $request['accountNum'] = '00000012345678';
+    // TODO: bail here if I don't have enough for my service request 
     // use the iATSService object for interacting with iATS
     require_once("CRM/iATS/iATSService.php");
     $iats = new iATS_Service_Request($options);
@@ -51,9 +44,9 @@ class CRM_iATS_Page_json {
     }
     else {
       $result = array('Invalid request');
-      $result = array_merge($credentials,$request);
     }
-    header('Content-Type: text/javascript');
+    // TODO: fix header
+    // header('Content-Type: text/javascript');
     echo json_encode(array_merge($result));
     exit;
   }

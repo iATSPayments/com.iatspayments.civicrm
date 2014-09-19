@@ -9,6 +9,6 @@
   <item>
     <path>civicrm/iatsjson</path>
     <page_callback>CRM_iATS_Page_json</page_callback>
-    <access_arguments>access CiviCRM</access_arguments>
+    <access_arguments>make online contributions</access_arguments>
   </item>
 </menu>
