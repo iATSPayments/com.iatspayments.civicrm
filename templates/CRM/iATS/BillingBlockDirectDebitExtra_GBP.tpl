@@ -1,5 +1,5 @@
 {*
- Extra fields for iats direct debit UK 
+ Extra fields for iats direct debit UK
 *}
 <div id="iats-direct-debit-gbp-declaration">
   <fieldset class="iats-direct-debit-gbp-declaration">
@@ -22,6 +22,15 @@
   </div>
   </fieldset>
 </div>
+
+<div id="iats-direct-debit-extra">
+  <div class="crm-section cad-instructions-section">
+    <div class="label"><em>{ts domain='com.iatspayments.civicrm'}You can find your Account Number and Sort Code by inspecting a cheque.{/ts}</em></div>
+    <div class="content"><img width=500 height=303 src="{crmResURL ext=com.iatspayments.civicrm file=templates/CRM/iATS/GBP_cheque_500x.jpg}"></div>
+    <div class="clear"></div>
+  </div>
+</div>
+
 <div id="iats-direct-debit-gbp-payer-validate">
   <div class="crm-section payer-validate-address">
     <div class="label">{$form.payer_validate_address.label}</div>
@@ -72,7 +81,7 @@
   {literal}
   cj( function( ) { /* move my custom fields around and make it a multistep form experience via javascript */
     cj('#payment_notice').hide();
-    cj('.direct_debit_info-section').append(cj('#iats-direct-debit-gbp-payer-validate')); 
+    cj('.direct_debit_info-section').append(cj('#iats-direct-debit-gbp-payer-validate'));
     cj('.crm-contribution-main-form-block').before(cj('#iats-direct-debit-gbp-declaration'));
     cj('.direct_debit_info-section').append(cj('#iats-direct-debit-gbp-payer-validate')); // .hide();
     if (!cj('#payer_validate_declaration').is(':checked')) {
@@ -103,7 +112,7 @@
           if ('installments' == this.id) {
             var myLabel = 'Installments';
           }
-          else { 
+          else {
             var myLabel = $(this).parent('.content').prev('.label').find('label').text().replace('*','');
           }
           cj('#payer-validate-required').append('<li>' + myLabel + ' is a required field.</li>');
@@ -170,7 +179,7 @@
         cj('#iats-direct-debit-gbp-continue').hide();
         cj('#iats-direct-debit-gbp-payer-validate').show();
         cj('#crm-submit-buttons .crm-button').show();
-      } 
+      }
       // for testing only!
       else {
         cj('#iats-direct-debit-gbp-continue').show();
@@ -178,8 +187,14 @@
         cj('#crm-submit-buttons .crm-button').hide();
       }
     });
-    
+
   });
+  cj( function( ) {
+    /* move my custom fields up where they belong */
+    cj('.direct_debit_info-section').prepend(cj('#iats-direct-debit-extra'));
+    /* hide the bank identiication number field */
+  });
+
   {/literal}
 </script>
 
