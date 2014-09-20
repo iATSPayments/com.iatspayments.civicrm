@@ -10,14 +10,14 @@
     <div class="clear"></div>
   </div>
   <div class="crm-section">
-    <div class="label"><em><strong>{ts domain='com.iatspayments.civicrm'}Note:{/ts}</strong></em></div>
-    <div class="content">{ts domain='com.iatspayments.civicrm'}All the normal Direct Debit safeguards and guarantees apply. No changes in the amount, date, frequency to be debited can be made without notifying you at least five (5) working days in advance of your account being debited. In the event of any error, you are entitled to an immediate refund from your Bank or Building society. You have the right to cancel a Direct Debit instruction at any time simply by writing to your Bank or Building Society, with a copy to us.{/ts}
-</div>
+    <div class="content"><strong>{ts domain='com.iatspayments.civicrm'}Note: {/ts}</strong>{ts domain='com.iatspayments.civicrm'}All Direct Debits are protected by a guarantee. In future, if there is a change to the date, amount of frequency of your Direct Debit, we will always give you 5 working days notice in advance of your account being debited. In the event of any error, you are entitled to an immediate refund from your Bank of Building Society. You have the right to cancel at any time and this guarantee is offered by all the Banks and Building Societies that accept instructions to pay Direct Debits. A copy of the safeguards under the Direct Debit Guarantee will be sent to you with our confirmation letter.{/ts}
+    </div>
+    <div><br/></div>
     <div class="clear"></div>
   </div>
   <div class="crm-section">
     <div class="label">{$form.payer_validate_contact.label}</div>
-    <div class="content">{$form.payer_validate_contact.html}</div>
+    <div class="content"><strong>{ts domain='com.iatspayments.civicrm'}Contact Information: {/ts}</strong>{$form.payer_validate_contact.html}</div>
     <div class="clear"></div>
   </div>
   </fieldset>

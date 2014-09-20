@@ -288,14 +288,14 @@ function iats_civicrm_pre($op, $objectName, $objectId, &$params) {
     if ($type = _iats_civicrm_is_iats($payment_processor_id)) {
       switch ($type.$objectName) {
         case 'iATSServiceContribution': // cc contribution, test if it's been set to status 2 on a recurring contribution
-        case 'iATSServiceSWIPEContribution': 
+        case 'iATSServiceSWIPEContribution':
           if ((2 == $params['contribution_status_id'])
             && !empty($params['contribution_recur_id'])) {
             $params['contribution_status_id'] = 1;
           }
           break;
         case 'iATSServiceContributionRecur': // cc recurring contribution record
-        case 'iATSServiceSWIPEContributionRecur': 
+        case 'iATSServiceSWIPEContributionRecur':
           // we've already taken the first payment, so calculate the next one
           $params['contribution_status_id'] = 5;
           $next = strtotime('+'.$params['frequency_interval'].' '.$params['frequency_unit']);
@@ -358,7 +358,7 @@ function _iats_civicrm_is_iats($payment_processor_id) {
   return ('Payment_iATSService' == $type) ? 'iATSService'.$subtype  : FALSE;
 }
 
-/* internal utility function: return the id's of any iATS processors matching various conditions 
+/* internal utility function: return the id's of any iATS processors matching various conditions
  * processors: an array of payment processors indexed by id to filter by,
  *             or if NULL, it searches through all
  * subtype: the iats service class name subtype
@@ -463,7 +463,7 @@ function iats_swipe_form_customize($form) {
  // remove two fields that are replaced by the swipe code data
  // we need to remove them from the _paymentFields as well or they'll sneak back in!
  $form->removeElement('credit_card_type',TRUE);
- $form->removeElement('cvv2',TRUE); 
+ $form->removeElement('cvv2',TRUE);
  unset($form->_paymentFields['credit_card_type']);
  unset($form->_paymentFields['cvv2']);
  // add a single text area to store/display the encrypted cc number that the swipe device will fill
@@ -482,12 +482,12 @@ function iats_swipe_form_customize($form) {
 
 function iats_ukdd_form_customize($form) {
   $payee = _iats_civicrm_domain_info('name');
-  $phone = _iats_civicrm_domain_info('domain_phone'); 
-  $email = _iats_civicrm_domain_info('domain_email'); 
+  $phone = _iats_civicrm_domain_info('domain_phone');
+  $email = _iats_civicrm_domain_info('domain_email');
   $form->addRule('is_recur', ts('You can only use this form to make recurring contributions.'), 'required');
   /* declaration checkbox at the top */
   $form->addElement('checkbox', 'payer_validate_declaration', ts('I wish to start a Direct Debit'));
-  $form->addElement('static', 'payer_validate_contact', ts('Contact'), ts('Phone: %1, Email: %2', array('%1' => $phone['phone'], '%2' => $email)));
+  $form->addElement('static', 'payer_validate_contact', ts(''), ts('Organization: %1, Phone: %2, Email: %3', array('%1' => $payee, '%2' => $phone['phone'], '%3' => $email)));
   $form->addElement('text', 'payer_validate_start_date', ts('Start Date'), array('disabled' => 'disabled'));
   $form->addRule('payer_validate_declaration', ts('%1 is a required field.', array(1 => ts('The Declaration'))), 'required');
   $form->addRule('installments', ts('%1 is a required field.', array(1 => ts('Number of installments'))), 'required');
@@ -525,7 +525,7 @@ function iats_civicrm_buildForm_Contribution_Frontend(&$form) {
   if (empty($form->_paymentProcessors)) {
     return;
   }
-  
+
   $acheft = iats_civicrm_processors($form->_paymentProcessors,'ACHEFT');
   $swipe = iats_civicrm_processors($form->_paymentProcessors,'SWIPE');
   $ukdd = iats_civicrm_processors($form->_paymentProcessors,'UKDD');
@@ -568,7 +568,7 @@ function iats_civicrm_buildForm_CreditCard_Backend(&$form) {
   if (empty($form->_processors)) {
     return;
   }
-  // get all my swipe processors 
+  // get all my swipe processors
   $swipe = iats_civicrm_processors($form->_processors,'SWIPE');
   // get all my ACH/EFT processors (should be 0, but I'm fixing old core bugs)
   $acheft = iats_civicrm_processors($form->_processors,'ACHEFT');
@@ -576,7 +576,7 @@ function iats_civicrm_buildForm_CreditCard_Backend(&$form) {
   $swipe_id_default = 0;
   if (0 < count($swipe)) {
     foreach($swipe as $id => $pp) {
-      if ($pp['is_default']) { 
+      if ($pp['is_default']) {
         $swipe_id_default = $id;
         break;
       }
