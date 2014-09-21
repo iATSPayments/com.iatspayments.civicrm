@@ -80,6 +80,8 @@
 <script type="text/javascript">
   {literal}
   cj( function( ) { /* move my custom fields around and make it a multistep form experience via javascript */
+    /* move my custom fields up where they belong */
+    cj('.direct_debit_info-section').prepend(cj('#iats-direct-debit-extra'));
     cj('#payment_notice').hide();
     cj('.direct_debit_info-section').append(cj('#iats-direct-debit-gbp-payer-validate'));
     cj('.crm-contribution-main-form-block').before(cj('#iats-direct-debit-gbp-declaration'));
@@ -89,10 +91,10 @@
     }
     cj('#payer_validate_declaration').change(function() {
       if (this.checked) {
-        cj('.crm-contribution-main-form-block').show();
+        cj('.crm-contribution-main-form-block').show('slow');
       }
       else {
-        cj('.crm-contribution-main-form-block').hide();
+        cj('.crm-contribution-main-form-block').hide('slow');
       }
     });
     if (0 == cj('#payer_validate_reference').val().length) {
@@ -105,15 +107,17 @@
     }
     /* initiate a payer validation: check for required fields, then do an ajax call to retrieve bank info */
     cj('#payer_validate_initiate').click(function() {
+      // todo: prevent clicking on the validate button and indicate something is happening
+      ($this).val('Processing ...').prop('disabled',true);
       cj('#payer-validate-required').html('');
       cj('#Main .billing_name_address-group input:visible, #Main input.required:visible').each(function() {
         // console.log(this.value.length);
-        if (0 == this.value.length) {
+        if (0 == this.value.length && this.id != 'billing_middle_name') {
           if ('installments' == this.id) {
             var myLabel = 'Installments';
           }
           else {
-            var myLabel = $(this).parent('.content').prev('.label').find('label').text().replace('*','');
+            var myLabel = cj(this).parent('.content').prev('.label').find('label').text().replace('*','');
           }
           cj('#payer-validate-required').append('<li>' + myLabel + ' is a required field.</li>');
         }
@@ -170,31 +174,25 @@
         },'json');
       }
       else { // add alert symbol
-        cj('#iats-direct-debit-gbp-continue .crm-error').show();
+        cj('#iats-direct-debit-gbp-continue .crm-error').show('slow');
       }
     });
     cj('#payer_validate_reference').change(function() {
       cj('#payer-validate-required').html('').hide();
-      if ($(this).val().length) {
+      if (cj(this).val().length) {
         cj('#iats-direct-debit-gbp-continue').hide();
-        cj('#iats-direct-debit-gbp-payer-validate').show();
+        cj('#iats-direct-debit-gbp-payer-validate').show('slow');
         cj('#crm-submit-buttons .crm-button').show();
+        CRM.alert(ts('Please review your bank details and then click Contribute below.'));
       }
       // for testing only!
       else {
         cj('#iats-direct-debit-gbp-continue').show();
-        cj('#iats-direct-debit-gbp-payer-validate').hide();
+        cj('#iats-direct-debit-gbp-payer-validate').hide('slow');
         cj('#crm-submit-buttons .crm-button').hide();
       }
     });
-
   });
-  cj( function( ) {
-    /* move my custom fields up where they belong */
-    cj('.direct_debit_info-section').prepend(cj('#iats-direct-debit-extra'));
-    /* hide the bank identiication number field */
-  });
-
   {/literal}
 </script>
 
