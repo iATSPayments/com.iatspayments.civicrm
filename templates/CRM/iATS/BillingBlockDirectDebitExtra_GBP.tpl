@@ -108,7 +108,6 @@
     /* initiate a payer validation: check for required fields, then do an ajax call to retrieve bank info */
     cj('#payer_validate_initiate').click(function() {
       // todo: prevent clicking on the validate button and indicate something is happening
-      ($this).val('Processing ...').prop('disabled',true);
       cj('#payer-validate-required').html('');
       cj('#Main .billing_name_address-group input:visible, #Main input.required:visible').each(function() {
         // console.log(this.value.length);
@@ -166,11 +165,13 @@
         var payerValidateUrl = cj('input[name="payer_validate_url"]').val();
         // console.log(payerValidateUrl);
         // console.log(validatePayer);
+        cj(this).val('Processing ...').prop('disabled',true);
         cj.post(payerValidateUrl,validatePayer,function( result ) {
           // console.log(result);
           cj('#payer_validate_reference').val(result.ACHREFNUM).change();
           cj('#bank_name').val(result.BANK_NAME);
           cj('#payer_validate_address').val(result.BANK_BRANCH + "\n" + result.BANKADDRESS1 + "\n" + result.BANK_CITY + ", " + result.BANK_STATE + "\n" + result.BANK_POSTCODE);
+          cj('#payer_validate_initiate').val('Continue').prop('disabled',false);
         },'json');
       }
       else { // add alert symbol
