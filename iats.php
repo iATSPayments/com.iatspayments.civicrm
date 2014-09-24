@@ -524,7 +524,7 @@ function iats_ukdd_form_customize($form) {
   // $form->addRule('bank_name', ts('%1 is a required field.', array(1 => ts('Bank Name'))), 'required');
   //$form->addRule('bank_account_type', ts('%1 is a required field.', array(1 => ts('Account type'))), 'required');
   /* only allow recurring contributions, set date */
-  $form->setDefaults(array('is_recur' => 1, 'payer_validate_date' => date('F m, Y'), 'payer_validate_start_date' => date('c',time() + IATS_UKDD_START_DELAY))); // make recurring contrib default to true
+  $form->setDefaults(array('is_recur' => 1, 'payer_validate_date' => date('F j, Y'), 'payer_validate_start_date' => date('c',time() + IATS_UKDD_START_DELAY))); // make recurring contrib default to true
   CRM_Core_Region::instance('billing-block')->add(array(
     'template' => 'CRM/iATS/BillingBlockDirectDebitExtra_GBP.tpl'
   ));
