@@ -481,6 +481,7 @@ function iats_swipe_form_customize($form) {
  */
 
 function iats_ukdd_form_customize($form) {
+  define('IATS_UKDD_START_DELAY',12 * 24 * 60 * 60);
   $payee = _iats_civicrm_domain_info('name');
   $phone = _iats_civicrm_domain_info('domain_phone');
   $email = _iats_civicrm_domain_info('domain_email');
@@ -502,16 +503,18 @@ function iats_ukdd_form_customize($form) {
   $element->setLabel(ts('Sort Code'));
   $form->addRule('bank_identification_number', ts('%1 is a required field.', array(1 => ts('Sort Code'))), 'required');
   $form->addElement('button','payer_validate_initiate',ts('Continue'));
+  $form->addElement('button','payer_validate_amend',ts('Amend'));
   /* new payer validation elements */
   $form->addElement('textarea', 'payer_validate_address', ts('Name and full postal address of your Bank or Building Society'), array('rows' => '6', 'columns' => '30'));
   $form->addElement('text', 'payer_validate_service_user_number', ts('Service User Number'));
-  $form->addElement('text', 'payer_validate_reference', ts('Reference'), array('xdisabled' => 'disabled'));
-  $form->addElement('text', 'payer_validate_date', ts('Date'), array('disabled' => 'disabled'));
+  $form->addElement('text', 'payer_validate_reference_display', ts('Reference'), array('disabled' => 'disabled'));
+  $form->addElement('hidden','payer_validate_reference');
+  $form->addElement('text', 'payer_validate_date', ts('Today\'s Date'), array('disabled' => 'disabled'));
   $form->addElement('static', 'payer_validate_instruction', ts('Instruction to your Bank or Building Society'), ts('Please pay %1 Direct Debits from the account detailed in this instruction subject to the safeguards assured by the Direct Debit Guarantee. I understand that this instruction may remain with TestingTest and, if so, details will be passed electronically to my Bank / Building Society.',array('%1' => "<strong>$payee</strong>")));
   // $form->addRule('bank_name', ts('%1 is a required field.', array(1 => ts('Bank Name'))), 'required');
   //$form->addRule('bank_account_type', ts('%1 is a required field.', array(1 => ts('Account type'))), 'required');
   /* only allow recurring contributions, set date */
-  $form->setDefaults(array('is_recur' => 1, 'payer_validate_date' => date('F m, Y'), 'payer_validate_start_date' => date('c',strtotime('+12 days')))); // make recurring contrib default to true
+  $form->setDefaults(array('is_recur' => 1, 'payer_validate_date' => date('F m, Y'), 'payer_validate_start_date' => date('c',time() + IATS_UKDD_START_DELAY))); // make recurring contrib default to true
   CRM_Core_Region::instance('billing-block')->add(array(
     'template' => 'CRM/iATS/BillingBlockDirectDebitExtra_GBP.tpl'
   ));

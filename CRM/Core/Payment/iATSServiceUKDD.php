@@ -143,7 +143,11 @@ class CRM_Core_Payment_iATSServiceUKDD extends CRM_Core_Payment {
     // use the iATSService object for interacting with iATS
     require_once("CRM/iATS/iATSService.php");
     $iats = new iATS_Service_Request(array('type' => 'customer', 'method' => 'direct_debit_create_acheft_customer_code', 'iats_domain' => $this->_profile['iats_domain'], 'currencyID' => $params['currencyID']));
-    $request = array_merge($this->convertParamsCreateCustomerCode($params),$this->getSchedule($params));
+    $schedule = $this->getSchedule($params);
+    if (!is_array($schedule))  { // assume an error object to return
+      return $schedule;
+    } 
+    $request = array_merge($this->convertParamsCreateCustomerCode($params),$schedule);
     $request['customerIPAddress'] = (function_exists('ip_address') ? ip_address() : $_SERVER['REMOTE_ADDR']);
     $request['customerCode'] = '';
     $request['accountType'] = 'CHECKING';
