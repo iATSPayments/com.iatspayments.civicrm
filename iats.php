@@ -306,10 +306,8 @@ function iats_civicrm_pre($op, $objectName, $objectId, &$params) {
         case 'iATSServiceACHEFTContribution': // ach/eft contribution: update the payment instrument and ensure the status is 2 i.e. for one-time contributions
           $params['payment_instrument_id'] = 2;
           $params['contribution_status_id'] = 2;
-          // watchdog('iats_civicrm_regular','<pre>'.print_r($params,TRUE).'</pre>');
-          // $params['contribution_status_id'] = 1;
           break;
-        case 'iATSServiceACHEFTContributionRecur': // ach/eft recurring contribution record
+        case 'iATSServiceACHEFTContributionRecur': 
           // watchdog('iats_civicrm_recur','<pre>'.print_r($params,TRUE).'</pre>');
           $params['payment_instrument_id'] = 2;
           $params['contribution_status_id'] = 5; // we set this to 'in-progress' because even if the first one hasn't been verified, we still want to be attempting later ones
@@ -317,6 +315,18 @@ function iats_civicrm_pre($op, $objectName, $objectId, &$params) {
           // the next scheduled contribution date field name is civicrm version dependent
           $field_name = _iats_civicrm_nscd_fid();
           $params[$field_name] = date('YmdHis',$next);
+          break;
+        case 'iATSServiceUKDDContribution': // UK DD contribution: update the payment instrument 
+          $params['payment_instrument_id'] = 2;
+          // $params['contribution_status_id'] = 2;
+          break;
+        case 'iATSServiceUKDDContributionRecur': // ach/eft recurring contribution record
+          $params['payment_instrument_id'] = 2; // just update the payment instrument
+          // $params['contribution_status_id'] = 5; // we set this to 'in-progress' because even if the first one hasn't been verified, we still want to be attempting later ones
+          // $next = strtotime('+'.$params['frequency_interval'].' '.$params['frequency_unit']);
+          // the next scheduled contribution date field name is civicrm version dependent
+          // $field_name = _iats_civicrm_nscd_fid();
+          // $params[$field_name] = date('YmdHis',$next);
           break;
       }
     }
