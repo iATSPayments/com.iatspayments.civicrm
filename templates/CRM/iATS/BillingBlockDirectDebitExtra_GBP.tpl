@@ -83,9 +83,9 @@
   {literal}
   cj( function( ) { /* move my custom fields around and make it a multistep form experience via javascript */
     /* move my custom fields up where they belong */
-    var pgDeclaration = $('#iats-direct-debit-gbp-declaration');
-    var pgNonDeclaration = $('.crm-contribution-main-form-block');
-    var pgPayerValidate = $('#billing-payment-block');
+    var pgDeclaration = cj('#iats-direct-debit-gbp-declaration');
+    var pgNonDeclaration = cj('.crm-contribution-main-form-block');
+    var pgPayerValidate = cj('#billing-payment-block');
     // var pgPayerValidateHide = $('#billing-payment-block');
     /* i don't want to show my default civicrm payment notice */
     cj('#payment_notice').hide();
