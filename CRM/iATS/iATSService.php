@@ -237,7 +237,8 @@ Class iATS_Service_Request {
         }
         // If the payment failed, display an error and rebuild the form.
         if (empty($result['status'])) {
-          $result['reasonMessage'] = $result['BANKERROR'];
+          $result['reasonMessage'] = isset($result['BANKERROR']) ? $result['BANKERROR'] : 
+             (isset($result['ERRORS']) ? $result['ERRORS'] : 'Unexpected error');
         }
         break;
     }       
