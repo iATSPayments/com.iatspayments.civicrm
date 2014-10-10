@@ -316,11 +316,11 @@ function iats_civicrm_pre($op, $objectName, $objectId, &$params) {
           $field_name = _iats_civicrm_nscd_fid();
           $params[$field_name] = date('YmdHis',$next);
           break;
-        case 'iATSServiceUKDDContribution': // UK DD contribution: update the payment instrument 
+        case 'iATSServiceUKDDContribution': // UK DD contribution: update the payment instrument, and contribution status
           $params['payment_instrument_id'] = 2;
-          // $params['contribution_status_id'] = 2;
+          $params['contribution_status_id'] = 2; 
           break;
-        case 'iATSServiceUKDDContributionRecur': // ach/eft recurring contribution record
+        case 'iATSServiceUKDDContributionRecur': // UK DD recurring contribution record
           $params['payment_instrument_id'] = 2; // just update the payment instrument
           // $params['contribution_status_id'] = 5; // we set this to 'in-progress' because even if the first one hasn't been verified, we still want to be attempting later ones
           // $next = strtotime('+'.$params['frequency_interval'].' '.$params['frequency_unit']);
@@ -515,8 +515,8 @@ function iats_ukdd_form_customize($form) {
   $form->addElement('button','payer_validate_initiate',ts('Continue'));
   $form->addElement('button','payer_validate_amend',ts('Amend'));
   /* new payer validation elements */
-  $form->addElement('textarea', 'payer_validate_address', ts('Name and full postal address of your Bank or Building Society'), array('rows' => '6', 'columns' => '30'));
-  $form->addElement('text', 'payer_validate_service_user_number', ts('Service User Number'));
+  $form->addElement('textarea', 'payer_validate_address', ts('Name and full postal address of your Bank or Building Society'), array('disabled' => 'disabled', 'rows' => '6', 'columns' => '30'));
+  $form->addElement('text', 'payer_validate_service_user_number', ts('Service User Number'), array('disabled' => 'disabled'));
   $form->addElement('text', 'payer_validate_reference_display', ts('Reference'), array('disabled' => 'disabled'));
   $form->addElement('hidden','payer_validate_reference');
   $form->addElement('text', 'payer_validate_date', ts('Today\'s Date'), array('disabled' => 'disabled'));
