@@ -237,7 +237,8 @@ Class iATS_Service_Request {
         }
         // If the payment failed, display an error and rebuild the form.
         if (empty($result['status'])) {
-          $result['reasonMessage'] = $result['BANKERROR'];
+          $result['reasonMessage'] = isset($result['BANKERROR']) ? $result['BANKERROR'] : 
+             (isset($result['ERRORS']) ? $result['ERRORS'] : 'Unexpected error');
         }
         break;
     }       
@@ -326,10 +327,10 @@ Class iATS_Service_Request {
           ),
           'acheft_payment_box_journal_csv' => array(
             'title' => 'ACH-EFT Payment Box Journal CSV',
-            'description'=> $desc. 'GetACHEFTPaymentBoxJournalCSV V1',
-            'method' => 'GetACHEFTPaymentBoxJournalCSV',
-            'message' => 'GetACHEFTPaymentBoxJournalCSV_x0020_V1',
-            'response' => 'GetACHEFTPaymentBoxJournalCSV_x0020_V1Result',
+            'description'=> $desc. 'GetACHEFTPaymentBoxJournalCSV V2',
+            'method' => 'GetACHEFTPaymentBoxJournalCSVV2',
+            'message' => 'GetACHEFTPaymentBoxJournalCSVV2',
+            'response' => 'GetACHEFTPaymentBoxJournalCSVV2Result',
             /* 'message' => 'GetACHEFTPaymentBoxJournalCSVV1',
             'response' => 'GetACHEFTPaymentBoxJournalCSVV1Result', */
           ),
