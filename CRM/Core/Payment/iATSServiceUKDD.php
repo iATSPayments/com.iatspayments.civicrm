@@ -85,7 +85,7 @@ class CRM_Core_Payment_iATSServiceUKDD extends CRM_Core_Payment {
     // IATS requires begin and end date, calculated here
     // to be converted to date format later
     // begin date has to be at least 12 days from now [allow configurability?]
-    $beginTime = strtotime($beginDate = $params['receive_date']);
+    $beginTime = strtotime($beginDate = $params['start_date']);
     $date = getdate($beginTime);
     $interval = $params['frequency_interval'] ? $params['frequency_interval'] : 1;
     switch ($params['frequency_unit']) {
@@ -140,6 +140,7 @@ class CRM_Core_Payment_iATSServiceUKDD extends CRM_Core_Payment {
     if (!empty($error)) {
       return $error;
     }
+    // $params['start_date'] = $params['receive_date'];
     // use the iATSService object for interacting with iATS
     require_once("CRM/iATS/iATSService.php");
     $iats = new iATS_Service_Request(array('type' => 'customer', 'method' => 'direct_debit_create_acheft_customer_code', 'iats_domain' => $this->_profile['iats_domain'], 'currencyID' => $params['currencyID']));
@@ -188,10 +189,22 @@ class CRM_Core_Payment_iATSServiceUKDD extends CRM_Core_Payment {
       // drupal_set_message('<pre>'.print_r($query_params,TRUE).'</pre>');
       CRM_Core_DAO::executeQuery("INSERT INTO civicrm_iats_customer_codes
         (customer_code, ip, expiry, cid, email, recur_id) VALUES (%1, %2, %3, %4, %5, %6)", $query_params);
-      $params['contribution_status_id'] = 1;
-      // also set next_sched_contribution
-      // TODO: add 12 days!
-      $params['next_sched_contribution'] = strtotime('+'.$params['frequency_interval'].' '.$params['frequency_unit']);
+      // save their payer validation data in civicrm_iats_ukdd_validate
+      $query_params = array(
+        1 => array($customer_code, 'String'),
+        2 => array($params['payer_validate_reference'], 'String'),
+        3 => array($params['contactID'], 'Integer'),
+        4 => array($params['contributionRecurID'], 'Integer'),
+        5 => array($params['payer_validate_declaration'], 'Integer'),
+        6 => array(date('c'), 'String')
+      );
+      // drupal_set_message('<pre>'.print_r($query_params,TRUE).'</pre>');
+      CRM_Core_DAO::executeQuery("INSERT INTO civicrm_iats_ukdd_validate
+        (customer_code, acheft_reference_num, cid, recur_id, validated, validated_datetime) VALUES (%1, %2, %3, %4, %5, %6)", $query_params);
+      // set the status of the initial contribution to pending (currently is redundant)
+      $params['contribution_status_id'] = 2;
+      // also set next_sched_contribution, though it won't be used
+      $params['next_sched_contribution'] = strtotime($params['start_date'].' + '.$params['frequency_interval'].' '.$params['frequency_unit']);
       return $params;
     }
     else {
