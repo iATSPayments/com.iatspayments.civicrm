@@ -25,6 +25,9 @@
 
 require_once 'iats.civix.php';
 
+/* uk direct debits will be marked to start 12 days after the initial request is made */
+define('IATS_UKDD_START_DELAY',12 * 24 * 60 * 60);
+
 /**
  * Implementation of hook_civicrm_config
  */
@@ -316,7 +319,7 @@ function iats_civicrm_pre($op, $objectName, $objectId, &$params) {
           $field_name = _iats_civicrm_nscd_fid();
           $params[$field_name] = date('YmdHis',$next);
           break;
-        case 'iATSServiceUKDDContribution': // UK DD contribution: update the payment instrument, and contribution status
+        case 'iATSServiceUKDDContribution': // UK DD contribution: update the payment instrument and contribution status
           $params['payment_instrument_id'] = 2;
           $params['contribution_status_id'] = 2; 
           break;
@@ -491,7 +494,6 @@ function iats_swipe_form_customize($form) {
  */
 
 function iats_ukdd_form_customize($form) {
-  define('IATS_UKDD_START_DELAY',12 * 24 * 60 * 60);
   $payee = _iats_civicrm_domain_info('name');
   $phone = _iats_civicrm_domain_info('domain_phone');
   $email = _iats_civicrm_domain_info('domain_email');
