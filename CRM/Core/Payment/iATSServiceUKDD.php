@@ -85,7 +85,7 @@ class CRM_Core_Payment_iATSServiceUKDD extends CRM_Core_Payment {
     // IATS requires begin and end date, calculated here
     // to be converted to date format later
     // begin date has to be at least 12 days from now [allow configurability?]
-    $beginTime = strtotime($beginDate = $params['payer_validate_start_date']);
+    $beginTime = strtotime($beginDate = $params['receive_date']);
     $date = getdate($beginTime);
     $interval = $params['frequency_interval'] ? $params['frequency_interval'] : 1;
     switch ($params['frequency_unit']) {

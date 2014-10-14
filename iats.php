@@ -25,9 +25,6 @@
 
 require_once 'iats.civix.php';
 
-/* uk direct debits will be marked to start 12 days after the initial request is made */
-define('IATS_UKDD_START_DELAY',12 * 24 * 60 * 60);
-
 /**
  * Implementation of hook_civicrm_config
  */
@@ -494,6 +491,9 @@ function iats_swipe_form_customize($form) {
  */
 
 function iats_ukdd_form_customize($form) {
+  /* uk direct debits will be marked to start 12 days after the initial request is made */
+  define('IATS_UKDD_START_DELAY',12 * 24 * 60 * 60);
+
   $payee = _iats_civicrm_domain_info('name');
   $phone = _iats_civicrm_domain_info('domain_phone');
   $email = _iats_civicrm_domain_info('domain_email');
@@ -501,7 +501,7 @@ function iats_ukdd_form_customize($form) {
   /* declaration checkbox at the top */
   $form->addElement('checkbox', 'payer_validate_declaration', ts('I wish to start a Direct Debit'));
   $form->addElement('static', 'payer_validate_contact', ts(''), ts('Organization: %1, Phone: %2, Email: %3', array('%1' => $payee, '%2' => $phone['phone'], '%3' => $email)));
-  $form->addElement('text', 'payer_validate_start_date', ts('Start Date'), array('disabled' => 'disabled'));
+  $form->addElement('text', 'receive_date', ts('Start Date'), array('disabled' => 'disabled'));
   $form->addRule('payer_validate_declaration', ts('%1 is a required field.', array(1 => ts('The Declaration'))), 'required');
   $form->addRule('installments', ts('%1 is a required field.', array(1 => ts('Number of installments'))), 'required');
   /* customization of existing elements */
@@ -526,7 +526,7 @@ function iats_ukdd_form_customize($form) {
   // $form->addRule('bank_name', ts('%1 is a required field.', array(1 => ts('Bank Name'))), 'required');
   //$form->addRule('bank_account_type', ts('%1 is a required field.', array(1 => ts('Account type'))), 'required');
   /* only allow recurring contributions, set date */
-  $form->setDefaults(array('is_recur' => 1, 'payer_validate_date' => date('F j, Y'), 'payer_validate_start_date' => date('c',time() + IATS_UKDD_START_DELAY))); // make recurring contrib default to true
+  $form->setDefaults(array('is_recur' => 1, 'payer_validate_date' => date('F j, Y'), 'receive_date' => date('c',time() + IATS_UKDD_START_DELAY))); // make recurring contrib default to true
   CRM_Core_Region::instance('billing-block')->add(array(
     'template' => 'CRM/iATS/BillingBlockDirectDebitExtra_GBP.tpl'
   ));

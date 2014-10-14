@@ -59,8 +59,8 @@
     <div class="clear"></div>
   </div>
   <div class="crm-section payer-validate-start-date" style="display: none">
-    <div class="label">{$form.payer_validate_start_date.label}</div>
-    <div class="content">{$form.payer_validate_start_date.html}</div>
+    <div class="label">{$form.receive_date.label}</div>
+    <div class="content">{$form.receive_date.html}</div>
     <div class="clear"></div>
   </div>
   <input name="payer_validate_url" type="hidden" value="{crmURL p='civicrm/iatsjson' q='reset=1'}">
@@ -143,7 +143,7 @@
       if (0 == cj('#payer-validate-required').html().length) {
         cj('#iats-direct-debit-gbp-continue .crm-error').hide();
         var validatePayer = {};
-        validatePayer.beginDate = cj('#payer_validate_start_date').val();
+        validatePayer.beginDate = cj('#receive_date').val();
         var endDate = new Date(validatePayer.beginDate);
         var frequencyInterval = cj('input[name=frequency_interval]').val();
         var frequencyUnit = cj('[name="frequency_unit"]').val();
