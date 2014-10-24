@@ -169,8 +169,8 @@ If you are not the account holder or your account requires more than one signatu
       if (0 == cj('#payer-validate-required').html().length) {
         cj('#iats-direct-debit-gbp-continue .crm-error').hide();
         var validatePayer = {};
-        validatePayer.beginDate = cj('#start_date').val();
-        var endDate = new Date(validatePayer.beginDate);
+        validatePayer.beginDate = cj.datepicker.formatDate('yy-mm-dd',startDate);
+        var endDate = startDate;
         var frequencyInterval = cj('input[name=frequency_interval]').val();
         var frequencyUnit = cj('[name="frequency_unit"]').val();
         var installments = cj('input[name="installments"]').val();

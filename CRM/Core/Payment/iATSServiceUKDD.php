@@ -263,6 +263,9 @@ class CRM_Core_Payment_iATSServiceUKDD extends CRM_Core_Payment {
     if (empty($this->_paymentProcessor['password'])) {
       $error[] = ts('Password is not set in the Administer CiviCRM &raquo; System Settings &raquo; Payment Processors.');
     }
+    if (empty($this->_paymentProcessor['signature'])) {
+      $error[] = ts('Service User Number (SUN) is not set in the Administer CiviCRM &raquo; System Settings &raquo; Payment Processors.');
+    }
     $iats_domain = parse_url($this->_paymentProcessor['url_site'], PHP_URL_HOST);
     if ('www.uk.iatspayments.com' != $iats_domain) {
       $error[] = ts('You can only use this payment processor with a UK iATS account');
