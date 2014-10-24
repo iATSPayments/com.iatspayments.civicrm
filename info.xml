@@ -14,13 +14,13 @@
     <author>Alan Dixon</author>
     <email>iats@blackflysolutions.ca</email>
   </maintainer>
-  <releaseDate>2014-09-11</releaseDate>
-  <version>1.2.11</version>
+  <releaseDate>2014-10-23</releaseDate>
+  <version>1.2.12</version>
   <develStage>stable</develStage>
   <compatibility>
-    <ver>4.2</ver>
     <ver>4.3</ver>
     <ver>4.4</ver>
+    <ver>4.5</ver>
   </compatibility>
   <comments>This extension requires the SOAP extension for php in order to work. It replaces the previous iATS payment processor. It uses the new webservices interface instead of the old "php api" interface to iATS, and is now distributed as an extension. It can co-exist with the old iATS payment processor.</comments>
   <civix>

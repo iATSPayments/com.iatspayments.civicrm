@@ -143,11 +143,29 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
   while ($dao->fetch()) {
 
     // Strategy: create the contribution record with status = 2 (= pending), try the payment, and update the status to 1 if successful
+    // First get the first contribution in this series to help with line items and some other values
+    $initial_contribution = array();
+    $line_items = array();
+    $get = array('version'  => 3, 'contribution_recur_id' => $dao->id, 'options'  => array('sort'  => ' id' , 'limit'  => 1));
+    $result = civicrm_api('contribution', 'get', $get);
+    if (!empty($result['values'])) {
+      $contribution_ids = array_keys($result['values']);
+      $get = array('version'  => 3, 'entity_table' => 'civicrm_contribution', 'entity_id' => $contribution_ids[0]);
+      $result = civicrm_api('LineItem', 'get', $get);
+      if (!empty($result['values'])) {
+        foreach($result['values'] as $initial_line_item) {
+          $line_item = array();
+          foreach(array('price_field_id','qty','line_total','unit_price','label','price_field_value_id','financial_type_id') as $key) {
+            $line_item[$key] = $initial_line_item[$key];
+          }
+          $line_items[] = $line_item;
+        }
+      }
+    }
     $contact_id = $dao->contact_id;
     $total_amount = $dao->amount;
     $hash = md5(uniqid(rand(), true));
     $contribution_recur_id    = $dao->id;
-    // $sourceURL = CRM_Utils_System::url('civicrm/contact/view/contributionrecur', 'reset=1&id='. $dao->id .'&cid='. $dao->contact_id .'&context=contribution');
     $subtype = substr($dao->pp_class_name,19);
     $source = "iATS Payments $subtype Recurring Contribution (id=$contribution_recur_id)"; 
     $receive_date = date("YmdHis"); // i.e. now
@@ -182,11 +200,21 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
       'payment_processor'   => $dao->payment_processor_id,
       'is_test'        => $dao->is_test, /* propagate the is_test value from the parent contribution */
     );
+    $get_from_original = array('contribution_campaign_id','amount_level');
+    foreach($get_from_original as $field) {
+      if (isset($original_contribution[$field])) {
+        $contribution[$field] = $original_contribution[$field];
+      }
+    }
     if (isset($dao->contribution_type_id)) {  // 4.2
        $contribution['contribution_type_id'] = $dao->contribution_type_id;
     }
     else { // 4.3+
        $contribution['financial_type_id'] = $dao->financial_type_id;
+    }
+    if (count($line_items) > 0) {
+      $contribution['skipLineItem'] = 1;
+      $contribution[ 'api.line_item.create'] = $line_items;
     }
     if (count($errors)) {
       ++$error_count;
