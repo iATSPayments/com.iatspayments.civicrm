@@ -5,6 +5,11 @@
   <fieldset class="iats-direct-debit-gbp-declaration">
   <legend>Declaration</legend>
   <div class="crm-section">
+    <div class="content"><p><strong>{ts domain='com.iatspayments.civicrm'}Note: {/ts}</strong>{ts domain='com.iatspayments.civicrm'}
+If you are not the account holder or your account requires more than one signature a paper Direct Debit Instructoin will be required to be completed and posted to us. <a href="#">Click here</a> to print off a paper Drect Debit Instruction.</p>{/ts}
+<p><strong>{ts  domain='com.iatspayments.civicrm'}OR{/ts}</strong></p>
+<p>{ts domain='com.iatspayments.civicrm'}Continue with the details below{/ts}</p>
+    </div>
     <div class="label">{$form.payer_validate_declaration.label}</div>
     <div class="content">{$form.payer_validate_declaration.html}</div>
     <div class="clear"></div>
@@ -19,6 +24,11 @@
     <div class="label">{$form.payer_validate_contact.label}</div>
     <div class="content"><strong>{ts domain='com.iatspayments.civicrm'}Contact Information: {/ts}</strong>{$form.payer_validate_contact.html}</div>
     <div class="clear"></div>
+    <div class="content">
+<img width=166 height=61 src="{crmResURL ext=com.iatspayments.civicrm file=templates/CRM/iATS/bacs.png}">
+<img width=148 height=57 src="{crmResURL ext=com.iatspayments.civicrm file=templates/CRM/iATS/direct-debit.jpg}">
+<img width=134 height=55 src="{crmResURL ext=com.iatspayments.civicrm file=templates/CRM/iATS/iats.jpg}">
+</div>
   </div>
   </fieldset>
 </div>
@@ -30,7 +40,14 @@
     <div class="clear"></div>
   </div>
 </div>
-
+<div id="iats-direct-debit-start-date">
+  <div class="crm-section payer-validate-start-date">
+    <div class="label">{$form.start_date.label}</div>
+    <div class="content">{$form.start_date.html}</div>
+    <div class="content">{ts domain='com.iatspayments.civicrm'}If you wish, you can modify this date to make it later. This is the earliest date upon which your contributions can start.{/ts}</div>
+    <div class="clear"></div>
+  </div>
+</div>
 <div id="iats-direct-debit-gbp-payer-validate">
   <div class="crm-section payer-validate-address">
     <div class="label">{$form.payer_validate_address.label}</div>
@@ -56,11 +73,6 @@
   <div class="crm-section payer-validate-date">
     <div class="label">{$form.payer_validate_date.label}</div>
     <div class="content">{$form.payer_validate_date.html}</div>
-    <div class="clear"></div>
-  </div>
-  <div class="crm-section payer-validate-start-date" style="display: none">
-    <div class="label">{$form.start_date.label}</div>
-    <div class="content">{$form.start_date.html}</div>
     <div class="clear"></div>
   </div>
   <input name="payer_validate_url" type="hidden" value="{crmURL p='civicrm/iatsjson' q='reset=1'}">
@@ -92,6 +104,7 @@
     /* move some fields around to better flow like the iATS DD samples */
     cj('input[name|="email"]').parents('.crm-section').prependTo('.billing_name_address-section');
     cj('.direct_debit_info-section').before(cj('#iats-direct-debit-extra'));
+    cj('.is_recur-section').after(cj('#iats-direct-debit-start-date'));
     cj('.crm-contribution-main-form-block').before(cj('#iats-direct-debit-gbp-declaration'));
     cj('#payer_validate_amend').hide();
     /* page 1: Declaration */
@@ -127,6 +140,19 @@
     /* initiate a payer validation: check for required fields, then do an ajax call to retrieve bank info */
     cj('#payer_validate_initiate').click(function() {
       cj('#payer-validate-required').html('');
+      var startDateStr = cj('#start_date').val();
+      var startDate = new Date(startDateStr);
+      var defaultStartDate = new Date(cj('#start_date').prop('defaultValue'));
+      if (isNaN(startDate)) {
+        cj('#payer-validate-required').append('<li>Please write your start date in a recognizable format.</li>');
+      }
+      else if (startDate < defaultStartDate) {
+        cj('#payer-validate-required').append('<li>You must choose a start date after the default value, resetting it.</li>');
+        cj('#start_date').val(cj('#start_date').prop('defaultValue'));
+      }
+      else {
+        cj('#start_date').val(cj.datepicker.formatDate('MM d, yy',startDate));
+      }
       // the billing address group is all required (except middle name) but doesn't have the class marked
       cj('#Main .billing_name_address-group input:visible, #Main input.required:visible').each(function() {
         // console.log(this.value.length);
