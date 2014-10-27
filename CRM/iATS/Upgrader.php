@@ -25,7 +25,7 @@ class CRM_iATS_Upgrader extends CRM_iATS_Upgrader_Base {
   public function upgrade_1_2_010() {
     CRM_Core_ManagedEntities::singleton(TRUE)->reconcile();
     return TRUE;
-  } 
+  }
 
   /**
    * Example: Run a simple query when a module is enabled
@@ -53,8 +53,12 @@ class CRM_iATS_Upgrader extends CRM_iATS_Upgrader_Base {
     $this->ctx->log->info('Applying update 1_3_001');
     $this->executeSqlFile('sql/upgrade_1_3_001.sql');
     return TRUE;
-  } 
+  }
 
+  public function upgrade_1_3_002() {
+    CRM_Core_ManagedEntities::singleton(TRUE)->reconcile();
+    return TRUE;
+  }
 
   /**
    * Example: Run an external SQL script
