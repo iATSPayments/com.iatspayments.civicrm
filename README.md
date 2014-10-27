@@ -93,7 +93,7 @@ ACH/EFT
 
 ACH/EFT is pretty new, suggestions to improve this function welcome! It is currently only implemented for North American accounts.
 
-The ACH/EFT testing value for the TEST88 account is: 1234111111111111
+The ACH/EFT testing value for the TEST88 account is: 1234111111111111 - iATS Payments is working to improve ACH/EFT testing as currrently all direct debits in TEST88 get rejected. 
 
 So use:
   * 1234 for the Bank Account Number
