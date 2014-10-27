@@ -173,6 +173,7 @@ function iats_civicrm_managed(&$entities) {
       'billing_mode' => 'form',
       'user_name_label' => 'Agent Code',
       'password_label' => 'Password',
+      'signature_label' => 'Service User Number',
       'url_site_default' => 'https://www.uk.iatspayments.com/NetGate/ProcessLink.asmx?WSDL',
       'url_recur_default' => 'https://www.uk.iatspayments.com/NetGate/ProcessLink.asmx?WSDL',
       'url_site_test_default' => 'https://www.uk.iatspayments.com/NetGate/ProcessLink.asmx?WSDL',
@@ -492,7 +493,7 @@ function iats_swipe_form_customize($form) {
 function iats_ukdd_form_customize($form) {
   /* uk direct debits will be marked to start 12 days after the initial request is made */
   define('IATS_UKDD_START_DELAY',12 * 24 * 60 * 60);
-
+  $service_user_number = $form->_paymentProcessor['signature'];
   $payee = _iats_civicrm_domain_info('name');
   $phone = _iats_civicrm_domain_info('domain_phone');
   $email = _iats_civicrm_domain_info('domain_email');
@@ -500,7 +501,7 @@ function iats_ukdd_form_customize($form) {
   /* declaration checkbox at the top */
   $form->addElement('checkbox', 'payer_validate_declaration', ts('I wish to start a Direct Debit'));
   $form->addElement('static', 'payer_validate_contact', ts(''), ts('Organization: %1, Phone: %2, Email: %3', array('%1' => $payee, '%2' => $phone['phone'], '%3' => $email)));
-  $form->addElement('text', 'start_date', ts('Start Date'), array('disabled' => 'disabled'));
+  $form->addElement('text', 'start_date', ts('Date of first collection'));
   $form->addRule('payer_validate_declaration', ts('%1 is a required field.', array(1 => ts('The Declaration'))), 'required');
   $form->addRule('installments', ts('%1 is a required field.', array(1 => ts('Number of installments'))), 'required');
   /* customization of existing elements */
@@ -517,7 +518,7 @@ function iats_ukdd_form_customize($form) {
   $form->addElement('button','payer_validate_amend',ts('Amend'));
   /* new payer validation elements */
   $form->addElement('textarea', 'payer_validate_address', ts('Name and full postal address of your Bank or Building Society'), array('disabled' => 'disabled', 'rows' => '6', 'columns' => '30'));
-  $form->addElement('text', 'payer_validate_service_user_number', ts('Service User Number'), array('disabled' => 'disabled'));
+  $form->addElement('text', 'payer_validate_service_user_number', ts('Service User Number'));
   $form->addElement('text', 'payer_validate_reference_display', ts('Reference'), array('disabled' => 'disabled'));
   $form->addElement('hidden','payer_validate_reference');
   $form->addElement('text', 'payer_validate_date', ts('Today\'s Date'), array('disabled' => 'disabled'));
@@ -525,7 +526,12 @@ function iats_ukdd_form_customize($form) {
   // $form->addRule('bank_name', ts('%1 is a required field.', array(1 => ts('Bank Name'))), 'required');
   //$form->addRule('bank_account_type', ts('%1 is a required field.', array(1 => ts('Account type'))), 'required');
   /* only allow recurring contributions, set date */
-  $form->setDefaults(array('is_recur' => 1, 'payer_validate_date' => date('F j, Y'), 'start_date' => date('c',time() + IATS_UKDD_START_DELAY))); // make recurring contrib default to true
+  $form->setDefaults(array(
+    'is_recur' => 1, 
+    'payer_validate_date' => date('F j, Y'), 
+    'start_date' => date('F j, Y',time() + IATS_UKDD_START_DELAY),
+    'payer_validate_service_user_number' => $service_user_number,
+  )); // make recurring contrib default to true
   CRM_Core_Region::instance('billing-block')->add(array(
     'template' => 'CRM/iATS/BillingBlockDirectDebitExtra_GBP.tpl'
   ));
