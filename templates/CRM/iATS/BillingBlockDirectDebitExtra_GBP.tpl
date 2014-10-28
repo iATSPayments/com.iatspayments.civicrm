@@ -6,7 +6,7 @@
   <legend>Declaration</legend>
   <div class="crm-section">
     <div class="content"><p><strong>{ts domain='com.iatspayments.civicrm'}Note: {/ts}</strong>{ts domain='com.iatspayments.civicrm'}
-If you are not the account holder or your account requires more than one signature a paper Direct Debit Instructoin will be required to be completed and posted to us. <a href="#">Click here</a> to print off a paper Drect Debit Instruction.</p>{/ts}
+If you are not the account holder or your account requires more than one signature a paper Direct Debit Instruction will be required to be completed and posted to us. <a href="{crmResURL ext=com.iatspayments.civicrm file=templates/CRM/iATS/DirectDebitForm.pdf}">Click here</a> to print off a paper Direct Debit Instruction.</p>{/ts}
 <p><strong>{ts  domain='com.iatspayments.civicrm'}OR{/ts}</strong></p>
 <p>{ts domain='com.iatspayments.civicrm'}Continue with the details below{/ts}</p>
     </div>
@@ -25,9 +25,9 @@ If you are not the account holder or your account requires more than one signatu
     <div class="content"><strong>{ts domain='com.iatspayments.civicrm'}Contact Information: {/ts}</strong>{$form.payer_validate_contact.html}</div>
     <div class="clear"></div>
     <div class="content">
-<img width=166 height=61 src="{crmResURL ext=com.iatspayments.civicrm file=templates/CRM/iATS/bacs.png}">
-<img width=148 height=57 src="{crmResURL ext=com.iatspayments.civicrm file=templates/CRM/iATS/direct-debit.jpg}">
-<img width=134 height=55 src="{crmResURL ext=com.iatspayments.civicrm file=templates/CRM/iATS/iats.jpg}">
+  <img width=166 height=61 src="{crmResURL ext=com.iatspayments.civicrm file=templates/CRM/iATS/bacs.png}">
+  <img width=148 height=57 src="{crmResURL ext=com.iatspayments.civicrm file=templates/CRM/iATS/direct-debit.jpg}">
+  <img width=134 height=55 src="{crmResURL ext=com.iatspayments.civicrm file=templates/CRM/iATS/iats.jpg}">
 </div>
   </div>
   </fieldset>
@@ -38,6 +38,9 @@ If you are not the account holder or your account requires more than one signatu
     <div class="label"><em>{ts domain='com.iatspayments.civicrm'}You can find your Account Number and Sort Code by inspecting a cheque.{/ts}</em></div>
     <div class="content"><img width=500 height=303 src="{crmResURL ext=com.iatspayments.civicrm file=templates/CRM/iATS/GBP_cheque_500x.jpg}"></div>
     <div class="clear"></div>
+    <img width=166 height=61 src="{crmResURL ext=com.iatspayments.civicrm file=templates/CRM/iATS/bacs.png}">
+    <img width=148 height=57 src="{crmResURL ext=com.iatspayments.civicrm file=templates/CRM/iATS/direct-debit.jpg}">
+    <img width=134 height=55 src="{crmResURL ext=com.iatspayments.civicrm file=templates/CRM/iATS/iats.jpg}">
   </div>
 </div>
 <div id="iats-direct-debit-start-date">
@@ -157,7 +160,7 @@ If you are not the account holder or your account requires more than one signatu
       cj('#Main .billing_name_address-group input:visible, #Main input.required:visible').each(function() {
         // console.log(this.value.length);
         if (0 == this.value.length && this.id != 'billing_middle_name') {
-          if ('installments' == this.id) { // todo: check out other exceptions 
+          if ('installments' == this.id) { // todo: check out other exceptions
             var myLabel = 'Installments';
           }
           else {
