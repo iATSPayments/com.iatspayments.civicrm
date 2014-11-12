@@ -36,10 +36,10 @@ Class iATS_Service_Request {
   CONST iATS_URL_CUSTOMERLINK = '/NetGate/CustomerLink.asmx?WSDL';
 
   function __construct($options) {
-    $type = isset($options['type']) ? $options['type'] : 'process';
+    $this->type = isset($options['type']) ? $options['type'] : 'process';
     $method = $options['method'];
     $iats_domain = $options['iats_domain'];
-    switch($type) {
+    switch($this->type) {
       case 'report':
         $this->_wsdl_url = 'https://' . $iats_domain . self::iATS_URL_REPORTLINK;
         break;
@@ -55,7 +55,7 @@ Class iATS_Service_Request {
         break;
     }
     // TODO: check that the method is allowed!
-    $this->method = $this->methodInfo($type,$method);
+    $this->method = $this->methodInfo($this->type,$method);
     // initialize the request array
     $this->request = array();
     // name space url
@@ -73,8 +73,13 @@ Class iATS_Service_Request {
            }
            break;
         case 'www.uk.iatspayments.com':
-           if (in_array($options['currencyID'], array('USD','EUR','GBP','IEE','CHF','HKD','JPY','SGD','MXN'))) {
-             if ('cc' == substr($method,0,2)) {
+           if ('cc' == substr($method,0,2)) {
+             if (in_array($options['currencyID'], array('USD','EUR','GBP','IEE','CHF','HKD','JPY','SGD','MXN'))) {
+               $valid = TRUE;
+             }
+           }
+           elseif ('direct_debit' == substr($method,0,12)) {
+             if (in_array($options['currencyID'], array('GBP'))) {
                $valid = TRUE;
              }
            }
@@ -203,20 +208,41 @@ Class iATS_Service_Request {
 
   function result($response, $log = TRUE) {
     $result = array('auth_result' => '', 'remote_id' => '', 'status' => '');
-    if (!empty($response->PROCESSRESULT)) {
-      $processresult = $response->PROCESSRESULT;
-      $result['auth_result'] = trim(current($processresult->AUTHORIZATIONRESULT));
-      $result['remote_id'] = current($processresult->TRANSACTIONID);
-      // If we didn't get an approval response code...
-      // Note: do not use SUCCESS property, which just means iATS said "hello"
-      $result['status'] = (substr($result['auth_result'],0,2) == self::iATS_TXN_OK) ? 1 : 0;
-    }
-
-    // If the payment failed, display an error and rebuild the form.
-    if (empty($result['status'])) {
-      $result['reasonMessage'] = $result['auth_result'] ? $this->reasonMessage($result['auth_result']) : 'Unexpected Server Error, please see your logs';
-    }
-    if ($log) {
+    switch($this->type) {
+      case 'report':
+      case 'process':
+        if (!empty($response->PROCESSRESULT)) {
+          $processresult = $response->PROCESSRESULT;
+          $result['auth_result'] = trim(current($processresult->AUTHORIZATIONRESULT));
+          $result['remote_id'] = current($processresult->TRANSACTIONID);
+          // If we didn't get an approval response code...
+          // Note: do not use SUCCESS property, which just means iATS said "hello"
+          $result['status'] = (substr($result['auth_result'],0,2) == self::iATS_TXN_OK) ? 1 : 0;
+        }
+        // If the payment failed, display an error and rebuild the form.
+        if (empty($result['status'])) {
+          $result['reasonMessage'] = $result['auth_result'] ? $this->reasonMessage($result['auth_result']) : 'Unexpected Server Error, please see your logs';
+        }
+        break;
+      case 'customer':
+        if ($response->STATUS == 'Success') {
+          if (!empty($response->AUTHRESULT)) {
+            $result = get_object_vars($response->AUTHRESULT);
+            $result['status'] = (substr($result['AUTHSTATUS'],0,2) == self::iATS_TXN_OK) ? 1 : 0;
+          }
+          elseif (!empty($response->PROCESSRESULT)) {
+            $result = get_object_vars($response->PROCESSRESULT);
+            $result['status'] = (substr($result['AUTHORIZATIONRESULT'],0,2) == self::iATS_TXN_OK) ? 1 : 0;
+          }
+        }
+        // If the payment failed, display an error and rebuild the form.
+        if (empty($result['status'])) {
+          $result['reasonMessage'] = isset($result['BANKERROR']) ? $result['BANKERROR'] : 
+             (isset($result['ERRORS']) ? $result['ERRORS'] : 'Unexpected error');
+        }
+        break;
+    }       
+    if ($log && !empty($this->invoiceNum)) {
       $query_params = array(
         1 => array($this->invoiceNum, 'String'),
         2 => array($result['auth_result'], 'String'),
@@ -301,10 +327,10 @@ Class iATS_Service_Request {
           ),
           'acheft_payment_box_journal_csv' => array(
             'title' => 'ACH-EFT Payment Box Journal CSV',
-            'description'=> $desc. 'GetACHEFTPaymentBoxJournalCSV V1',
-            'method' => 'GetACHEFTPaymentBoxJournalCSV',
-            'message' => 'GetACHEFTPaymentBoxJournalCSV_x0020_V1',
-            'response' => 'GetACHEFTPaymentBoxJournalCSV_x0020_V1Result',
+            'description'=> $desc. 'GetACHEFTPaymentBoxJournalCSV V2',
+            'method' => 'GetACHEFTPaymentBoxJournalCSVV2',
+            'message' => 'GetACHEFTPaymentBoxJournalCSVV2',
+            'response' => 'GetACHEFTPaymentBoxJournalCSVV2Result',
             /* 'message' => 'GetACHEFTPaymentBoxJournalCSVV1',
             'response' => 'GetACHEFTPaymentBoxJournalCSVV1Result', */
           ),
@@ -328,6 +354,31 @@ Class iATS_Service_Request {
             'method' => 'GetACHEFTRejectCSV',
             'message' => 'GetACHEFTRejectCSVV1',
             'response' => 'GetACHEFTRejectCSVV1Result',
+          ),
+        );
+        break;
+      case 'customer':
+        $methods = array(
+          'get_customer_code_detail' => array(
+            'title' => 'Get Customer Code Detail',
+            'description'=> $desc. 'GetCustomerCodeDetailV1',
+            'method' => 'GetCustomerCodeDetail',
+            'message' => 'GetCustomerCodeDetailV1',
+            'response' => 'GetCustomerCodeDetailV1Result',
+          ),
+          'direct_debit_acheft_payer_validate' => array(
+            'title' => 'Direct Debit ACHEFT Payer Validate',
+            'description'=> $desc. 'DirectDebitACHEFTPayerValidateV1',
+            'method' => 'DirectDebitACHEFTPayerValidate',
+            'message' => 'DirectDebitACHEFTPayerValidateV1',
+            'response' => 'DirectDebitACHEFTPayerValidateV1Result',
+          ),
+          'direct_debit_create_acheft_customer_code' => array(
+            'title' => 'Direct Debit Create ACHEFT Customer Code',
+            'description'=> $desc. 'DirectDebitCreateACHEFTCustomerCodeV1',
+            'method' => 'DirectDebitCreateACHEFTCustomerCode',
+            'message' => 'DirectDebitCreateACHEFTCustomerCodeV1',
+            'response' => 'DirectDebitCreateACHEFTCustomerCodeV1Result',
           ),
         );
         break;

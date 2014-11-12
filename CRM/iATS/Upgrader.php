@@ -9,14 +9,14 @@ class CRM_iATS_Upgrader extends CRM_iATS_Upgrader_Base {
   // upgrade tasks. They are executed in order (like Drupal's hook_update_N).
 
   /**
-   * Example: Run an external SQL script when the module is installed
+   * Standard: run an install sql script
    */
   public function install() {
     $this->executeSqlFile('sql/install.sql');
   }
 
   /**
-   * Example: Run an external SQL script when the module is uninstalled
+   * Standard: run an uninstall script
    */
   public function uninstall() {
    $this->executeSqlFile('sql/uninstall.sql');
@@ -25,7 +25,7 @@ class CRM_iATS_Upgrader extends CRM_iATS_Upgrader_Base {
   public function upgrade_1_2_010() {
     CRM_Core_ManagedEntities::singleton(TRUE)->reconcile();
     return TRUE;
-  } 
+  }
 
   /**
    * Example: Run a simple query when a module is enabled
@@ -33,6 +33,7 @@ class CRM_iATS_Upgrader extends CRM_iATS_Upgrader_Base {
   public function enable() {
     CRM_Core_DAO::executeQuery('UPDATE foo SET is_active = 1 WHERE bar = "whiz"');
   }
+  */
 
   /**
    * Example: Run a simple query when a module is disabled
@@ -40,20 +41,24 @@ class CRM_iATS_Upgrader extends CRM_iATS_Upgrader_Base {
   public function disable() {
     CRM_Core_DAO::executeQuery('UPDATE foo SET is_active = 0 WHERE bar = "whiz"');
   }
+  */
 
   /**
-   * Example: Run a couple simple queries
+   * Add the uk_dd table
    *
    * @return TRUE on success
    * @throws Exception
-   *
-  public function upgrade_4200() {
-    $this->ctx->log->info('Applying update 4200');
-    CRM_Core_DAO::executeQuery('UPDATE foo SET bar = "whiz"');
-    CRM_Core_DAO::executeQuery('DELETE FROM bang WHERE willy = wonka(2)');
+   */
+  public function upgrade_1_3_001() {
+    $this->ctx->log->info('Applying update 1_3_001');
+    $this->executeSqlFile('sql/upgrade_1_3_001.sql');
     return TRUE;
-  } // */
+  }
 
+  public function upgrade_1_3_002() {
+    CRM_Core_ManagedEntities::singleton(TRUE)->reconcile();
+    return TRUE;
+  }
 
   /**
    * Example: Run an external SQL script

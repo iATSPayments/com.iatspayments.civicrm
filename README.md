@@ -14,9 +14,9 @@ Your PHP needs to include the SOAP extension (php.net/manual/en/soap.setup.php).
 
 You must have an iATS Payments account - and have configured it to accept payment though WebServices. Our recommended configuration would look like this:
 
-2ABC01 account: configured to access via iATSpayments.com only (no WebServices) - full refund/journal capability - the works. Password is unique to the 01 account. 
+2ABC01 account: configured to access via iATSpayments.com only (no WebServices) - full refund/journal capability - the works. Password is unique to the 01 account.
 
-2ABC80 account: subaccount configured to connected with iATS WebServices - can also access iATSpayments.com - but journal functionality only (no refund capability). The 80 account has a different password than the 01 account - use the 80(+) accounts to configure your Payment Processor(s) in CiviCRM. 
+2ABC80 account: subaccount configured to connected with iATS WebServices - can also access iATSpayments.com - but journal functionality only (no refund capability). The 80 account has a different password than the 01 account - use the 80(+) accounts to configure your Payment Processor(s) in CiviCRM.
 
 2ABC81 etc - same as 2ABC80. If this was a school; a payment processor connecting to subaccount 80 could be cafeteria monies; 81 could be tuition deposits; 82 could be special event tickets, etc. Passwords for the 80, 81, 82 etc accounts can all be the same. Essentially they are deposit only accounts.
 
@@ -93,12 +93,12 @@ ACH/EFT
 
 ACH/EFT is pretty new, suggestions to improve this function welcome! It is currently only implemented for North American accounts.
 
-The ACH/EFT testing value for the TEST88 account is: 1234111111111111
+The ACH/EFT testing value for the TEST88 account is: 1234111111111111 - iATS Payments is working to improve ACH/EFT testing as currently all direct debits in TEST88 get rejected.
 
 So use:
   * 1234 for the Bank Account Number
   * 111111111111 for the Bank Identification Number (Bank number + branch transit number)
-  
+
 When you enable this payment processor for a contribution page, it modifies the form to set recurring contributions as the default, but no longer forces recurring contributions as it did up until version 1.2.3.
 
 Support for the UK server has been excluded due to special legal requirements with UK direct payment. We expect to have a solution to this sometime in 2014.

@@ -46,11 +46,13 @@ class CRM_iATS_Page_iATSAdmin extends CRM_Core_Page {
       }
     }
     $where = empty($filter) ?  '' : " WHERE ".implode(' AND ',$filter);
-    $sql = "SELECT request.*,response.*,contrib.contact_id,contact.sort_name
+    $sql = "SELECT request.*,response.*,contrib.contact_id,contact.sort_name,pp.url_site,pp.user_name,pp.password
       FROM civicrm_iats_request_log request 
       LEFT JOIN civicrm_iats_response_log response ON request.invoice_num = response.invoice_num
-      LEFT join civicrm_contribution contrib ON request.invoice_num = contrib.invoice_id
+      LEFT JOIN civicrm_contribution contrib ON request.invoice_num = contrib.invoice_id
       LEFT JOIN civicrm_contact contact ON contrib.contact_id = contact.id
+      LEFT JOIN civicrm_contribution_recur recur ON contrib.contribution_recur_id = recur.id
+      LEFT JOIN civicrm_payment_processor pp ON recur.payment_processor_id = pp.id
      $where ORDER BY request.id DESC LIMIT $n";
      
     $dao = CRM_Core_DAO::executeQuery($sql);
@@ -58,6 +60,10 @@ class CRM_iATS_Page_iATSAdmin extends CRM_Core_Page {
     $params = array('version' => 3, 'sequential' => 1, 'return' => 'contribution_id');
     $className = get_class($dao);
     $internal = array_keys(get_class_vars($className));
+    // get some customer data while i'm at it
+    // require_once("CRM/iATS/iATSService.php");
+    // todo: fix iats_domain below
+    // $iats_service_params = array('type' => 'customer', 'method' => 'get_customer_code_detail', 'iats_domain' => 'www.iatspayments.com');
     while ($dao->fetch()) {
       $entry = get_object_vars($dao);
       unset($entry['']); // ghost entry!

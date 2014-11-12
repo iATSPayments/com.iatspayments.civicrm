@@ -160,6 +160,28 @@ function iats_civicrm_managed(&$entities) {
       'payment_type' => 1,
     ),
   );
+  $entities[] = array(
+    'module' => 'com.iatspayments.civicrm',
+    'name' => 'iATS Payments UK Direct Debit',
+    'entity' => 'PaymentProcessorType',
+    'params' => array(
+      'version' => 3,
+      'name' => 'iATS Payments UK Direct Debit',
+      'title' => 'iATS Payments UK Direct Debit',
+      'description' => 'iATS UK Direct Debit payment processor using the web services interface.',
+      'class_name' => 'Payment_iATSServiceUKDD',
+      'billing_mode' => 'form',
+      'user_name_label' => 'Agent Code',
+      'password_label' => 'Password',
+      'signature_label' => 'Service User Number',
+      'url_site_default' => 'https://www.uk.iatspayments.com/NetGate/ProcessLink.asmx?WSDL',
+      'url_recur_default' => 'https://www.uk.iatspayments.com/NetGate/ProcessLink.asmx?WSDL',
+      'url_site_test_default' => 'https://www.uk.iatspayments.com/NetGate/ProcessLink.asmx?WSDL',
+      'url_recur_test_default' => 'https://www.uk.iatspayments.com/NetGate/ProcessLink.asmx?WSDL',
+      'is_recur' => 1,
+      'payment_type' => 2,
+    ),
+  );
   return _iats_civix_civicrm_managed($entities);
 }
 
@@ -267,14 +289,14 @@ function iats_civicrm_pre($op, $objectName, $objectId, &$params) {
     if ($type = _iats_civicrm_is_iats($payment_processor_id)) {
       switch ($type.$objectName) {
         case 'iATSServiceContribution': // cc contribution, test if it's been set to status 2 on a recurring contribution
-        case 'iATSServiceSWIPEContribution': 
+        case 'iATSServiceSWIPEContribution':
           if ((2 == $params['contribution_status_id'])
             && !empty($params['contribution_recur_id'])) {
             $params['contribution_status_id'] = 1;
           }
           break;
         case 'iATSServiceContributionRecur': // cc recurring contribution record
-        case 'iATSServiceSWIPEContributionRecur': 
+        case 'iATSServiceSWIPEContributionRecur':
           // we've already taken the first payment, so calculate the next one
           $params['contribution_status_id'] = 5;
           $next = strtotime('+'.$params['frequency_interval'].' '.$params['frequency_unit']);
@@ -285,10 +307,8 @@ function iats_civicrm_pre($op, $objectName, $objectId, &$params) {
         case 'iATSServiceACHEFTContribution': // ach/eft contribution: update the payment instrument and ensure the status is 2 i.e. for one-time contributions
           $params['payment_instrument_id'] = 2;
           $params['contribution_status_id'] = 2;
-          // watchdog('iats_civicrm_regular','<pre>'.print_r($params,TRUE).'</pre>');
-          // $params['contribution_status_id'] = 1;
           break;
-        case 'iATSServiceACHEFTContributionRecur': // ach/eft recurring contribution record
+        case 'iATSServiceACHEFTContributionRecur': 
           // watchdog('iats_civicrm_recur','<pre>'.print_r($params,TRUE).'</pre>');
           $params['payment_instrument_id'] = 2;
           $params['contribution_status_id'] = 5; // we set this to 'in-progress' because even if the first one hasn't been verified, we still want to be attempting later ones
@@ -296,6 +316,17 @@ function iats_civicrm_pre($op, $objectName, $objectId, &$params) {
           // the next scheduled contribution date field name is civicrm version dependent
           $field_name = _iats_civicrm_nscd_fid();
           $params[$field_name] = date('YmdHis',$next);
+          break;
+        case 'iATSServiceUKDDContribution': // UK DD contribution: update the payment instrument 
+          $params['payment_instrument_id'] = 2;
+          break;
+        case 'iATSServiceUKDDContributionRecur': // UK DD recurring contribution record
+          $params['payment_instrument_id'] = 2; // just update the payment instrument
+          // $params['contribution_status_id'] = 5; // we set this to 'in-progress' because even if the first one hasn't been verified, we still want to be attempting later ones
+          // $next = strtotime('+'.$params['frequency_interval'].' '.$params['frequency_unit']);
+          // the next scheduled contribution date field name is civicrm version dependent
+          // $field_name = _iats_civicrm_nscd_fid();
+          // $params[$field_name] = date('YmdHis',$next);
           break;
       }
     }
@@ -337,7 +368,7 @@ function _iats_civicrm_is_iats($payment_processor_id) {
   return ('Payment_iATSService' == $type) ? 'iATSService'.$subtype  : FALSE;
 }
 
-/* internal utility function: return the id's of any iATS processors matching various conditions 
+/* internal utility function: return the id's of any iATS processors matching various conditions
  * processors: an array of payment processors indexed by id to filter by,
  *             or if NULL, it searches through all
  * subtype: the iats service class name subtype
@@ -442,7 +473,7 @@ function iats_swipe_form_customize($form) {
  // remove two fields that are replaced by the swipe code data
  // we need to remove them from the _paymentFields as well or they'll sneak back in!
  $form->removeElement('credit_card_type',TRUE);
- $form->removeElement('cvv2',TRUE); 
+ $form->removeElement('cvv2',TRUE);
  unset($form->_paymentFields['credit_card_type']);
  unset($form->_paymentFields['cvv2']);
  // add a single text area to store/display the encrypted cc number that the swipe device will fill
@@ -453,6 +484,59 @@ function iats_swipe_form_customize($form) {
  ));
 }
 
+/*
+ * Customize direct debit billing block for UK Direct Debit
+ *
+ * This could be handled by iats_acheft_form_customize, except there's some tricky multi-page stuff for the payer validate step
+ */
+
+function iats_ukdd_form_customize($form) {
+  /* uk direct debits will be marked to start 12 days after the initial request is made */
+  define('IATS_UKDD_START_DELAY',12 * 24 * 60 * 60);
+  $service_user_number = $form->_paymentProcessor['signature'];
+  $payee = _iats_civicrm_domain_info('name');
+  $phone = _iats_civicrm_domain_info('domain_phone');
+  $email = _iats_civicrm_domain_info('domain_email');
+  $form->addRule('is_recur', ts('You can only use this form to make recurring contributions.'), 'required');
+  /* declaration checkbox at the top */
+  $form->addElement('checkbox', 'payer_validate_declaration', ts('I wish to start a Direct Debit'));
+  $form->addElement('static', 'payer_validate_contact', ts(''), ts('Organization: %1, Phone: %2, Email: %3', array('%1' => $payee, '%2' => $phone['phone'], '%3' => $email)));
+  $form->addElement('text', 'start_date', ts('Date of first collection'));
+  $form->addRule('payer_validate_declaration', ts('%1 is a required field.', array(1 => ts('The Declaration'))), 'required');
+  $form->addRule('installments', ts('%1 is a required field.', array(1 => ts('Number of installments'))), 'required');
+  /* customization of existing elements */
+  $element = $form->getElement('account_holder');
+  $element->setLabel(ts('Account Holder Name'));
+  $form->addRule('account_holder', ts('%1 is a required field.', array(1 => ts('Name of Account Holder'))), 'required');
+  $element = $form->getElement('bank_account_number');
+  $element->setLabel(ts('Account Number'));
+  $form->addRule('bank_account_number', ts('%1 is a required field.', array(1 => ts('Account Number'))), 'required');
+  $element = $form->getElement('bank_identification_number');
+  $element->setLabel(ts('Sort Code'));
+  $form->addRule('bank_identification_number', ts('%1 is a required field.', array(1 => ts('Sort Code'))), 'required');
+  $form->addElement('button','payer_validate_initiate',ts('Continue'));
+  $form->addElement('button','payer_validate_amend',ts('Amend'));
+  /* new payer validation elements */
+  $form->addElement('textarea', 'payer_validate_address', ts('Name and full postal address of your Bank or Building Society'), array('disabled' => 'disabled', 'rows' => '6', 'columns' => '30'));
+  $form->addElement('text', 'payer_validate_service_user_number', ts('Service User Number'));
+  $form->addElement('text', 'payer_validate_reference_display', ts('Reference'), array('disabled' => 'disabled'));
+  $form->addElement('hidden','payer_validate_reference');
+  $form->addElement('text', 'payer_validate_date', ts('Today\'s Date'), array('disabled' => 'disabled'));
+  $form->addElement('static', 'payer_validate_instruction', ts('Instruction to your Bank or Building Society'), ts('Please pay %1 Direct Debits from the account detailed in this instruction subject to the safeguards assured by the Direct Debit Guarantee. I understand that this instruction may remain with TestingTest and, if so, details will be passed electronically to my Bank / Building Society.',array('%1' => "<strong>$payee</strong>")));
+  // $form->addRule('bank_name', ts('%1 is a required field.', array(1 => ts('Bank Name'))), 'required');
+  //$form->addRule('bank_account_type', ts('%1 is a required field.', array(1 => ts('Account type'))), 'required');
+  /* only allow recurring contributions, set date */
+  $form->setDefaults(array(
+    'is_recur' => 1, 
+    'payer_validate_date' => date('F j, Y'), 
+    'start_date' => date('F j, Y',time() + IATS_UKDD_START_DELAY),
+    'payer_validate_service_user_number' => $service_user_number,
+  )); // make recurring contrib default to true
+  CRM_Core_Region::instance('billing-block')->add(array(
+    'template' => 'CRM/iATS/BillingBlockDirectDebitExtra_GBP.tpl'
+  ));
+}
+
 /* Modifications to a (public/frontend) contribution forms if iATS ACH/EFT or SWIPE is enabled
  *  1. set recurring to be the default, if enabled (ACH/EFT) [previously forced recurring, removed in 1.2.4]
  *  2. add extra fields/modify labels
@@ -461,9 +545,10 @@ function iats_civicrm_buildForm_Contribution_Frontend(&$form) {
   if (empty($form->_paymentProcessors)) {
     return;
   }
-  
+
   $acheft = iats_civicrm_processors($form->_paymentProcessors,'ACHEFT');
   $swipe = iats_civicrm_processors($form->_paymentProcessors,'SWIPE');
+  $ukdd = iats_civicrm_processors($form->_paymentProcessors,'UKDD');
 
   // If a form allows ACH/EFT and enables recurring, set recurring to the default
   if (0 < count($acheft)) {
@@ -482,6 +567,13 @@ function iats_civicrm_buildForm_Contribution_Frontend(&$form) {
   if (!empty($swipe[$form->_paymentProcessor['id']]) && !empty($form->_elementIndex['credit_card_exp_date'])) {
     iats_swipe_form_customize($form);
   }
+
+  /* UK Direct debit option */
+  if (!empty($ukdd[$form->_paymentProcessor['id']])){
+    iats_ukdd_form_customize($form);
+    // watchdog('iats_acheft',kprint_r($form,TRUE));
+  }
+
 }
 
 /*  Fix the backend credit card contribution forms
@@ -496,7 +588,7 @@ function iats_civicrm_buildForm_CreditCard_Backend(&$form) {
   if (empty($form->_processors)) {
     return;
   }
-  // get all my swipe processors 
+  // get all my swipe processors
   $swipe = iats_civicrm_processors($form->_processors,'SWIPE');
   // get all my ACH/EFT processors (should be 0, but I'm fixing old core bugs)
   $acheft = iats_civicrm_processors($form->_processors,'ACHEFT');
@@ -504,7 +596,7 @@ function iats_civicrm_buildForm_CreditCard_Backend(&$form) {
   $swipe_id_default = 0;
   if (0 < count($swipe)) {
     foreach($swipe as $id => $pp) {
-      if ($pp['is_default']) { 
+      if ($pp['is_default']) {
         $swipe_id_default = $id;
         break;
       }
@@ -593,7 +685,7 @@ function _iats_civicrm_domain_info($key) {
       return explode('.',$domain['version']);
     default:
       if (!empty($domain[$key])) {
-        return $key;
+        return $domain[$key];
       }
       $config_backend = unserialize($domain['config_backend']);
       return $config_backend[$key];
