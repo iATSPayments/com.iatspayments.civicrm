@@ -331,7 +331,7 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
   if ($counter[1] > 0 || $counter[4] > 0) {
     return civicrm_api3_create_success(
       ts(
-        'For %1 pending recurring contributions and %2 on-off contributions, %3 accept and %4 rejection record(s) were analysed, %5 recurring contribution results applied, %6 on-off contribution records applied, and %7 new UK Direct Debit contributions created.',
+        'For %1 pending recurring contributions and %2 one-off contributions, %3 accept and %4 rejection record(s) were analysed, %5 recurring contribution results applied, %6 one-off contribution records applied, and %7 new UK Direct Debit contributions created.',
         array(
           1 => count($pending),
           2 => count($quick),
