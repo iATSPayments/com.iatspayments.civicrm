@@ -140,18 +140,28 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
     $iats_service_params = array('type' => 'report', 'iats_domain' => parse_url($dao->url_site, PHP_URL_HOST)) + $iats_service_params;
     /* the is_test below should always be 0, but I'm leaving it in, in case eventually we want to be verifying tests */
     $credentials = iATS_Service_Request::credentials($dao->id, $dao->is_test);
-    foreach (array('acheft_payment_box_journal_csv' => 1, 'acheft_payment_box_reject_csv' => 4) as $method => $contribution_status_id) {
+    foreach (array('acheft_journal_csv' => 1,'acheft_payment_box_journal_csv' => 1, 'acheft_payment_box_reject_csv' => 4) as $method => $contribution_status_id) {
       // TODO: this is set to capture approvals and cancellations from the past month, for testing purposes
       // it doesn't hurt, but on a live environment, this maybe should be limited to the past week, or less?
       // or, it could be configurable for the job
       $iats_service_params['method'] = $method;
       $iats = new iATS_Service_Request($iats_service_params);
       // I'm now using the new v2 version of the payment_box_journal, so hack removed here
-      $request = array(
-        'fromDate' => date('Y-m-d',strtotime('-30 days')).'T00:00:00+00:00', 
-        'toDate' => date('Y-m-d',strtotime('-1 day')).'T23:59:59+00:00', 
-        'customerIPAddress' => (function_exists('ip_address') ? ip_address() : $_SERVER['REMOTE_ADDR']),
-      );
+      switch($method) {
+        case 'acheft_journal_csv':
+          $request = array(
+            'date' => date('Y-m-d',strtotime('-1 day')).'T23:59:59+00:00', 
+            'customerIPAddress' => (function_exists('ip_address') ? ip_address() : $_SERVER['REMOTE_ADDR']),
+          );
+          break;
+        default:
+          $request = array(
+            'fromDate' => date('Y-m-d',strtotime('-30 days')).'T00:00:00+00:00', 
+            'toDate' => date('Y-m-d',strtotime('-1 day')).'T23:59:59+00:00', 
+            'customerIPAddress' => (function_exists('ip_address') ? ip_address() : $_SERVER['REMOTE_ADDR']),
+          );
+          break;
+      }
       // make the soap request, should return a csv file
       $response = $iats->request($credentials,$request);
       if (is_object($response)) {
