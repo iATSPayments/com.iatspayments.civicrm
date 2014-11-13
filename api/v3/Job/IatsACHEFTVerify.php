@@ -168,6 +168,7 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
             if (empty($data[iATS_SERVICE_REQUEST::iATS_CSV_CUSTOMER_CODE_COLUMN])) continue;
             $customer_code = $data[iATS_SERVICE_REQUEST::iATS_CSV_CUSTOMER_CODE_COLUMN];
             $datetime = $data[iATS_SERVICE_REQUEST::iATS_CSV_DATETIME_COLUMN];
+            $invoice_iats = $data[iATS_SERVICE_REQUEST::iATS_CSV_INVOICEID_COLUMN];
             $contribution = NULL; // use this later to trigger an activity if it's not NULL
             if ('Quick Client' == $customer_code) {
               /* a one off : try to update the contribution status */
@@ -195,10 +196,10 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
             // I'm only interested in customer codes that are still in a pending state, or new ones (e.g. UK DD)
             elseif (isset($acheft_pending[$customer_code])) {
               $timestamp = strtotime($datetime);
-              $contribution = NULL;
               foreach($acheft_pending[$customer_code] as $key => $test) {
                 $ts = strtotime($test['cr_receive_date']);
-                if (abs($ts - $timestamp) < 60 * 60 *24) {
+                $invoice_test = substr($test['cr_invoice_id'],0,10);
+                if ((abs($ts - $timestamp) < 60 * 60 * 24) && ($invoice_test == $invoice_iats)) {
                   unset($acheft_pending[$customer_code][$key]);
                   $contribution = $test;
                   break;
