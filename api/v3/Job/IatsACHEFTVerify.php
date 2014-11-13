@@ -128,25 +128,29 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
   $dao = CRM_Core_DAO::executeQuery($select,$args);
   // watchdog('civicrm_iatspayments_com', 'pending: <pre>!pending</pre>', array('!pending' => print_r($pending,TRUE)), WATCHDOG_NOTICE);   
   while ($dao->fetch()) {
-    /* get rejections and then approvals for this payment processor */
+    /* get approvals from yesterday, approvals from previous days, and then rejections for this payment processor */
     $iats_service_params = array('type' => 'report', 'iats_domain' => parse_url($dao->url_site, PHP_URL_HOST)) + $iats_service_params;
-    foreach (array('acheft_payment_box_journal_csv' => 1, 'acheft_payment_box_reject_csv' => 4) as $method => $contribution_status_id) {
+    $credentials = iATS_Service_Request::credentials($dao->id, $dao->is_test);
+    foreach (array('acheft_journal_csv' => 1, 'acheft_payment_box_journal_csv' => 1, 'acheft_payment_box_reject_csv' => 4) as $method => $contribution_status_id) {
       // TODO: this is set to capture approvals and cancellations from the past month, for testing purposes
       // it doesn't hurt, but on a live environment, this maybe should be limited to the past week, or less?
       // or, it could be configurable for the job
       $iats_service_params['method'] = $method;
       $iats = new iATS_Service_Request($iats_service_params);
-      $credentials = $iats->credentials($dao->id, $dao->is_test);
       // I'm now using the new v2 version of the payment_box_journal, so hack removed here
       $request = array(
         'fromDate' => date('Y-m-d',strtotime('-30 days')), 
         'toDate' => date('Y-m-d',strtotime('-1 day')), 
       );
+      /* override default request parameters for some methods */
+      switch($method) {
+        case 'acheft_journal_csv':
+          $request = array(
+            'date' => date('Y-m-d',strtotime('-1 day')), 
+          );
+          break;
+      }
       $request['customerIPAddress'] = (function_exists('ip_address') ? ip_address() : $_SERVER['REMOTE_ADDR']);
-      /* if ($contribution_status_id == 1) { 
-        $request['fromDate'] = '2012-04-25';
-        $request['toDate'] = '2012-04-25';
-      } */
       // make the soap request, should return a csv file
       $response = $iats->request($credentials,$request);
       if (is_object($response)) {

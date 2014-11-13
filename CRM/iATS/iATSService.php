@@ -542,7 +542,7 @@ Class iATS_Service_Request {
   /* when I'm invoking a payment from the recurring job, I need to look up the credentials, unlike the doDirect payment interface
    * I need to pay attention to whether I should use the test credentials, which is the 'mode' in doDirect payment
    */
-  function credentials($payment_processor_id, $is_test = 0) {
+  public static function credentials($payment_processor_id, $is_test = 0) {
     static $credentials = array();
     if (empty($credentials[$payment_processor_id])) {
       $select = 'SELECT user_name, password FROM civicrm_payment_processor WHERE id = %1 AND is_test = %2';
