@@ -11,8 +11,8 @@ return array (
     'params' => 
     array (
       'version' => 3,
-      'name' => 'Call Job.IatsRecurringContributions API',
-      'description' => 'Call Job.IatsRecurringContributions API',
+      'name' => 'iATS Payments Recurring Contributions',
+      'description' => 'Generate recurring contributions for iATS Payments',
       'run_frequency' => 'Daily',
       'api_entity' => 'Job',
       'api_action' => 'IatsRecurringContributions',

@@ -11,8 +11,8 @@ return array (
     'params' => 
     array (
       'version' => 3,
-      'name' => 'Call Job.IatsACHEFTVerify API',
-      'description' => 'Call Job.IatsACHEFTVerify API',
+      'name' => 'iATS Payments Verification',
+      'description' => 'Call into iATS for approvals, etc.',
       'run_frequency' => 'Hourly',
       'api_entity' => 'Job',
       'api_action' => 'IatsACHEFTVerify',

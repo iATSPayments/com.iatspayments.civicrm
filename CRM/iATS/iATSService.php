@@ -31,6 +31,7 @@ Class iATS_Service_Request {
   CONST iATS_TXN_SUCCESS = 'Success';
   CONST iATS_TXN_OK = 'OK';
   CONST iATS_CSV_CUSTOMER_CODE_COLUMN = 4;
+  CONST iATS_CSV_DATETIME_COLUMN = 3;
   CONST iATS_URL_PROCESSLINK = '/NetGate/ProcessLink.asmx?WSDL';
   CONST iATS_URL_REPORTLINK = '/NetGate/ReportLink.asmx?WSDL';
   CONST iATS_URL_CUSTOMERLINK = '/NetGate/CustomerLink.asmx?WSDL';
