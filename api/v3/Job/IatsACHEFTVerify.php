@@ -166,6 +166,7 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
       $response = $iats->request($credentials,$request);
       if (is_object($response)) {
         $box = preg_split("/\r\n|\n|\r/", $iats->file($response));
+        // watchdog('civicrm_iatspayments_com', 'data: <pre>!data</pre>', array('!data' => print_r($box,TRUE)), WATCHDOG_NOTICE);
         if (1 < count($box)) {
           // data is an array of rows, the first of which is the column headers
           $headers = array_flip(str_getcsv($box[0]));
@@ -176,15 +177,28 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
             $data = str_getcsv($box[$i]);
             // skip any rows that don't include a custom code - TODO: log this as an error?
             if (empty($data[iATS_SERVICE_REQUEST::iATS_CSV_CUSTOMER_CODE_COLUMN])) continue;
-            $customer_code = $data[iATS_SERVICE_REQUEST::iATS_CSV_CUSTOMER_CODE_COLUMN];
-            $datetime = $data[iATS_SERVICE_REQUEST::iATS_CSV_DATETIME_COLUMN];
-            $invoice_iats = $data[iATS_SERVICE_REQUEST::iATS_CSV_INVOICEID_COLUMN];
+            switch($method) {
+              case 'acheft_journal_csv':
+                $customer_code = $data[$headers['Customer Code']];
+                $datetime = $data[$headers['Date']];
+                $invoice_iats = $data[$headers['Invoice']];
+                break;
+              default:
+                $customer_code = $data[iATS_SERVICE_REQUEST::iATS_CSV_CUSTOMER_CODE_COLUMN];
+                $datetime = $data[iATS_SERVICE_REQUEST::iATS_CSV_DATETIME_COLUMN];
+                $invoice_iats = $data[iATS_SERVICE_REQUEST::iATS_CSV_INVOICEID_COLUMN];
+                break;
+            }
+            $format = 'd/m/Y H:i:s';
+            $rdp = date_parse_from_format($format,$datetime);
+            $receive_date = mktime($rdp['hour'], $rdp['minute'], $rdp['second'], $rdp['month'], $rdp['day'], $rdp['year']);
+            $transaction_id = $data[$headers['Transaction ID']];
             $contribution = NULL; // use this later to trigger an activity if it's not NULL
             if ('Quick Client' == $customer_code) {
               /* a one off : try to update the contribution status */
               /* todo: extra testing of datetime value? */
-              $key = $data[0].$data[1];
-              if (!empty($data[0]) && !empty($data[1]) && !empty($quick[$key])) {
+              $key = $transaction_id.$invoice_iats;
+              if (!empty($transaction_id) && !empty($invoice_iats) && !empty($quick[$key])) {
                 $qfound++;
                 $contribution = $quick[$key];
                 $params = array('version' => 3, 'sequential' => 1, 'contribution_status_id' => $contribution_status_id);
@@ -205,11 +219,10 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
             }
             // I'm only interested in customer codes that are still in a pending state, or new ones (e.g. UK DD)
             elseif (isset($acheft_pending[$customer_code])) {
-              $timestamp = strtotime($datetime);
               foreach($acheft_pending[$customer_code] as $key => $test) {
                 $ts = strtotime($test['cr_receive_date']);
                 $invoice_test = substr($test['cr_invoice_id'],0,10);
-                if ((abs($ts - $timestamp) < 60 * 60 * 24) && ($invoice_test == $invoice_iats)) {
+                if ((abs($ts - $receive_date) < 60 * 60 * 24) && ($invoice_test == $invoice_iats)) {
                   unset($acheft_pending[$customer_code][$key]);
                   $contribution = $test;
                   break;
