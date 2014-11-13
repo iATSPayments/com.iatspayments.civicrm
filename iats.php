@@ -693,6 +693,6 @@ function _iats_civicrm_domain_info($key) {
 }
 
 function _iats_civicrm_nscd_fid() {
-  $version = _iats_civicrm_domain_info('version');
-  return (($version[0] <= 4) && ($version[1] <= 3)) ? 'next_sched_contribution' : 'next_sched_contribution_date';
+  $version = CRM_Utils_System::version();
+  return (version_compare($version, '4.4') < 0) ? 'next_sched_contribution' : 'next_sched_contribution_date';
 }
