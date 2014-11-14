@@ -8,7 +8,7 @@ Date: May 5, 2014, version 1.2
 Requirements
 ------------
 
-CiviCRM 4.2+. These are instructions are based on 4.3, the 4.2 instructions are similar. The support for jobs in 4.2/civix is a bit iffy.
+CiviCRM 4.2+. These are instructions are based on 4.3, instructions for other releases are similar. The support for jobs in 4.2/civix is a bit iffy and 4.2 support was be dropped in the 1.2.11 release.
 
 Your PHP needs to include the SOAP extension (php.net/manual/en/soap.setup.php).
 
@@ -116,5 +116,7 @@ Below is a list of some of the most common issues:
 ACH/EFT contributions go in with a pending status until a process at iATS confirms the payment went through (or not). There's a Scheduled Job that must be enabled that checks iATS daily for approvals/rejections. Unfortunately, all test contributions are rejected, so we have no way of testing approvals except with a live transaction. In addition, the approvals on the iATS website may show up a couple of days before they do on your CiviCRM site. This issue is being worked on.
 
 'Backend' ACH/EFT is not supported by CiviCRM core. Having an enabled ACH/EFT payment processor broke the backend live credit card payment page in core (until it was fixed here https://issues.civicrm.org/jira/browse/CRM-14442), so this module fixes that if it's an issue, and also provides links to easily allow administrators to input ACH/EFT on behalf of constituents. A similar problem existings for backend membership and event payments, and this has not been fixed in core.
+
+9002 Error - if you get this when trying to make a contribution, then you're getting that error back from the iATS server due to an account misconfiguration. One source is due to some special characters in your passwd.
 
 Please post an issue to the github repository if you have any questions.
