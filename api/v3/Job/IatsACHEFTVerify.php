@@ -148,13 +148,13 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
       $iats = new iATS_Service_Request($iats_service_params);
       // I'm now using the new v2 version of the payment_box_journal, so hack removed here
       switch($method) {
-        case 'acheft_journal_csv':
+        case 'acheft_journal_csv': // special case to get today's transactions, so we're as real-time as we can be
           $request = array(
-            'date' => date('Y-m-d',strtotime('-1 day')).'T23:59:59+00:00', 
+            'date' => date('Y-m-d').'T23:59:59+00:00', 
             'customerIPAddress' => (function_exists('ip_address') ? ip_address() : $_SERVER['REMOTE_ADDR']),
           );
           break;
-        default:
+        default: // box journals only got up to the end of yesterday
           $request = array(
             'fromDate' => date('Y-m-d',strtotime('-30 days')).'T00:00:00+00:00', 
             'toDate' => date('Y-m-d',strtotime('-1 day')).'T23:59:59+00:00', 
