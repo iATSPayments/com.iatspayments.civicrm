@@ -103,8 +103,18 @@ When you enable this payment processor for a contribution page, it modifies the 
 
 Support for the UK server has been excluded due to special legal requirements with UK direct payment. We expect to have a solution to this sometime in 2014.
 
-ACH/EFT contributions go in with a pending status until a process at iATS confirms the payment went through (or not). There's a Scheduled Job that must be enabled that checks iATS daily for approvals/rejections. Unfortunately, all test contributions are rejected, so we have no way of testing approvals except with a live transaction.
+Issues
+------
 
-'Backend' ACH/EFT is not supported by CiviCRM core. Having an enabled ACH/EFT payment processor broke the backend live credit card payment page in core (until it was fixed here https://issues.civicrm.org/jira/browse/CRM-14442), so this module fixes that if it's an issue, and also provides links to easily allow administrators to input ACH/EFT on behalf of constituents.
+The best source for understanding current issues with the most recent release is the github issue queue:
+https://github.com/iATSPayments/com.iatspayments.civicrm/issues
+
+Most of the outstanding issues are related in some way to core CiviCRM issues, and may not have an immediate solution, but we'll endeavour to help you understand, work-around, and/or fix whatever concerns you raise on the issue queue.
+
+Below is a list of some of the most common issues:
+
+ACH/EFT contributions go in with a pending status until a process at iATS confirms the payment went through (or not). There's a Scheduled Job that must be enabled that checks iATS daily for approvals/rejections. Unfortunately, all test contributions are rejected, so we have no way of testing approvals except with a live transaction. In addition, the approvals on the iATS website may show up a couple of days before they do on your CiviCRM site. This issue is being worked on.
+
+'Backend' ACH/EFT is not supported by CiviCRM core. Having an enabled ACH/EFT payment processor broke the backend live credit card payment page in core (until it was fixed here https://issues.civicrm.org/jira/browse/CRM-14442), so this module fixes that if it's an issue, and also provides links to easily allow administrators to input ACH/EFT on behalf of constituents. A similar problem existings for backend membership and event payments, and this has not been fixed in core.
 
 Please post an issue to the github repository if you have any questions.
