@@ -8,7 +8,9 @@ Date: May 5, 2014, version 1.2
 Requirements
 ------------
 
-CiviCRM 4.2+. These are instructions are based on 4.3, instructions for other releases are similar. The support for jobs in 4.2/civix is a bit iffy and 4.2 support was be dropped in the 1.2.11 release.
+CiviCRM 4.3+. These are instructions are based on 4.3, instructions for other releases are similar. 
+
+4.2 support was dropped in the 1.2.11 release, but it was okay up to that point except for the error in creating the recurring jobs (which you have to do manually).
 
 Your PHP needs to include the SOAP extension (php.net/manual/en/soap.setup.php).
 
