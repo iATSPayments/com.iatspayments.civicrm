@@ -23,15 +23,15 @@
 <table class="iats-report">
   <caption>Recent transactions with the IATS Payment Processor</caption>
   <tr>
-    <th>{ts}Invoice Number{/ts}</th>
+    <th>{ts}Invoice{/ts}</th>
     <th>{ts}Contact{/ts}</th>
     <th>{ts}Request IP{/ts}</th>
-    <th>{ts}CC{/ts}</th>
+    <th>{ts}Card Number{/ts}</th>
     <th>{ts}Total{/ts}</th>
-    <th>{ts}Request Datetime{/ts}</th>
-    <th>{ts}Auth Result{/ts}</th>
-    <th>{ts}iATS Client Code{/ts}</th>
-    <th>{ts}Response Datetime{/ts}</th>
+    <th>{ts}Request DateTime{/ts}</th>
+    <th>{ts}Result{/ts}</th>
+    <th>{ts}Transaction ID{/ts}</th>
+    <th>{ts}Response DateTime{/ts}</th>
   </tr>
   {foreach from=$iATSLog item=row}
     <tr>
