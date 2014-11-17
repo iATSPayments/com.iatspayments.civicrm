@@ -9,10 +9,10 @@
 <h3>Recent transations using iATS Payments</h3>
 <form method="GET">
   <fieldset><legend>Filter results</legend>
-    <div><em>Filter your results by any part of the last 4 digits of a credit card or the authorization string:</em></div>
+    <div><em>Filter your results by any part of the last 4 digits of a Card Number or the Authorization Result:</em></div>
     <table>
       <tr>
-        <td>Credit Card (last 4 digits): <input size="4" type="text" name="search_cc" value="{$search.cc}"></td>
+        <td>Card Number (last 4 digits): <input size="4" type="text" name="search_cc" value="{$search.cc}"></td>
         <td>Authorization Result: <input size="11" type="text" name="search_auth_result" value="{$search.auth_result}"></td>
         <td><input type="submit" value="Filter" class='crm-button'></td>
      </tr>
