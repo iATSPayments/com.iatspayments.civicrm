@@ -299,6 +299,7 @@ function iats_civicrm_pre($op, $objectName, $objectId, &$params) {
         case 'iATSServiceSWIPEContributionRecur':
           // we've already taken the first payment, so calculate the next one
           $params['contribution_status_id'] = 5;
+          $params['trxn_id'] = NULL;
           $next = strtotime('+'.$params['frequency_interval'].' '.$params['frequency_unit']);
           // the next scheduled contribution date field name is civicrm version dependent
           $field_name = _iats_civicrm_nscd_fid();
