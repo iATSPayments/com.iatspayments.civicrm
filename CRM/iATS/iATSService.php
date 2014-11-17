@@ -252,6 +252,25 @@ Class iATS_Service_Request {
       );
       CRM_Core_DAO::executeQuery("INSERT INTO civicrm_iats_response_log
         (invoice_num, auth_result, remote_id, response_datetime) VALUES (%1, %2, %3, NOW())", $query_params);
+      // fix core!!!
+      if (0 < strpos($this->options['method'],'create_customer_code')) {
+        $api_params = array(
+          'version' => 3,
+          'sequential' => 1,
+          'invoice_id' => $this->invoiceNum,
+        );
+        $contribution = civicrm_api('contribution', 'getsingle', $api_params);
+        if (!empty($contribution['id']) && empty($contribution['trxn_id'])) {
+          $api_params = array(
+            'version' => 3,
+            'sequential' => 1,
+            'id' => $contribution['id'],
+            'trxn_id' => trim($result['remote_id']) . ':' . time(),
+          );
+          civicrm_api('contribution', 'create', $api_params);
+          // watchdog('civicrm_iatspayments_com', 'rewrite: !request', array('!request' => '<pre>' . print_r($tmp, TRUE) . '</pre>', WATCHDOG_DEBUG));
+        }
+      }
     }
     return $result;
   }
