@@ -247,7 +247,7 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
       );
       $request['customerIPAddress'] = (function_exists('ip_address') ? ip_address() : $_SERVER['REMOTE_ADDR']);
 
-      $credentials = iAT_Service_Request::credentials($dao->payment_processor_id, $contribution['is_test']);
+      $credentials = iATS_Service_Request::credentials($dao->payment_processor_id, $contribution['is_test']);
       // make the soap request
       $response = $iats->request($credentials,$request);
       // process the soap response into a readable result
