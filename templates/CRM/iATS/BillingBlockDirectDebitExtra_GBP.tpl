@@ -1,5 +1,8 @@
 {*
- Extra fields for iats direct debit UK
+ iATS direct debit UK customization
+ Extra fields 
+ Extra javascript for custom user experience 
+ Ajax functionality to look up bank info
 *}
 <div id="iats-direct-debit-gbp-declaration">
   <fieldset class="iats-direct-debit-gbp-declaration">
@@ -63,9 +66,8 @@ If you are not the account holder or your account requires more than one signatu
     <div class="clear"></div>
   </div>
   <div class="crm-section payer-validate-reference">
-    <div class="label">{$form.payer_validate_reference_display.label}</div>
-    <div class="content">{$form.payer_validate_reference_display.html}</div>
-    {$form.payer_validate_reference.html}
+    <div class="label">{$form.payer_validate_reference.label}</div>
+    <div class="content">{$form.payer_validate_reference.html}</div>
     <div class="clear"></div>
   </div>
   <div class="crm-section payer-validate-instruction">
@@ -86,11 +88,6 @@ If you are not the account holder or your account requires more than one signatu
     {ts}Please fix the following errors in the form fields above:{/ts}
     <ul id="payer-validate-required">
     </ul>
-  </div>
-  <div class="clear"></div>
-  <div class="crm-button payer-validate-initiate">
-    {$form.payer_validate_initiate.html}
-    {$form.payer_validate_amend.html}
   </div>
 </div>
 
@@ -127,21 +124,17 @@ If you are not the account holder or your account requires more than one signatu
         pgNonDeclaration.show('slow');
       }
     });
-    /* page 2: Payer validate */
-    if (0 < cj('input[name=payer_validate_reference]').val().length) {
-      /* ready for page 3, review validation info */
-      // TODO: hide some other fields or make them non-editable?
-      // cj('#iats-direct-debit-gbp-continue').hide();
-    }
-    else { /* show page 2, input validation info */
-      // pgNonDeclaration.children().not('#billing-payment-block').hide();
-      cj('#iats-direct-debit-gbp-continue .crm-error').hide();
-      cj('#iats-direct-debit-gbp-payer-validate').hide();
-      cj('.bank_name-section').hide();
-      cj('#crm-submit-buttons .crm-button').hide();
-    }
-    /* initiate a payer validation: check for required fields, then do an ajax call to retrieve bank info */
-    cj('#payer_validate_initiate').click(function() {
+    /* page 2: Normal CiviCRM form with extra fields */
+    // hide fields that are used for error display before validation
+    cj('#iats-direct-debit-gbp-continue .crm-error').hide();
+    // hide the fields that will get validation field lookup values
+    cj('#iats-direct-debit-gbp-payer-validate').hide();
+    cj('.bank_name-section').hide(); // I don't ask this! 
+    /* initiate a payer validation: check for required fields, then do a background POST to retrieve bank info */
+    cj('#crm-submit-buttons .crm-button input').click(function( defaultSubmitEvent ) {
+      var inputButton = cj(this);
+      inputButton.val('Processing ...').prop('disabled',true);
+      // reset the list of errors
       cj('#payer-validate-required').html('');
       var startDateStr = cj('#start_date').val();
       var startDate = new Date(startDateStr);
@@ -169,8 +162,8 @@ If you are not the account holder or your account requires more than one signatu
           cj('#payer-validate-required').append('<li>' + myLabel + ' is a required field.</li>');
         }
       })
+      // if all pre-validation requirements are met, I can do the sycronous POST to try to get my banking information
       if (0 == cj('#payer-validate-required').html().length) {
-        cj('#iats-direct-debit-gbp-continue .crm-error').hide();
         var validatePayer = {};
         validatePayer.beginDate = cj.datepicker.formatDate('yy-mm-dd',startDate);
         var endDate = startDate;
@@ -213,53 +206,41 @@ If you are not the account holder or your account requires more than one signatu
         var payerValidateUrl = cj('input[name="payer_validate_url"]').val();
         // console.log(payerValidateUrl);
         // console.log(validatePayer);
-        cj(this).val('Processing ...').prop('disabled',true);
-        cj.post(payerValidateUrl,validatePayer,function( result ) {
-          // console.log(result);
-          // TODO: deal with validate errors
-          if ('string' == typeof(result.ACHREFNUM)) {
-            cj('#bank_name').val(result.BANK_NAME);
-            cj('#payer_validate_address').val(result.BANK_BRANCH + "\n" + result.BANKADDRESS1 + "\n" + result.BANK_CITY + ", " + result.BANK_STATE + "\n" + result.BANK_POSTCODE);
-            cj('input[name=payer_validate_reference]').val(result.ACHREFNUM).change();
-            cj('#payer_validate_reference_display').val(result.ACHREFNUM).change();
-            cj('#payer_validate_initiate').val('Continue').prop('disabled',false);
-          }
-          else {
-            cj('#payer-validate-required').append('<li>' + result.reasonMessage + '</li>');
-            cj('#iats-direct-debit-gbp-continue .crm-error').show('slow');
-            cj('#payer_validate_initiate').val('Retry').prop('disabled',false);
-            // show error
-            console.log(result);
-          }
-        },'json');
+        /* this ajax call has to be sychronous! */
+        cj.ajax({
+          type: 'POST',
+          url: payerValidateUrl,
+          data: validatePayer,
+          dataType: 'json', 
+          async: false,
+          success: function(result) {
+            // console.log(result);
+            if (result == null) {
+              cj('#payer-validate-required').append('<li>Unexpected Error</li>');
+            }
+            else if ('string' == typeof(result.ACHREFNUM)) {
+              cj('#bank_name').val(result.BANK_NAME);
+              cj('#payer_validate_address').val(result.BANK_BRANCH + "\n" + result.BANKADDRESS1 + "\n" + result.BANK_CITY + ", " + result.BANK_STATE + "\n" + result.BANK_POSTCODE);
+              cj('#payer_validate_reference').val(result.ACHREFNUM); 
+            }
+            else {
+              cj('#payer-validate-required').append('<li>' + result.reasonMessage + '</li>');
+            }
+          },
+        })
+        .fail(function() {
+          cj('#payer-validate-required').append('<li>Unexpected Server Error.</li>');
+        });
+        // console.log('done');
       }
-      else { // add alert symbol
+      if (0 < cj('#payer-validate-required').html().length) {
         cj('#iats-direct-debit-gbp-continue .crm-error').show('slow');
-      }
-    });
-    /* clear the reference to go back */
-    cj('#payer_validate_amend').click(function() {
-      cj('#payer_validate_reference_display').val('')
-      cj('input[name=payer_validate_reference]').val('').change();
-    });
-    cj('input[name=payer_validate_reference]').change(function() {
-      cj('#payer-validate-required').html('').hide();
-      if (cj(this).val().length) { /* i've got a refrence number, time for the user to confirm or amend */
-        cj('#iats-direct-debit-gbp-continue .crm-error').hide();
-        cj('#payer_validate_initiate').hide();
-        cj('#payer_validate_admend').show();
-        cj('#iats-direct-debit-gbp-payer-validate').show('slow');
-        cj('#crm-submit-buttons .crm-button').show().find('input').val('Confirm');
-        CRM.alert(ts('Please review your bank details and then click Contribute below.'));
-      }
-      // requires amendment
-      else {
-        cj('.crm-button.payer-validate-admend').hide();
-        cj('#iats-direct-debit-gbp-continue').show();
-        cj('#iats-direct-debit-gbp-payer-validate').hide('slow');
-        cj('#crm-submit-buttons .crm-button').hide();
-      }
-    });
+        inputButton.val('Retry').prop('disabled',false);
+        return false;
+      };
+      inputButton.val('Contribute').prop('disabled',false);
+      return true;
+    }); // end of click handler
   });
   {/literal}
 </script>

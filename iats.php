@@ -237,6 +237,10 @@ function iats_civicrm_buildForm($formName, &$form) {
       // override normal convention, deal with all these front-end contribution forms the same way
       $fname = 'iats_civicrm_buildForm_Contribution_Frontend';
       break;
+    case 'CRM_Contribute_Form_Contribution_Confirm':
+      // on the confirmation form, we know the processor, so only do processor specific customizations
+      $fname = 'iats_civicrm_buildForm_Contribution_Confirm_'.$form->_paymentProcessor['class_name'];
+      break;
     default:
       $fname = 'iats_civicrm_buildForm_'.$formName;
       break;
@@ -515,14 +519,11 @@ function iats_ukdd_form_customize($form) {
   $element = $form->getElement('bank_identification_number');
   $element->setLabel(ts('Sort Code'));
   $form->addRule('bank_identification_number', ts('%1 is a required field.', array(1 => ts('Sort Code'))), 'required');
-  $form->addElement('button','payer_validate_initiate',ts('Continue'));
-  $form->addElement('button','payer_validate_amend',ts('Amend'));
   /* new payer validation elements */
-  $form->addElement('textarea', 'payer_validate_address', ts('Name and full postal address of your Bank or Building Society'), array('disabled' => 'disabled', 'rows' => '6', 'columns' => '30'));
+  $form->addElement('textarea', 'payer_validate_address', ts('Name and full postal address of your Bank or Building Society'), array('rows' => '6', 'columns' => '30'));
   $form->addElement('text', 'payer_validate_service_user_number', ts('Service User Number'));
-  $form->addElement('text', 'payer_validate_reference_display', ts('Reference'), array('disabled' => 'disabled'));
-  $form->addElement('hidden','payer_validate_reference');
-  $form->addElement('text', 'payer_validate_date', ts('Today\'s Date'), array('disabled' => 'disabled'));
+  $form->addElement('text', 'payer_validate_reference', ts('Reference'), array());
+  $form->addElement('text', 'payer_validate_date', ts('Today\'s Date'), array()); // date on which the validation happens, reference
   $form->addElement('static', 'payer_validate_instruction', ts('Instruction to your Bank or Building Society'), ts('Please pay %1 Direct Debits from the account detailed in this instruction subject to the safeguards assured by the Direct Debit Guarantee. I understand that this instruction may remain with TestingTest and, if so, details will be passed electronically to my Bank / Building Society.',array('%1' => "<strong>$payee</strong>")));
   // $form->addRule('bank_name', ts('%1 is a required field.', array(1 => ts('Bank Name'))), 'required');
   //$form->addRule('bank_account_type', ts('%1 is a required field.', array(1 => ts('Account type'))), 'required');
@@ -674,6 +675,30 @@ function iats_civicrm_buildForm_CRM_Contribute_Form_Search(&$form) {
  */
 function iats_civicrm_buildForm_CRM_Contribute_Form_CancelSubscription(&$form) {
   $form->removeElement('send_cancel_request');
+}
+
+/* 
+ * Modify the contribution confirmation screen for iATS UK DD
+ *  1. display extra field data injected earlier for payer validation
+ */
+function iats_civicrm_buildForm_Contribution_Confirm_Payment_iATSServiceUKDD(&$form) {
+  $form->addElement('textarea', 'payer_validate_address', ts('Name and full postal address of your Bank or Building Society'), array('rows' => '6', 'columns' => '30'));
+  $form->addElement('text', 'payer_validate_service_user_number', ts('Service User Number'));
+  $form->addElement('text', 'payer_validate_reference', ts('Reference'), array());
+  $form->addElement('text', 'payer_validate_date', ts('Today\'s Date'), array()); // date on which the validation happens, reference
+  $form->addElement('static', 'payer_validate_instruction', ts('Instruction to your Bank or Building Society'), ts('Please pay %1 Direct Debits from the account detailed in this instruction subject to the safeguards assured by the Direct Debit Guarantee. I understand that this instruction may remain with TestingTest and, if so, details will be passed electronically to my Bank / Building Society.',array('%1' => "<strong>$payee</strong>")));
+  $defaults = array(
+    'payer_validate_date' => date('F j, Y'), 
+    'start_date' => $form->_params['start_date'],
+  );
+  foreach(array('address','service_user_number','reference_display','date') as $k) {
+    $key = 'payer_validate_'.$k;
+    $defaults[$key] = $form->_params[$key];
+  };
+  $form->setDefaults($defaults);
+  CRM_Core_Region::instance('contribution-confirm-billing-block')->add(array(
+    'template' => 'CRM/iATS/ContributeConfirmExtra_UKDD.tpl'
+  ));
 }
 
 function _iats_civicrm_domain_info($key) {
