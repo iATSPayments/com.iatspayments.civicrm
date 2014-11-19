@@ -84,7 +84,7 @@ class CRM_Core_Payment_iATSServiceUKDD extends CRM_Core_Payment {
     $paymentsRecur = $params['installments'] - 1;
     // IATS requires begin and end date, calculated here
     // to be converted to date format later
-    // begin date has to be at least 12 days from now [allow configurability?]
+    // begin date has to be more than 12 days from now, not checked here
     $beginTime = strtotime($beginDate = $params['start_date']);
     $date = getdate($beginTime);
     $interval = $params['frequency_interval'] ? $params['frequency_interval'] : 1;
@@ -132,6 +132,7 @@ class CRM_Core_Payment_iATSServiceUKDD extends CRM_Core_Payment {
 
     }
     $endDate = date('c', $endTime);
+    $beginDate = date('c', $beginTime);
     return array('scheduleType' => $scheduleType, 'scheduleDate' => $scheduleDate, 'endDate' => $endDate, 'beginDate' => $beginDate);
   }
 

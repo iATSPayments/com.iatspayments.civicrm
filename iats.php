@@ -496,8 +496,8 @@ function iats_swipe_form_customize($form) {
  */
 
 function iats_ukdd_form_customize($form) {
-  /* uk direct debits will be marked to start 12 days after the initial request is made */
-  define('IATS_UKDD_START_DELAY',12 * 24 * 60 * 60);
+  /* uk direct debits will be marked to start 16 days after the initial request is made */
+  define('IATS_UKDD_START_DELAY',16 * 24 * 60 * 60);
   $service_user_number = $form->_paymentProcessor['signature'];
   $payee = _iats_civicrm_domain_info('name');
   $phone = _iats_civicrm_domain_info('domain_phone');
