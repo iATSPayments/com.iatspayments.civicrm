@@ -498,6 +498,12 @@ function iats_swipe_form_customize($form) {
 function iats_ukdd_form_customize($form) {
   /* uk direct debits will be marked to start 16 days after the initial request is made */
   define('IATS_UKDD_START_DELAY',16 * 24 * 60 * 60);
+  $start_date = time() + IATS_UKDD_START_DELAY;
+  $dp = getdate($start_date);
+  while($dp['mday'] != 1 && $dp['mday'] != 15) {
+    $start_date += (24 * 60 * 60);
+    $dp = getdate($start_date);
+  }
   $service_user_number = $form->_paymentProcessor['signature'];
   $payee = _iats_civicrm_domain_info('name');
   $phone = _iats_civicrm_domain_info('domain_phone');
@@ -531,7 +537,7 @@ function iats_ukdd_form_customize($form) {
   $form->setDefaults(array(
     'is_recur' => 1, 
     'payer_validate_date' => date('F j, Y'), 
-    'start_date' => date('F j, Y',time() + IATS_UKDD_START_DELAY),
+    'start_date' => date('F j, Y',$start_date),
     'payer_validate_service_user_number' => $service_user_number,
   )); // make recurring contrib default to true
   CRM_Core_Region::instance('billing-block')->add(array(
