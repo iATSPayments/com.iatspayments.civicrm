@@ -50,7 +50,7 @@ If you are not the account holder or your account requires more than one signatu
   <div class="crm-section payer-validate-start-date">
     <div class="label">{$form.start_date.label}</div>
     <div class="content">{$form.start_date.html}</div>
-    <div class="content">{ts domain='com.iatspayments.civicrm'}If you wish, you can modify this date to make it later. This is the earliest date upon which your contributions can start.{/ts}</div>
+    <div class="content">{ts domain='com.iatspayments.civicrm'}You may select a later start date if you wish.{/ts}</div>
     <div class="clear"></div>
   </div>
 </div>

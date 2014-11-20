@@ -496,14 +496,22 @@ function iats_swipe_form_customize($form) {
  */
 
 function iats_ukdd_form_customize($form) {
-  /* uk direct debits will be marked to start 16 days after the initial request is made */
+  /* uk direct debits have to start 16 days after the initial request is made */
   define('IATS_UKDD_START_DELAY',16 * 24 * 60 * 60);
+  /* for batch efficiencies, restrict to a specific set of days of the month, less than 28 */
+  $start_days = array('1', '15'); // you can change these if you're sensible and careful
+  $start_dates = array(); // actual date options
   $start_date = time() + IATS_UKDD_START_DELAY;
-  $dp = getdate($start_date);
-  while($dp['mday'] != 1 && $dp['mday'] != 15) {
+  for ($j = 0; $j < count($start_days); $j++) {
+    $i = 0;  // so I don't get into an infinite loop somehow ..
+    while(($i++ < 60) && !in_array($dp['mday'],$start_days)) {
+      $start_date += (24 * 60 * 60);
+      $dp = getdate($start_date);
+    }
+    $start_dates[date('Y-m-d',$start_date)] = strftime('%B %e, %Y',$start_date);
     $start_date += (24 * 60 * 60);
     $dp = getdate($start_date);
-  }
+  } 
   $service_user_number = $form->_paymentProcessor['signature'];
   $payee = _iats_civicrm_domain_info('name');
   $phone = _iats_civicrm_domain_info('domain_phone');
@@ -512,7 +520,7 @@ function iats_ukdd_form_customize($form) {
   /* declaration checkbox at the top */
   $form->addElement('checkbox', 'payer_validate_declaration', ts('I wish to start a Direct Debit'));
   $form->addElement('static', 'payer_validate_contact', ts(''), ts('Organization: %1, Phone: %2, Email: %3', array('%1' => $payee, '%2' => $phone['phone'], '%3' => $email)));
-  $form->addElement('text', 'start_date', ts('Date of first collection'));
+  $form->addElement('select', 'start_date', ts('Date of first collection'), $start_dates);
   $form->addRule('payer_validate_declaration', ts('%1 is a required field.', array(1 => ts('The Declaration'))), 'required');
   $form->addRule('installments', ts('%1 is a required field.', array(1 => ts('Number of installments'))), 'required');
   /* customization of existing elements */
@@ -537,7 +545,7 @@ function iats_ukdd_form_customize($form) {
   $form->setDefaults(array(
     'is_recur' => 1, 
     'payer_validate_date' => date('F j, Y'), 
-    'start_date' => date('F j, Y',$start_date),
+    'start_date' => current(array_keys($start_dates)),
     'payer_validate_service_user_number' => $service_user_number,
   )); // make recurring contrib default to true
   CRM_Core_Region::instance('billing-block')->add(array(
