@@ -76,7 +76,7 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
     $quick[$key] = get_object_vars($dao);
   }
 
-  // and all the recent UK DD recurring contributions 
+  // and all the recent UK DD recurring contributions. I've added an extra 2 days to be sure i've got them all.
   $select = 'SELECT c.*, cr.contribution_status_id as cr_contribution_status_id, icc.customer_code as customer_code, icc.cid as icc_contact_id, iukddv.acheft_reference_num as reference_num, pp.is_test 
       FROM civicrm_contribution c 
       INNER JOIN civicrm_contribution_recur cr ON c.contribution_recur_id = cr.id
@@ -89,7 +89,7 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
         AND c.receive_date > %2';
   $args = array(
     1 => array('Payment_iATSServiceUKDD', 'String'),
-    2 => array(date('c',strtotime('-30 days')), 'String'),
+    2 => array(date('c',strtotime('-32 days')), 'String'),
   );
   $dao = CRM_Core_DAO::executeQuery($select,$args);
   $ukdd_contribution = array();
@@ -121,10 +121,14 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
   }
   /* get "recent" approvals and rejects from iats and match them up with my pending list, or one-offs, or UK DD via the customer code */
   require_once("CRM/iATS/iATSService.php");
+  // an array of methods => contribution status of the records retrieved
+  $process_methods = array('acheft_journal_csv' => 1,'acheft_payment_box_journal_csv' => 1, 'acheft_payment_box_reject_csv' => 4);
   /* initialize some values so I can report at the end */
   $error_count = 0;
-  $counter = array(1 => 0, 4 => 0); // number of reject/accept records from iats analysed
-  $new = $qfound = $found = 0;
+  // count the number of each record from iats analysed, and the number of each kind found
+  $processed = array_fill_keys(array_keys($process_methods),0);
+  $found = array('recur' => 0, 'quick' => 0, 'new' => 0);
+  // save all my api result messages as well
   $output = array();
   /* do this loop for each relevant payment processor of type ACHEFT or UKDD (usually only one or none) */
   /* since test payments are NEVER verified by iATS, don't bother checking them [unless/until they change this] */
@@ -140,7 +144,7 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
     $iats_service_params = array('type' => 'report', 'iats_domain' => parse_url($dao->url_site, PHP_URL_HOST)) + $iats_service_params;
     /* the is_test below should always be 0, but I'm leaving it in, in case eventually we want to be verifying tests */
     $credentials = iATS_Service_Request::credentials($dao->id, $dao->is_test);
-    foreach (array('acheft_journal_csv' => 1,'acheft_payment_box_journal_csv' => 1, 'acheft_payment_box_reject_csv' => 4) as $method => $contribution_status_id) {
+    foreach ($process_methods as $method => $contribution_status_id) {
       // TODO: this is set to capture approvals and cancellations from the past month, for testing purposes
       // it doesn't hurt, but on a live environment, this maybe should be limited to the past week, or less?
       // or, it could be configurable for the job
@@ -173,10 +177,8 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
           // watchdog('civicrm_iatspayments_com', 'data: <pre>!data</pre>', array('!data' => print_r($box,TRUE)), WATCHDOG_NOTICE);
           for ($i = 1; $i < count($box); $i++) {
             if (empty($box[$i])) continue;
-            $counter[$contribution_status_id]++;
+            $processed[$method]++;
             $data = str_getcsv($box[$i]);
-            // skip any rows that don't include a custom code - TODO: log this as an error?
-            if (empty($data[iATS_SERVICE_REQUEST::iATS_CSV_CUSTOMER_CODE_COLUMN])) continue;
             switch($method) {
               case 'acheft_journal_csv':
                 $customer_code = $data[$headers['Customer Code']];
@@ -189,6 +191,8 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
                 $invoice_iats = $data[iATS_SERVICE_REQUEST::iATS_CSV_INVOICEID_COLUMN];
                 break;
             }
+            // skip any rows that don't include a customer code - TODO: log this as an error?
+            if (empty($customer_code)) continue;
             $format = 'd/m/Y H:i:s';
             $rdp = date_parse_from_format($format,$datetime);
             $receive_date = mktime($rdp['hour'], $rdp['minute'], $rdp['second'], $rdp['month'], $rdp['day'], $rdp['year']);
@@ -199,7 +203,7 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
               /* todo: extra testing of datetime value? */
               $key = $transaction_id.$invoice_iats;
               if (!empty($transaction_id) && !empty($invoice_iats) && !empty($quick[$key])) {
-                $qfound++;
+                $found['quick']++;
                 $contribution = $quick[$key];
                 $params = array('version' => 3, 'sequential' => 1, 'contribution_status_id' => $contribution_status_id);
                 $params['id'] = $contribution['id'];
@@ -229,7 +233,7 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
                 }
               }
               if (!empty($contribution)) {
-                $found++;
+                $found['recur']++;
                 // first update the contribution status
                 $params = array('version' => 3, 'sequential' => 1, 'contribution_status_id' => $contribution_status_id);
                 $params['id'] = $contribution['id'];
@@ -313,7 +317,7 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
                   $output[] = $result['error_message'];
                 }
                 else {
-                  $new++;
+                  $found['new']++;
                 }
               }
             }
@@ -357,36 +361,53 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
       }
     }
   }
+  $message = '<br />'. ts('Completed with %1 errors.',
+    array(
+      1 => $error_count,
+    )
+  );
+  $message .= '<br />'. ts('Processed %1 approvals from yesterday, %2 approval and %3 rejection records from the previous month.',
+    array(
+      1 => $processed['acheft_journal_csv'],
+      2 => $processed['acheft_payment_box_journal_csv'],
+      3 => $processed['acheft_payment_box_reject_csv'],
+    )
+  );
   // If errors ..
   if ($error_count) {
-    return civicrm_api3_create_error(
-      ts("Completed, but with %1 errors. %2 accept and %3 rejection records processed.",
-        array(
-          1 => $error_count,
-          2 => $counter[1],
-          3 => $counter[4],
-        )
-      ) . "<br />" . implode("<br />", $output)
-    );
+    return civicrm_api3_create_error($message .'</br />'. implode('<br />', $output));
   }
-  // If no errors and records processed ..
-  if ($counter[1] > 0 || $counter[4] > 0) {
-    return civicrm_api3_create_success(
-      ts(
-        'For %1 pending ACH/EFT recurring contributions and %2 one-off contributions, %3 accept and %4 rejection record(s) were analysed, %5 recurring contribution results applied, %6 one-off contribution records applied, and %7 new UK Direct Debit contributions created.',
+  // If no errors and some records processed ..
+  if (array_sum($processed) > 0) {
+    if (count($pending) > 0) {
+      $message .= '<br />'. ts('For %1 pending ACH/EFT recurring contributions, %2 results applied.',
         array(
           1 => count($pending),
-          2 => count($quick),
-          3 => $counter[1],
-          4 => $counter[4],
-          5 => $found,
-          6 => $qfound,
-          7 => $new
+          2 => $found['recur'],
         )
-      ) . "<br />" . implode("<br />", $output)
+      );
+    }
+    if (count($quick) > 0) {
+      $message .= '<br />'. ts('For %1 pending one-off ACH/EFT contributions, %2 results applied.',
+        array(
+          1 => count($quick),
+          2 => $found['quick'],
+        )
+      );
+    }
+    if (count($ukdd_contribution_recur) > 0) {
+      $message .= '<br />'. ts('For %1 recurring UK direct debit contribution series, %2 new contributions found.',
+        array(
+          1 => count($ukdd_contribution_recur),
+          2 => $found['new'],
+        )
+      );
+    }
+    return civicrm_api3_create_success(
+      $message . '<br />' . implode('<br />', $output)
     );
   }
   // No records processed
-  return civicrm_api3_create_success(ts('No ACH/EFT records were processed or verified.'));
+  return civicrm_api3_create_success(ts('No records found to process.'));
  
 }
