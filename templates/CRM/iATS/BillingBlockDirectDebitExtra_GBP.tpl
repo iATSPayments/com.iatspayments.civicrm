@@ -1,18 +1,13 @@
 {*
  iATS direct debit UK customization
- Extra fields 
- Extra javascript for custom user experience 
+ Extra fields
+ Extra javascript for custom user experience
  Ajax functionality to look up bank info
 *}
 <div id="iats-direct-debit-gbp-declaration">
   <fieldset class="iats-direct-debit-gbp-declaration">
   <legend>Declaration</legend>
   <div class="crm-section">
-    <div class="content"><p><strong>{ts domain='com.iatspayments.civicrm'}Note: {/ts}</strong>{ts domain='com.iatspayments.civicrm'}
-If you are not the account holder or your account requires more than one signature a paper Direct Debit Instruction will be required to be completed and posted to us. <a href="{crmResURL ext=com.iatspayments.civicrm file=templates/CRM/iATS/DirectDebitForm.pdf}">Click here</a> to print off a paper Direct Debit Instruction.</p>{/ts}
-<p><strong>{ts  domain='com.iatspayments.civicrm'}OR{/ts}</strong></p>
-<p>{ts domain='com.iatspayments.civicrm'}Continue with the details below{/ts}</p>
-    </div>
     <div class="label">{$form.payer_validate_declaration.label}</div>
     <div class="content">{$form.payer_validate_declaration.html}</div>
     <div class="clear"></div>
@@ -129,7 +124,7 @@ If you are not the account holder or your account requires more than one signatu
     cj('#iats-direct-debit-gbp-continue .crm-error').hide();
     // hide the fields that will get validation field lookup values
     cj('#iats-direct-debit-gbp-payer-validate').hide();
-    cj('.bank_name-section').hide(); // I don't ask this! 
+    cj('.bank_name-section').hide(); // I don't ask this!
     /* initiate a payer validation: check for required fields, then do a background POST to retrieve bank info */
     cj('#crm-submit-buttons .crm-button input').click(function( defaultSubmitEvent ) {
       var inputButton = cj(this);
@@ -211,7 +206,7 @@ If you are not the account holder or your account requires more than one signatu
           type: 'POST',
           url: payerValidateUrl,
           data: validatePayer,
-          dataType: 'json', 
+          dataType: 'json',
           async: false,
           success: function(result) {
             // console.log(result);
@@ -221,7 +216,7 @@ If you are not the account holder or your account requires more than one signatu
             else if ('string' == typeof(result.ACHREFNUM)) {
               cj('#bank_name').val(result.BANK_NAME);
               cj('#payer_validate_address').val(result.BANK_BRANCH + "\n" + result.BANKADDRESS1 + "\n" + result.BANK_CITY + ", " + result.BANK_STATE + "\n" + result.BANK_POSTCODE);
-              cj('#payer_validate_reference').val(result.ACHREFNUM); 
+              cj('#payer_validate_reference').val(result.ACHREFNUM);
             }
             else {
               cj('#payer-validate-required').append('<li>' + result.reasonMessage + '</li>');
