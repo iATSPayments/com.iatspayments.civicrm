@@ -241,6 +241,10 @@ function iats_civicrm_buildForm($formName, &$form) {
       // on the confirmation form, we know the processor, so only do processor specific customizations
       $fname = 'iats_civicrm_buildForm_Contribution_Confirm_'.$form->_paymentProcessor['class_name'];
       break;
+    case 'CRM_Contribute_Form_Contribution_ThankYou':
+      // on the confirmation form, we know the processor, so only do processor specific customizations
+      $fname = 'iats_civicrm_buildForm_Contribution_ThankYou_'.$form->_paymentProcessor['class_name'];
+      break;
     default:
       $fname = 'iats_civicrm_buildForm_'.$formName;
       break;
@@ -313,7 +317,7 @@ function iats_civicrm_pre($op, $objectName, $objectId, &$params) {
           $params['payment_instrument_id'] = 2;
           $params['contribution_status_id'] = 2;
           break;
-        case 'iATSServiceACHEFTContributionRecur': 
+        case 'iATSServiceACHEFTContributionRecur':
           // watchdog('iats_civicrm_recur','<pre>'.print_r($params,TRUE).'</pre>');
           $params['payment_instrument_id'] = 2;
           $params['contribution_status_id'] = 5; // we set this to 'in-progress' because even if the first one hasn't been verified, we still want to be attempting later ones
@@ -322,7 +326,7 @@ function iats_civicrm_pre($op, $objectName, $objectId, &$params) {
           $field_name = _iats_civicrm_nscd_fid();
           $params[$field_name] = date('YmdHis',$next);
           break;
-        case 'iATSServiceUKDDContribution': // UK DD contribution: update the payment instrument 
+        case 'iATSServiceUKDDContribution': // UK DD contribution: update the payment instrument
           $params['payment_instrument_id'] = 2;
           break;
         case 'iATSServiceUKDDContributionRecur': // UK DD recurring contribution record
@@ -511,7 +515,7 @@ function iats_ukdd_form_customize($form) {
     $start_dates[date('Y-m-d',$start_date)] = strftime('%B %e, %Y',$start_date);
     $start_date += (24 * 60 * 60);
     $dp = getdate($start_date);
-  } 
+  }
   $service_user_number = $form->_paymentProcessor['signature'];
   $payee = _iats_civicrm_domain_info('name');
   $phone = _iats_civicrm_domain_info('domain_phone');
@@ -543,8 +547,8 @@ function iats_ukdd_form_customize($form) {
   //$form->addRule('bank_account_type', ts('%1 is a required field.', array(1 => ts('Account type'))), 'required');
   /* only allow recurring contributions, set date */
   $form->setDefaults(array(
-    'is_recur' => 1, 
-    'payer_validate_date' => date('F j, Y'), 
+    'is_recur' => 1,
+    'payer_validate_date' => date('F j, Y'),
     'start_date' => current(array_keys($start_dates)),
     'payer_validate_service_user_number' => $service_user_number,
   )); // make recurring contrib default to true
@@ -691,8 +695,8 @@ function iats_civicrm_buildForm_CRM_Contribute_Form_CancelSubscription(&$form) {
   $form->removeElement('send_cancel_request');
 }
 
-/* 
- * Modify the contribution confirmation screen for iATS UK DD
+/*
+ * Modify the contribution Confirm screen for iATS UK DD
  *  1. display extra field data injected earlier for payer validation
  */
 function iats_civicrm_buildForm_Contribution_Confirm_Payment_iATSServiceUKDD(&$form) {
@@ -702,7 +706,7 @@ function iats_civicrm_buildForm_Contribution_Confirm_Payment_iATSServiceUKDD(&$f
   $form->addElement('text', 'payer_validate_date', ts('Today\'s Date'), array()); // date on which the validation happens, reference
   $form->addElement('static', 'payer_validate_instruction', ts('Instruction to your Bank or Building Society'), ts('Please pay %1 Direct Debits from the account detailed in this instruction subject to the safeguards assured by the Direct Debit Guarantee. I understand that this instruction may remain with TestingTest and, if so, details will be passed electronically to my Bank / Building Society.',array('%1' => "<strong>$payee</strong>")));
   $defaults = array(
-    'payer_validate_date' => date('F j, Y'), 
+    'payer_validate_date' => date('F j, Y'),
     'start_date' => $form->_params['start_date'],
   );
   foreach(array('address','service_user_number','reference_display','date') as $k) {
@@ -712,6 +716,15 @@ function iats_civicrm_buildForm_Contribution_Confirm_Payment_iATSServiceUKDD(&$f
   $form->setDefaults($defaults);
   CRM_Core_Region::instance('contribution-confirm-billing-block')->add(array(
     'template' => 'CRM/iATS/ContributeConfirmExtra_UKDD.tpl'
+  ));
+}
+
+/*
+ * Modify the contribution Thank You screen for iATS UK DD
+ */
+function iats_civicrm_buildForm_Contribution_ThankYou_Payment_iATSServiceUKDD(&$form) {
+  CRM_Core_Region::instance('contribution-thankyou-billing-block')->add(array(
+    'template' => 'CRM/iATS/ContributeThankYouExtra_UKDD.tpl'
   ));
 }
 
