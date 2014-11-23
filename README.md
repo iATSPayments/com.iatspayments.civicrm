@@ -108,6 +108,7 @@ Please note that ACH Returns require manually processing. iATS Payments will not
 A beta release for the UK direct debit support will be out soon. Notes specfic to that:
 - Each charity needs to have a BACS accredited supplier confirm their CiviCRM Direct Debit - Contribution Pages
 - Administer -> System Settings -> Payment Processors -> processors of type: iATS Payments UK Direct Debit require a Service User Number (SUN) in addition to the iATS Agent Code and Password
+- UK TEST purposes: https://www.uk.iatspayments.com/login/login.html Client Code: UDDD88 Password: UDDD888 SUN: 123456789
 
 Issues
 ------
