@@ -81,7 +81,7 @@ class CRM_Core_Payment_iATSServiceACHEFT extends CRM_Core_Payment {
     // process the soap response into a readable result
     $result = $iats->result($response);
     if ($result['status']) {
-      $params['trxn_id'] = $result['remote_id'] . ':' . time();
+      $params['trxn_id'] = trim($result['remote_id']) . ':' . time();
       $params['gross_amount'] = $params['amount'];
       if ($isRecur) {
         // save the client info in my custom table

@@ -56,7 +56,7 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
       $acheft_pending[$dao->customer_code] = array();
     }
     // we can assume no more than one contribution per customer code per day!
-    $key = date('Y-m-d',strtotime($dao->c_receive_date));
+    $key = date('Y-m-d',strtotime($dao->receive_date));
     $acheft_pending[$dao->customer_code][$key] = get_object_vars($dao);
   }
 
@@ -186,9 +186,9 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
                 $invoice_iats = $data[$headers['Invoice']];
                 break;
               default:
-                $customer_code = $data[iATS_SERVICE_REQUEST::iATS_CSV_CUSTOMER_CODE_COLUMN];
-                $datetime = $data[iATS_SERVICE_REQUEST::iATS_CSV_DATETIME_COLUMN];
-                $invoice_iats = $data[iATS_SERVICE_REQUEST::iATS_CSV_INVOICEID_COLUMN];
+                $customer_code = $data[$headers['Customer Code']];
+                $datetime = $data[$headers['Date Time']];
+                $invoice_iats = $data[$headers['Invoice Number']];
                 break;
             }
             // skip any rows that don't include a customer code - TODO: log this as an error?
@@ -198,7 +198,7 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
             $receive_date = mktime($rdp['hour'], $rdp['minute'], $rdp['second'], $rdp['month'], $rdp['day'], $rdp['year']);
             $transaction_id = $data[$headers['Transaction ID']];
             $contribution = NULL; // use this later to trigger an activity if it's not NULL
-            if ('Quick Client' == $customer_code) {
+            if ('quick client' == strtolower($customer_code)) {
               /* a one off : try to update the contribution status */
               /* todo: extra testing of datetime value? */
               $key = $transaction_id.$invoice_iats;
@@ -224,8 +224,8 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
             // I'm only interested in customer codes that are still in a pending state, or new ones (e.g. UK DD)
             elseif (isset($acheft_pending[$customer_code])) {
               foreach($acheft_pending[$customer_code] as $key => $test) {
-                $ts = strtotime($test['cr_receive_date']);
-                $invoice_test = substr($test['cr_invoice_id'],0,10);
+                $ts = strtotime($test['receive_date']);
+                $invoice_test = substr($test['invoice_id'],0,10);
                 if ((abs($ts - $receive_date) < 60 * 60 * 24) && ($invoice_test == $invoice_iats)) {
                   unset($acheft_pending[$customer_code][$key]);
                   $contribution = $test;
@@ -379,10 +379,10 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
   }
   // If no errors and some records processed ..
   if (array_sum($processed) > 0) {
-    if (count($pending) > 0) {
+    if (count($acheft_pending) > 0) {
       $message .= '<br />'. ts('For %1 pending ACH/EFT recurring contributions, %2 results applied.',
         array(
-          1 => count($pending),
+          1 => count($acheft_pending),
           2 => $found['recur'],
         )
       );
