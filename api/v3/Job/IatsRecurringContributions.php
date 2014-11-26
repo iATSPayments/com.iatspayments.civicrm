@@ -37,7 +37,7 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
   // $config = &CRM_Core_Config::singleton();
   // $debug  = false;
   // do my calculations based on yyyymmddhhmmss representation of the time
-  // not sure about time-zone issues, may this next line tries to fix that?
+  // not sure about time-zone issues
   $dtCurrentDay    = date("Ymd", mktime(0, 0, 0, date("m") , date("d") , date("Y")));
   $dtCurrentDayStart = $dtCurrentDay."000000";
   $dtCurrentDayEnd   = $dtCurrentDay."235959";
@@ -310,6 +310,28 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
     }
     ++$counter;
   }
+
+  // now update the end_dates and status for non-open-ended contribution series if they are complete (so that the recurring contribution status will show correctly)
+  // This is a simplified version of what we did before the processing
+  $select = 'SELECT cr.id, count(c.id) AS installments_done, cr.installments
+      FROM civicrm_contribution_recur cr 
+      INNER JOIN civicrm_contribution c ON cr.id = c.contribution_recur_id 
+      INNER JOIN civicrm_payment_processor pp ON cr.payment_processor_id = pp.id 
+      WHERE 
+        (pp.class_name = %1 OR pp.class_name = %2) 
+        AND (cr.installments > 0) 
+        AND (cr.contribution_status_id  = 5) 
+      GROUP BY c.contribution_recur_id';
+  $dao = CRM_Core_DAO::executeQuery($select,$args);
+  while ($dao->fetch()) {
+    // check if my end date should be set to now because I have finished
+    if ($dao->installments_done >= $dao->installments) { // I'm done with installments
+      // set this series complete and the end_date to now
+      $update = 'UPDATE civicrm_contribution_recur SET contribution_status_id = 1, end_date = NOW() WHERE id = %1';
+      CRM_Core_DAO::executeQuery($update,array(1 => array($dao->id,'Int')));
+    }
+  }
+
 
   // If errors ..
   if ($error_count) {
