@@ -149,13 +149,15 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
   while ($dao->fetch()) {
 
     // Strategy: create the contribution record with status = 2 (= pending), try the payment, and update the status to 1 if successful
-    // First get the first contribution in this series to help with line items and some other values
-    $initial_contribution = array();
+    // Get the first contribution in this series that matches the same total as a template to help with line items, and some other values
+    // If none matches (e.g. if a donation amount has been changed), we'll just be naive about it.
+    $contribution_template = array();
     $line_items = array();
-    $get = array('version'  => 3, 'contribution_recur_id' => $dao->id, 'options'  => array('sort'  => ' id' , 'limit'  => 1));
+    $get = array('version'  => 3, 'contribution_recur_id' => $dao->id, 'total_amount' => $dao->amount, 'options'  => array('sort'  => ' id' , 'limit'  => 1));
     $result = civicrm_api('contribution', 'get', $get);
     if (!empty($result['values'])) {
       $contribution_ids = array_keys($result['values']);
+      $contribution_template = $result['values'][$contribution_ids[0]];
       $get = array('version'  => 3, 'entity_table' => 'civicrm_contribution', 'entity_id' => $contribution_ids[0]);
       $result = civicrm_api('LineItem', 'get', $get);
       if (!empty($result['values'])) {
@@ -206,10 +208,10 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
       'payment_processor'   => $dao->payment_processor_id,
       'is_test'        => $dao->is_test, /* propagate the is_test value from the parent contribution */
     );
-    $get_from_original = array('contribution_campaign_id','amount_level');
-    foreach($get_from_original as $field) {
-      if (isset($original_contribution[$field])) {
-        $contribution[$field] = $original_contribution[$field];
+    $get_from_template = array('contribution_campaign_id','amount_level');
+    foreach($get_from_template as $field) {
+      if (isset($contribution_template[$field])) {
+        $contribution[$field] = $contribution_template[$field];
       }
     }
     if (isset($dao->contribution_type_id)) {  // 4.2
@@ -266,7 +268,7 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
       } 
       else {
         /* success, create the contribution record with corrected status + trxn_id */
-        $contribution['trxn_id'] = $result['remote_id'] . ':' . time();
+        $contribution['trxn_id'] = trim($result['remote_id']) . ':' . time();
         $contribution['contribution_status_id'] = 1; 
         civicrm_api('contribution','create', $contribution);
         $output[] = ts('Successfully processed recurring contribution id %1: ', array(1 => $contribution_recur_id)).$result['auth_result'];
