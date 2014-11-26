@@ -103,7 +103,7 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
         AND (pp.class_name = %1 OR pp.class_name = %2)
         AND (cr.end_date IS NULL OR cr.end_date > NOW())';
   $dao = CRM_Core_DAO::executeQuery($update,$args);
-  // Expire completed cycles
+  // Expire or badly-defined completed cycles
   $update = 'UPDATE civicrm_contribution_recur cr 
       INNER JOIN civicrm_payment_processor pp ON cr.payment_processor_id = pp.id
       SET
@@ -111,7 +111,13 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
       WHERE
         cr.contribution_status_id = 5 
         AND (pp.class_name = %1 OR pp.class_name = %2)
-        AND (NOT(cr.end_date IS NULL) AND cr.end_date <= NOW())';
+        AND (
+          (NOT(cr.end_date IS NULL) AND cr.end_date <= NOW())
+          OR
+          ISNULL(cr.frequency_unit)
+          OR 
+          (frequency_interval = 0) 
+        )';
   $dao = CRM_Core_DAO::executeQuery($update,$args);
 
   // Now we're ready to trigger payments
