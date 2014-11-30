@@ -12,6 +12,10 @@
     <li>You can cancel a Direct Debit at any time by simply contacting your bank or building society. Written confirmation may be required. Please also notify the organisation</li>
   </ul>
   <br/>
+  <div class="messages status continue_instructions-section">
+    <p>Please print this page for your records.</p>
+  </div>
+  <br/>
   <div class="clear"></div>
     <div>
       <img width=166 height=61 src="{crmResURL ext=com.iatspayments.civicrm file=templates/CRM/iATS/bacs.png}">
