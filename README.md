@@ -126,6 +126,6 @@ ACH/EFT contributions go in with a pending status until a process at iATS confir
 
 9002 Error - if you get this when trying to make a contribution, then you're getting that error back from the iATS server due to an account misconfiguration. One source is due to some special characters in your passwd.
 
-CiviCRM core assigns Membership status (=new) as well as Event status (=registered) as soon as ACH/EFT is submitted (so while payment is still pending). If the contribution receives a Ok:BankAccept -> the extension will mark the contribution in CiviCRM as completed. If the contribution does NOT receive a Ok:BankAccept -> the extension will mark the contribution in CiviCRM as rejected. Associated existing Membership and Event records may need to be updated manually.
+CiviCRM core assigns Membership status (=new) and extends Membership End date as well as Event status (=registered) as soon as ACH/EFT is submitted (so while payment is still pending - this could be up to 3-5 days for ACH/EFT). If the contribution receives a Ok:BankAccept -> the extension will mark the contribution in CiviCRM as completed. If the contribution does NOT receive a Ok:BankAccept -> the extension will mark the contribution in CiviCRM as rejected - however - associated existing Membership and Event records may need to be updated manually.
 
 Please post an issue to the github repository if you have any questions.
