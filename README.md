@@ -8,7 +8,7 @@ Date: May 5, 2014, version 1.2
 Requirements
 ------------
 
-CiviCRM 4.3+. These are instructions are based on 4.3, instructions for other releases are similar. 
+CiviCRM 4.3+. These are instructions are based on 4.3, instructions for other releases are similar.
 
 4.2 support was dropped in the 1.2.11 release, but it was okay up to that point except for the error in creating the recurring jobs (which you have to do manually).
 
@@ -103,7 +103,7 @@ So use:
 
 When you enable this payment processor for a contribution page, it modifies the form to set recurring contributions as the default, but no longer forces recurring contributions as it did up until version 1.2.3.
 
-Please note that ACH Returns require manually processing. iATS Payments will notify an organization by Email in case such ACH Returns occur - the reason (e.g. NSF) is included. It is up to CiviCRM administrators to handle this in CiviCRM according to your organization's procedures (e.g. if these were monies re: Event registration -> should that registration be canceled as well or will you ask participant to bring cash; if and the amount of NSF fees should be charged to the participant etc). 
+Please note that ACH Returns require manually processing. iATS Payments will notify an organization by Email in case such ACH Returns occur - the reason (e.g. NSF) is included. It is up to CiviCRM administrators to handle this in CiviCRM according to your organization's procedures (e.g. if these were monies re: Event registration -> should that registration be canceled as well or will you ask participant to bring cash; if and the amount of NSF fees should be charged to the participant etc).
 
 A beta release for the UK direct debit support will be out soon. Notes specfic to that:
 - Each charity needs to have a BACS accredited supplier confirm their CiviCRM Direct Debit - Contribution Pages
@@ -125,5 +125,7 @@ ACH/EFT contributions go in with a pending status until a process at iATS confir
 'Backend' ACH/EFT is not supported by CiviCRM core. Having an enabled ACH/EFT payment processor broke the backend live credit card payment page in core (until it was fixed here https://issues.civicrm.org/jira/browse/CRM-14442), so this module fixes that if it's an issue, and also provides links to easily allow administrators to input ACH/EFT on behalf of constituents. A similar problem existings for backend membership and event payments, and this has not been fixed in core.
 
 9002 Error - if you get this when trying to make a contribution, then you're getting that error back from the iATS server due to an account misconfiguration. One source is due to some special characters in your passwd.
+
+CiviCRM core assigns Membership status (=new) as well as Event status (=registered) as soon as ACH/EFT is submitted (so while payment is still pending). If the contribution receives a Ok:BankAccept -> the extension will mark the contribution in CiviCRM as completed. If the contribution does NOT receive a Ok:BankAccept -> the extension will mark the contribution in CiviCRM as rejected. Associated existing Membership and Event records may need to be updated manually.
 
 Please post an issue to the github repository if you have any questions.
