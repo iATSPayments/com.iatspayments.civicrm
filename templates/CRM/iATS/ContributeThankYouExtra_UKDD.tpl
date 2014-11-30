@@ -14,6 +14,12 @@
   <br/>
   <div class="messages status continue_instructions-section">
     <p>Please print this page for your records.</p>
+    <div id="printer-friendly">
+      <a title="Print this page." onclick="window.print(); return false;" href="#">
+        <div class="ui-icon ui-icon-print"></div>
+      </a>
+    </div>
+    <div class="clear"></div>
   </div>
   <br/>
   <div class="clear"></div>
