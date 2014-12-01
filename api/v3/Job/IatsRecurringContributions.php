@@ -46,6 +46,7 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
   $args = array(
     1 => array('Payment_iATSService', 'String'),
     2 => array('Payment_iATSServiceACHEFT', 'String'),
+    3 => array('Payment_iATSServiceSWIPE', 'String'),
   );
   // Before triggering payments, we need to do some housekeeping of the civicrm_contribution_recur records.
   // First update the end_date and then the complete/in-progress values.
@@ -58,7 +59,7 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
       INNER JOIN civicrm_contribution c ON cr.id = c.contribution_recur_id 
       INNER JOIN civicrm_payment_processor pp ON cr.payment_processor_id = pp.id 
       WHERE 
-        (pp.class_name = %1 OR pp.class_name = %2) 
+        (pp.class_name = %1 OR pp.class_name = %2 OR pp.class_name = %3) 
         AND (cr.installments > 0) 
         AND (cr.contribution_status_id IN (1,5)) 
       GROUP BY c.contribution_recur_id';
@@ -88,7 +89,7 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
       WHERE
         cr.contribution_status_id IN (1,5) 
         AND NOT(cr.installments > 0)
-        AND (pp.class_name = %1 OR pp.class_name = %2)
+        AND (pp.class_name = %1 OR pp.class_name = %2 OR pp.class_name = %3)
         AND NOT(ISNULL(cr.end_date))';
   $dao = CRM_Core_DAO::executeQuery($update,$args);
   
@@ -100,7 +101,7 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
         cr.contribution_status_id = 5 
       WHERE
         cr.contribution_status_id = 1 
-        AND (pp.class_name = %1 OR pp.class_name = %2)
+        AND (pp.class_name = %1 OR pp.class_name = %2 OR pp.class_name = %3)
         AND (cr.end_date IS NULL OR cr.end_date > NOW())';
   $dao = CRM_Core_DAO::executeQuery($update,$args);
   // Expire or badly-defined completed cycles
@@ -110,7 +111,7 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
         cr.contribution_status_id = 1 
       WHERE
         cr.contribution_status_id = 5 
-        AND (pp.class_name = %1 OR pp.class_name = %2)
+        AND (pp.class_name = %1 OR pp.class_name = %2 OR pp.class_name = %3)
         AND (
           (NOT(cr.end_date IS NULL) AND cr.end_date <= NOW())
           OR
@@ -128,16 +129,16 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
       INNER JOIN civicrm_iats_customer_codes icc ON cr.id = icc.recur_id
       WHERE 
         cr.contribution_status_id = 5
-        AND (pp.class_name = %1 OR pp.class_name = %2)';
+        AND (pp.class_name = %1 OR pp.class_name = %2 OR pp.class_name = %3)';
   //      AND pp.is_test = 0
   if (!empty($params['recur_id'])) { // in case the job was called to execute a specific recurring contribution id -- not yet implemented!
-    $select .= ' AND icc.recur_id = %3';
-    $args[3] = array($params['recur_id'], 'Int');
+    $select .= ' AND icc.recur_id = %4';
+    $args[4] = array($params['recur_id'], 'Int');
   }
   else { // if (!empty($params['scheduled'])) { 
     //normally, process all recurring contributions due today or earlier
-    $select .= ' AND cr.'.IATS_CIVICRM_NSCD_FID.' <= %3';
-    $args[3] = array($dtCurrentDayEnd, 'String');
+    $select .= ' AND cr.'.IATS_CIVICRM_NSCD_FID.' <= %4';
+    $args[4] = array($dtCurrentDayEnd, 'String');
     // ' AND cr.next_sched_contribution >= %2 
     // $args[2] = array($dtCurrentDayStart, 'String');
   }
@@ -326,7 +327,7 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
       INNER JOIN civicrm_contribution c ON cr.id = c.contribution_recur_id 
       INNER JOIN civicrm_payment_processor pp ON cr.payment_processor_id = pp.id 
       WHERE 
-        (pp.class_name = %1 OR pp.class_name = %2) 
+        (pp.class_name = %1 OR pp.class_name = %2 OR pp.class_name = %3) 
         AND (cr.installments > 0) 
         AND (cr.contribution_status_id  = 5) 
       GROUP BY c.contribution_recur_id';
