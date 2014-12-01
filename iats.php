@@ -702,14 +702,14 @@ function iats_civicrm_buildForm_CRM_Contribute_Form_CancelSubscription(&$form) {
 function iats_civicrm_buildForm_Contribution_Confirm_Payment_iATSServiceUKDD(&$form) {
   $form->addElement('textarea', 'payer_validate_address', ts('Name and full postal address of your Bank or Building Society'), array('rows' => '6', 'columns' => '30'));
   $form->addElement('text', 'payer_validate_service_user_number', ts('Service User Number'));
-  $form->addElement('text', 'payer_validate_reference', ts('Reference'), array());
+  $form->addElement('text', 'payer_validate_reference', ts('Reference'));
   $form->addElement('text', 'payer_validate_date', ts('Today\'s Date'), array()); // date on which the validation happens, reference
   $form->addElement('static', 'payer_validate_instruction', ts('Instruction to your Bank or Building Society'), ts('Please pay %1 Direct Debits from the account detailed in this instruction subject to the safeguards assured by the Direct Debit Guarantee. I understand that this instruction may remain with TestingTest and, if so, details will be passed electronically to my Bank / Building Society.',array('%1' => "<strong>$payee</strong>")));
   $defaults = array(
     'payer_validate_date' => date('F j, Y'),
     'start_date' => $form->_params['start_date'],
   );
-  foreach(array('address','service_user_number','reference_display','date') as $k) {
+  foreach(array('address','service_user_number','reference','date') as $k) {
     $key = 'payer_validate_'.$k;
     $defaults[$key] = $form->_params[$key];
   };
@@ -723,6 +723,10 @@ function iats_civicrm_buildForm_Contribution_Confirm_Payment_iATSServiceUKDD(&$f
  * Modify the contribution Thank You screen for iATS UK DD
  */
 function iats_civicrm_buildForm_Contribution_ThankYou_Payment_iATSServiceUKDD(&$form) {
+  foreach(array('address','service_user_number','reference','date') as $k) {
+    $key = 'payer_validate_'.$k;
+    $form->addElement('static', $key, $key, $form->_params[$key]);
+  };
   CRM_Core_Region::instance('contribution-thankyou-billing-block')->add(array(
     'template' => 'CRM/iATS/ContributeThankYouExtra_UKDD.tpl'
   ));

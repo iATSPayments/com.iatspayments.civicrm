@@ -3,6 +3,12 @@
  Extra fields in Thank You Screen
 *}
 <div>
+  <div class="display-block">
+Bank Address: {$form.payer_validate_address.html}<br />
+Service User Number: {$form.payer_validate_service_user_number.html}<br />
+Reference: {$form.payer_validate_reference.html}<br />
+Date: {$form.payer_validate_date.html}
+  </div>
   <h3>Direct Debit Guarantee</h3>
   <ul>
     <li>The Guarantee is offered by all banks and building societies that accept instructions to pay Direct Debits</li>
