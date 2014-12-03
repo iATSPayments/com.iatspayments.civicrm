@@ -23,8 +23,8 @@ function _civicrm_api3_job_iatsacheftverify_spec(&$spec) {
 
  * Look up all pending (status = 2) ACH/EFT contributions and see if they've been approved or rejected
  * Update the corresponding recurring contribution record to status = 1 (or 4) 
- * This works for both the initial contribution and subsequent contributions.
- * TODO: what kind of alerts should be provide if it fails?
+ * This works for both the initial contribution and subsequent contributions of recurring contributions, as well as one offs.
+ * TODO: what kind of alerts should be provided if it fails?
  *
  * Also lookup new UK direct debit series, and new contributions from existing series.
  */
@@ -55,9 +55,7 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
     if (empty($acheft_pending[$dao->customer_code])) {
       $acheft_pending[$dao->customer_code] = array();
     }
-    // we can assume no more than one contribution per customer code per day!
-    $key = date('Y-m-d',strtotime($dao->receive_date));
-    $acheft_pending[$dao->customer_code][$key] = get_object_vars($dao);
+    $acheft_pending[$dao->customer_code][] = get_object_vars($dao);
   }
 
   // also get the one-off "QuickClients" that still need approval
@@ -71,8 +69,8 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
   $dao = CRM_Core_DAO::executeQuery($select,$args);
   $quick = array();
   while ($dao->fetch()) {
-    /* we use a combination of transaction id and invoice number to compare what iATS gives us and what we have */
-    $key = substr($dao->trxn_id,0,8).substr($dao->invoice_id,0,10);
+    /* we assume that the iATS transaction id is a unique field for matching */
+    $key = substr($dao->trxn_id,0,8); // split on the colon instead?
     $quick[$key] = get_object_vars($dao);
   }
 
@@ -97,8 +95,7 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
     if (empty($ukdd_contribution[$dao->customer_code])) {
       $ukdd_contribution[$dao->customer_code] = array();
     }
-    // we can assume no more than one contribution per customer code per day!
-    $key = date('Y-m-d',strtotime($dao->receive_date));
+    $key = $dao->trxn_id;
     $ukdd_contribution[$dao->customer_code][$key] = get_object_vars($dao);
   }
   // and now get all the non-completed UKDD sequences, in order to track new contributions from iATS
@@ -168,196 +165,166 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
       }
       // make the soap request, should return a csv file
       $response = $iats->request($credentials,$request);
-      if (is_object($response)) {
-        $box = preg_split("/\r\n|\n|\r/", $iats->file($response));
-        // watchdog('civicrm_iatspayments_com', 'data: <pre>!data</pre>', array('!data' => print_r($box,TRUE)), WATCHDOG_NOTICE);
-        if (1 < count($box)) {
-          // data is an array of rows, the first of which is the column headers
-          $headers = array_flip(str_getcsv($box[0]));
-          // watchdog('civicrm_iatspayments_com', 'data: <pre>!data</pre>', array('!data' => print_r($box,TRUE)), WATCHDOG_NOTICE);
-          for ($i = 1; $i < count($box); $i++) {
-            if (empty($box[$i])) continue;
-            $processed[$method]++;
-            $data = str_getcsv($box[$i]);
-            switch($method) {
-              case 'acheft_journal_csv':
-                $customer_code = $data[$headers['Customer Code']];
-                $datetime = $data[$headers['Date']];
-                $invoice_iats = $data[$headers['Invoice']];
-                break;
-              default:
-                $customer_code = $data[$headers['Customer Code']];
-                $datetime = $data[$headers['Date Time']];
-                $invoice_iats = $data[$headers['Invoice Number']];
-                break;
+      $transactions = $iats->getCSV($response, $method);
+      $processed[$method]+= count($transactions);
+      foreach($transactions as $transaction_id => $transaction) {
+        // skip any rows that don't include a customer code - TODO: log this as an error?
+        if (empty($transaction->customer_code)) continue;
+        $contribution = NULL; // use this later to trigger an activity if it's not NULL
+        // deal with three possibilities: it's a one-off "quick client" ach/eft, it's an acheft from a series, or it's a new uk direct debit
+        if ('quick client' == strtolower($transaction->customer_code)) {
+          /* a one off : try to update the contribution status */
+          /* todo: extra testing of datetime value? */
+          if (!empty($quick[$transaction_id])) {
+            $found['quick']++;
+            $contribution = $quick[$transaction_id];
+            $params = array('version' => 3, 'sequential' => 1, 'contribution_status_id' => $contribution_status_id);
+            $params['id'] = $contribution['id'];
+            $result = civicrm_api('Contribution', 'create', $params); // update the contribution
+            if (TRUE) { // always log these requests in civicrm for auditing type purposes
+              $query_params = array(
+                1 => array($transaction->customer_code, 'String'),
+                2 => array($contribution['contact_id'], 'Integer'),
+                3 => array($contribution['id'], 'Integer'),
+                4 => array(0, 'Integer'),
+                5 => array($contribution_status_id, 'Integer'),
+              );
+              CRM_Core_DAO::executeQuery("INSERT INTO civicrm_iats_verify
+                (customer_code, cid, contribution_id, recur_id, contribution_status_id, verify_datetime) VALUES (%1, %2, %3, %4, %5, NOW())", $query_params);
             }
-            // skip any rows that don't include a customer code - TODO: log this as an error?
-            if (empty($customer_code)) continue;
-            $format = 'd/m/Y H:i:s';
-            $rdp = date_parse_from_format($format,$datetime);
-            $receive_date = mktime($rdp['hour'], $rdp['minute'], $rdp['second'], $rdp['month'], $rdp['day'], $rdp['year']);
-            $transaction_id = $data[$headers['Transaction ID']];
-            $contribution = NULL; // use this later to trigger an activity if it's not NULL
-            if ('quick client' == strtolower($customer_code)) {
-              /* a one off : try to update the contribution status */
-              /* todo: extra testing of datetime value? */
-              $key = $transaction_id.$invoice_iats;
-              if (!empty($transaction_id) && !empty($invoice_iats) && !empty($quick[$key])) {
-                $found['quick']++;
-                $contribution = $quick[$key];
-                $params = array('version' => 3, 'sequential' => 1, 'contribution_status_id' => $contribution_status_id);
-                $params['id'] = $contribution['id'];
-                $result = civicrm_api('Contribution', 'create', $params); // update the contribution
-                if (TRUE) { // always log these requests in civicrm for auditing type purposes
-                  $query_params = array(
-                    1 => array($customer_code, 'String'),
-                    2 => array($contribution['contact_id'], 'Integer'),
-                    3 => array($contribution['id'], 'Integer'),
-                    4 => array(0, 'Integer'),
-                    5 => array($contribution_status_id, 'Integer'),
-                  );
-                  CRM_Core_DAO::executeQuery("INSERT INTO civicrm_iats_verify
-                    (customer_code, cid, contribution_id, recur_id, contribution_status_id, verify_datetime) VALUES (%1, %2, %3, %4, %5, NOW())", $query_params);
-                }
-              }
-            }
-            // I'm only interested in customer codes that are still in a pending state, or new ones (e.g. UK DD)
-            elseif (isset($acheft_pending[$customer_code])) {
-              foreach($acheft_pending[$customer_code] as $key => $test) {
-                $ts = strtotime($test['receive_date']);
-                $invoice_test = substr($test['invoice_id'],0,10);
-                if ((abs($ts - $receive_date) < 60 * 60 * 24) && ($invoice_test == $invoice_iats)) {
-                  unset($acheft_pending[$customer_code][$key]);
-                  $contribution = $test;
-                  break;
-                }
-              }
-              if (!empty($contribution)) {
-                $found['recur']++;
-                // first update the contribution status
-                $params = array('version' => 3, 'sequential' => 1, 'contribution_status_id' => $contribution_status_id);
-                $params['id'] = $contribution['id'];
-                $result = civicrm_api('Contribution', 'create', $params); // update the contribution
-                // now see if I need to update the corresponding recurring contribution
-                if ($contribution_status_id != $contribution['cr_contribution_status_id']) {
-                  // TODO: log this separately
-                  $params = array('version' => 3, 'sequential' => 1, 'contribution_status_id' => $contribution_status_id);
-                  $params['id'] = $contribution['contribution_recur_id'];
-                  $result = civicrm_api('ContributionRecur', 'create', $params);
-                }
-                if (TRUE) { // always log these requests in civicrm for auditing type purposes
-                  $query_params = array(
-                    1 => array($customer_code, 'String'),
-                    2 => array($contribution['contact_id'], 'Integer'),
-                    3 => array($contribution['id'], 'Integer'),
-                    4 => array($contribution['contribution_recur_id'], 'Integer'),
-                    5 => array($contribution_status_id, 'Integer'),
-                  );
-                  CRM_Core_DAO::executeQuery("INSERT INTO civicrm_iats_verify
-                    (customer_code, cid, contribution_id, recur_id, contribution_status_id, verify_datetime) VALUES (%1, %2, %3, %4, %5, NOW())", $query_params);
-                  if ($contribution_status_id != $contribution['cr_contribution_status_id']) {
-                    $query_params[3][0] = 0; // the recurring contribution itself got changed
-                    CRM_Core_DAO::executeQuery("INSERT INTO civicrm_iats_verify
-                      (customer_code, cid, contribution_id, recur_id, contribution_status_id, verify_datetime) VALUES (%1, %2, %3, %4, %5, NOW())", $query_params);
-                  }
-                }
-              }
-            }
-            elseif (isset($ukdd_contribution_recur[$customer_code])) {
-              // it's a (new) recurring UKDD contribution triggered from iATS
-              //TODO: check my existing ukdd_contribution list in case it's the first one that just needs to be updated, or has already been processed
-              $contribution_recur = $ukdd_contribution_recur[$customer_code];
-              $format = 'd/m/Y H:i:s';
-              $rdp = date_parse_from_format($format,$data[$headers['Date Time']]);
-              $receive_date = mktime($rdp['hour'], $rdp['minute'], $rdp['second'], $rdp['month'], $rdp['day'], $rdp['year']);
-              $key = date('Y-m-d',$receive_date);
-              if ($contribution_recur['reference_num'] != $data[$headers['ACH Ref.']]) {
-                $output[] = ts(
-                  'Unexpected error: ACH Ref. %1 does not match for customer code %2 (should be %3)',
-                  array(
-                    1 => $data[$headers['ACH Ref.']],
-                    2 => $customer_code,
-                    3 => $contribution_recur['reference_num'],
-                  )
-                );
-                ++$error_count;
-              }
-              elseif (isset($ukdd_contribution[$customer_code][$key])) {
-                // I can ignore it
-                // TODO: confirm status?
-                // $contribution = $ukdd_contribution[$custom_code][$key];
-              }
-              else { // save my contribution in civicrm
-                $amount = $data[$headers['Amount']];
-                $trxn_id = $data[$headers['Transaction ID']];
-                $invoice_id = $trxn_id.':iATSUKDD:'.$key;
-                $contribution = array(
-                  'version'        => 3,
-                  'contact_id'       => $contribution_recur['contact_id'],
-                  'receive_date'       => date('c',$receive_date),
-                  'total_amount'       => $amount,
-                  'payment_instrument_id'  => $contribution_recur['payment_instrument_id'],
-                  'contribution_recur_id'  => $contribution_recur['id'],
-                  'trxn_id'        => $invoice_id, // because it has to be unique, use my invoice id
-                  'invoice_id'       => $invoice_id,
-                  'source'         => 'iATS UK DD Reference: '.$contribution_recur['reference_num'],
-                  'contribution_status_id' => $contribution_status_id, 
-                  'currency'  => $contribution_recur['currency'], // better be GBP!
-                  'payment_processor'   => $contribution_recur['payment_processor_id'],
-                  'is_test'        => 0, 
-                );
-                if (isset($dao->contribution_type_id)) {  // 4.2
-                   $contribution['contribution_type_id'] = $contribution_recur['contribution_type_id'];
-                }
-                else { // 4.3+
-                   $contribution['financial_type_id'] = $contribution_recur['financial_type_id'];
-                }
-                $result = civicrm_api('contribution', 'create', $contribution);
-                if ($result['is_error']) {
-                  $output[] = $result['error_message'];
-                }
-                else {
-                  $found['new']++;
-                }
-              }
-            }
-            if (!empty($contribution)) {
-              // log it as an activity for administrative reference
-              $result = civicrm_api('activity', 'create', array(
-                'version'       => 3,
-                'activity_type_id'  => 6, // 6 = contribution
-                'source_contact_id'   => $contribution['contact_id'],
-                'assignee_contact_id' => $contribution['contact_id'],
-                'subject'       => ts('Updated status of iATS Payments ACH/EFT Contribution %1 to status %2 for contact %3',
-                  array(
-                    1 => $contribution['id'],
-                    2 => $contribution_status_id,
-                    3 => $contribution['contact_id'],
-                  )),
-                'status_id'       => 2, // TODO: what should this be?
-                'activity_date_time'  => date("YmdHis"),
-              ));
-              if ($result['is_error']) {
-                $output[] = ts(
-                  'An error occurred while creating activity record for contact id %1: %2',
-                  array(
-                    1 => $contribution['contact_id'],
-                    2 => $result['error_message']
-                  )
-                );
-                ++$error_count;
-              } 
-              else {
-                $output[] = ts('%1 ACH/EFT contribution id %2 for contact id %3', array(1 => ($contribution_status_id == 4 ? ts('Cancelled') : ts('Verified')), 2 => $contribution['id'], 3 => $contribution['contact_id']));
-              }
-            }
-            // else ignore - it's not one of my pending transactions
           }
         }
-      }
-      else {
-        $error_count++;
-        $output[] = 'Unexpected SOAP error';
+        // I'm only interested in acheft customer codes that are still in a pending state, or new ones (e.g. UK DD)
+        elseif (isset($acheft_pending[$transaction->customer_code])) {
+          foreach($acheft_pending[$transaction->customer_code] as $i => $test) {
+            // match if: the invoice id matches and the date is within a day
+            $ts = strtotime($test['receive_date']);
+            $invoice_test = substr($test['invoice_id'],0,10); // iats only stores the first 10 characters of my civicrm invoice id
+            if ((abs($ts - $transaction->receive_date) < 60 * 60 * 24) && ($invoice_test == $transaction->invoice)) {
+              unset($acheft_pending[$transaction->customer_code][$i]);
+              $contribution = $test;
+              break;
+            }
+          }
+          if (!empty($contribution)) {
+            $found['recur']++;
+            // first update the contribution status
+            $params = array('version' => 3, 'sequential' => 1, 'contribution_status_id' => $contribution_status_id);
+            $params['id'] = $contribution['id'];
+            $result = civicrm_api('Contribution', 'create', $params); // update the contribution
+            // now see if I need to update the corresponding recurring contribution
+            if ($contribution_status_id != $contribution['cr_contribution_status_id']) {
+              // TODO: log this separately
+              $params = array('version' => 3, 'sequential' => 1, 'contribution_status_id' => $contribution_status_id);
+              $params['id'] = $contribution['contribution_recur_id'];
+              $result = civicrm_api('ContributionRecur', 'create', $params);
+            }
+            if (TRUE) { // always log these requests in civicrm for auditing type purposes
+              $query_params = array(
+                1 => array($transaction->customer_code, 'String'),
+                2 => array($contribution['contact_id'], 'Integer'),
+                3 => array($contribution['id'], 'Integer'),
+                4 => array($contribution['contribution_recur_id'], 'Integer'),
+                5 => array($contribution_status_id, 'Integer'),
+              );
+              CRM_Core_DAO::executeQuery("INSERT INTO civicrm_iats_verify
+                (customer_code, cid, contribution_id, recur_id, contribution_status_id, verify_datetime) VALUES (%1, %2, %3, %4, %5, NOW())", $query_params);
+              if ($contribution_status_id != $contribution['cr_contribution_status_id']) {
+                $query_params[3][0] = 0; // the recurring contribution itself got changed
+                CRM_Core_DAO::executeQuery("INSERT INTO civicrm_iats_verify
+                  (customer_code, cid, contribution_id, recur_id, contribution_status_id, verify_datetime) VALUES (%1, %2, %3, %4, %5, NOW())", $query_params);
+              }
+            }
+          }
+        }
+        elseif (isset($ukdd_contribution_recur[$transaction->customer_code])) {
+          // it's a (possibly) new recurring UKDD contribution triggered from iATS
+          // check my existing ukdd_contribution list in case it's the first one that just needs to be updated, or has already been processed
+          // I also confirm that it's got the right ach reference field, which i get from the ukdd_contribution_recur record
+          $contribution_recur = $ukdd_contribution_recur[$transaction->customer_code];
+          // build the civicrm invoice id, also used for the transaction id
+          $invoice_id = $transaction->id.':iATSUKDD:'.date('Y-m-d',$transaction->receive_date);
+          // now do a couple of tests:
+          if ($contribution_recur['reference_num'] != $transaction->achref) {
+            $output[] = ts(
+              'Unexpected error: ACH Ref. %1 does not match for customer code %2 (should be %3)',
+              array(
+                1 => $transaction->achref,
+                2 => $transaction->customer_code,
+                3 => $contribution_recur['reference_num'],
+              )
+            );
+            ++$error_count;
+          }
+          elseif (isset($ukdd_contribution[$transaction->customer_code][$invoice_id])) {
+            // I can ignore it, i've already created this one
+            // TODO: show I confirm status?
+          }
+          else { // save my contribution in civicrm
+            $contribution = array(
+              'version'        => 3,
+              'contact_id'       => $contribution_recur['contact_id'],
+              'receive_date'       => date('c',$transaction->receive_date),
+              'total_amount'       => $transaction->amount,
+              'payment_instrument_id'  => $contribution_recur['payment_instrument_id'],
+              'contribution_recur_id'  => $contribution_recur['id'],
+              'trxn_id'        => $invoice_id, // because it has to be unique, use my invoice id
+              'invoice_id'       => $invoice_id,
+              'source'         => 'iATS UK DD Reference: '.$contribution_recur['reference_num'],
+              'contribution_status_id' => $contribution_status_id, 
+              'currency'  => $contribution_recur['currency'], // better be GBP!
+              'payment_processor'   => $contribution_recur['payment_processor_id'],
+              'is_test'        => 0, 
+            );
+            if (isset($dao->contribution_type_id)) {  // 4.2
+               $contribution['contribution_type_id'] = $contribution_recur['contribution_type_id'];
+            }
+            else { // 4.3+
+               $contribution['financial_type_id'] = $contribution_recur['financial_type_id'];
+            }
+            $result = civicrm_api('contribution', 'create', $contribution);
+            if ($result['is_error']) {
+              $output[] = $result['error_message'];
+            }
+            else {
+              $found['new']++;
+            }
+          }
+        }
+        // if one of the above was true and I've got a new or confirmed contribution:
+        if (!empty($contribution)) {
+          // log it as an activity for administrative reference
+          $subject_string = empty($contribution['id']) ? 'Found new iATS Payments UK DD contribution for contact id %3' : '%1 iATS Payments ACH/EFT contribution id %2 for contact id %3';
+          $subject = ts($subject_string,
+              array(
+                1 => (($contribution_status_id == 4) ? ts('Cancelled') : ts('Verified')),
+                2 => $contribution['id'],
+                3 => $contribution['contact_id'],
+              ));
+          $result = civicrm_api('activity', 'create', array(
+            'version'       => 3,
+            'activity_type_id'  => 6, // 6 = contribution
+            'source_contact_id'   => $contribution['contact_id'],
+            'assignee_contact_id' => $contribution['contact_id'],
+            'subject'       => $subject,
+            'status_id'       => 2, // TODO: what should this be?
+            'activity_date_time'  => date("YmdHis"),
+          ));
+          if ($result['is_error']) {
+            $output[] = ts(
+              'An error occurred while creating activity record for contact id %1: %2',
+              array(
+                1 => $contribution['contact_id'],
+                2 => $result['error_message']
+              )
+            );
+            ++$error_count;
+          } 
+          else {
+            $output[] = $subject;
+          }
+        }
+        // otherwise ignore it
       }
     }
   }
@@ -380,10 +347,11 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
   // If no errors and some records processed ..
   if (array_sum($processed) > 0) {
     if (count($acheft_pending) > 0) {
-      $message .= '<br />'. ts('For %1 pending ACH/EFT recurring contributions, %2 results applied.',
+      $message .= '<br />'. ts('For %1 pending ACH/EFT recurring contributions from %2 contacts, %3 results applied.',
         array(
-          1 => count($acheft_pending),
-          2 => $found['recur'],
+          1 => count($acheft_pending, COUNT_RECURSIVE),
+          2 => count($acheft_pending),
+          3 => $found['recur'],
         )
       );
     }

@@ -277,6 +277,64 @@ Class iATS_Service_Request {
   }
 
   /*
+   * helper function to process csv files
+   * convert to an array of objects, each one corresponding to a transaction row
+   */
+  function getCSV($response, $method) {
+    $transactions = array();
+    $iats_domain = parse_url($this->_wsdl_url,PHP_URL_HOST);
+    switch($iats_domain) {
+      case 'www.iatspayments.com':
+        $date_format = 'm/d/Y H:i:s';
+        break;
+      case 'www.uk.iatspayments.com':
+        $date_format = 'd/m/Y H:i:s';
+        break;
+      default: // todo throw an exception instead? This should never happen!
+        die('Invalid domain for date format');
+    }
+    if (is_object($response)) {
+      $box = preg_split("/\r\n|\n|\r/", $this->file($response));
+      // watchdog('civicrm_iatspayments_com', 'data: <pre>!data</pre>', array('!data' => print_r($box,TRUE)), WATCHDOG_NOTICE);
+      if (1 < count($box)) {
+        // data is an array of rows, the first of which is the column headers
+        $headers = array_flip(str_getcsv($box[0]));
+        // watchdog('civicrm_iatspayments_com', 'data: <pre>!data</pre>', array('!data' => print_r($box,TRUE)), WATCHDOG_NOTICE);
+        for ($i = 1; $i < count($box); $i++) {
+          if (empty($box[$i])) continue;
+          $transaction = new stdClass;
+          $data = str_getcsv($box[$i]);
+          // first get the data common to all methods
+          $transaction->id = $data[$headers['Transaction ID']];
+          $transaction->customer_code = $data[$headers['Customer Code']];
+          $transaction->amount = $data[$headers['Amount']];
+          // now the method specific headers
+          switch($method) {
+            case 'acheft_journal_csv':
+              $datetime = $data[$headers['Date']];
+              $transaction->invoice = $data[$headers['Invoice']];
+              break;
+            default: // the box journals
+              $datetime = $data[$headers['Date Time']];
+              $transaction->invoice = $data[$headers['Invoice Number']];
+              break;
+          }
+          // and now the uk dd specific hack
+          if ('www.uk.iatspayments.com' == $iats_domain) {
+            $transaction->achref = $data[$headers['ACH Ref.']];
+          }
+          // note that date_format depends on the server (iats_domain)
+          $rdp = date_parse_from_format($date_format,$datetime);
+          $transaction->receive_date = mktime($rdp['hour'], $rdp['minute'], $rdp['second'], $rdp['month'], $rdp['day'], $rdp['year']);
+          // and now save it
+          $transactions[$transaction->id] = $transaction;
+        }
+      }
+    }
+    return $transactions;
+  }
+
+  /*
    * Provides the soap parameters for each of the ways to process payments at iATS Services
    * Parameters are: method, message and response, these are all soap object properties
    * Title and description provide a public information interface, not used internally
