@@ -165,7 +165,7 @@ class CRM_Core_Payment_iATSServiceUKDD extends CRM_Core_Payment {
     $result = $iats->result($response);
     // drupal_set_message('<pre>'.print_r($result,TRUE).'</pre>');
     if ($result['status']) {
-      $params['trxn_id'] = $result['remote_id'] . ':' . time();
+      $params['trxn_id'] = trim($result['remote_id']) . ':' . time();
       $params['gross_amount'] = $params['amount'];
       // save the client info in my custom table
       // Allow further manipulation of the arguments via custom hooks,
