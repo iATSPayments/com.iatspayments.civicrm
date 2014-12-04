@@ -135,7 +135,7 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
     2 => array('Payment_iATSServiceUKDD', 'String'),
   );
   $dao = CRM_Core_DAO::executeQuery($select,$args);
-  // watchdog('civicrm_iatspayments_com', 'pending: <pre>!pending</pre>', array('!pending' => print_r($acheft_pending,TRUE)), WATCHDOG_NOTICE);   
+  // watchdog('civicrm_iatspayments_com', 'quick: <pre>!pending</pre>', array('!pending' => print_r($quick,TRUE)), WATCHDOG_NOTICE);   
   while ($dao->fetch()) {
     /* get approvals from yesterday, approvals from previous days, and then rejections for this payment processor */
     $iats_service_params = array('type' => 'report', 'iats_domain' => parse_url($dao->url_site, PHP_URL_HOST)) + $iats_service_params;
@@ -167,9 +167,8 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
       $response = $iats->request($credentials,$request);
       $transactions = $iats->getCSV($response, $method);
       $processed[$method]+= count($transactions);
+      // watchdog('civicrm_iatspayments_com', 'transactions: <pre>!trans</pre>', array('!trans' => print_r($transactions,TRUE)), WATCHDOG_NOTICE);   
       foreach($transactions as $transaction_id => $transaction) {
-        // skip any rows that don't include a customer code - TODO: log this as an error?
-        if (empty($transaction->customer_code)) continue;
         $contribution = NULL; // use this later to trigger an activity if it's not NULL
         // deal with three possibilities: it's a one-off "quick client" ach/eft, it's an acheft from a series, or it's a new uk direct debit
         if ('quick client' == strtolower($transaction->customer_code)) {
@@ -194,8 +193,12 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
             }
           }
         }
-        // I'm only interested in acheft customer codes that are still in a pending state, or new ones (e.g. UK DD)
+        elseif (empty($transaction->customer_code)) {
+          // ignore this row - only quick client entries are valid without a customer code 
+          // todo: log this as an error?
+        }
         elseif (isset($acheft_pending[$transaction->customer_code])) {
+          // I'm only interested in acheft customer codes that are still in a pending state, or new ones (e.g. UK DD)
           foreach($acheft_pending[$transaction->customer_code] as $i => $test) {
             // match if: the invoice id matches and the date is within a day
             $ts = strtotime($test['receive_date']);
