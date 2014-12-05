@@ -295,11 +295,10 @@ Class iATS_Service_Request {
     }
     if (is_object($response)) {
       $box = preg_split("/\r\n|\n|\r/", $this->file($response));
-      // watchdog('civicrm_iatspayments_com', 'data: <pre>!data</pre>', array('!data' => print_r($box,TRUE)), WATCHDOG_NOTICE);
+      //  watchdog('civicrm_iatspayments_com', 'data: <pre>!data</pre>', array('!data' => print_r($box,TRUE)), WATCHDOG_NOTICE);
       if (1 < count($box)) {
         // data is an array of rows, the first of which is the column headers
         $headers = array_flip(str_getcsv($box[0]));
-        // watchdog('civicrm_iatspayments_com', 'data: <pre>!data</pre>', array('!data' => print_r($box,TRUE)), WATCHDOG_NOTICE);
         for ($i = 1; $i < count($box); $i++) {
           if (empty($box[$i])) continue;
           $transaction = new stdClass;
@@ -307,20 +306,21 @@ Class iATS_Service_Request {
           // first get the data common to all methods
           $transaction->id = $data[$headers['Transaction ID']];
           $transaction->customer_code = $data[$headers['Customer Code']];
-          $transaction->amount = $data[$headers['Amount']];
           // now the method specific headers
           switch($method) {
             case 'acheft_journal_csv':
               $datetime = $data[$headers['Date']];
               $transaction->invoice = $data[$headers['Invoice']];
+              $transaction->amount = $data[$headers['Total']];
               break;
             default: // the box journals
+              $transaction->amount = $data[$headers['Amount']];
               $datetime = $data[$headers['Date Time']];
               $transaction->invoice = $data[$headers['Invoice Number']];
               break;
           }
-          // and now the uk dd specific hack
-          if ('www.uk.iatspayments.com' == $iats_domain) {
+          // and now the uk dd specific hack, only for the box journals
+          if ('www.uk.iatspayments.com' == $iats_domain && 'acheft_journal_csv' != $method) {
             $transaction->achref = $data[$headers['ACH Ref.']];
           }
           // note that date_format depends on the server (iats_domain)
