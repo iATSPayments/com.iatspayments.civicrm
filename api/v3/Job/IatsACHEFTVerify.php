@@ -32,7 +32,7 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
 
   // find all pending iats acheft contributions, and their corresponding recurring contribution id 
   // Note: I'm not going to bother checking for is_test = 1 contributions, since these are never verified 
-  $select = 'SELECT c.*, cr.contribution_status_id as cr_contribution_status_id, icc.customer_code as customer_code, icc.cid as icc_contact_id, pp.is_test 
+  $select = 'SELECT c.*, cr.contribution_status_id as cr_contribution_status_id, icc.customer_code as customer_code, icc.cid as icc_contact_id, pp.is_test, pp.class_name
       FROM civicrm_contribution c 
       INNER JOIN civicrm_contribution_recur cr ON c.contribution_recur_id = cr.id
       INNER JOIN civicrm_payment_processor pp ON cr.payment_processor_id = pp.id
@@ -41,7 +41,6 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
         c.contribution_status_id = 2
         AND pp.class_name = %1
         AND pp.is_test = 0
-        AND (cr.end_date IS NULL OR cr.end_date > NOW())
       ORDER BY c.id';
   $args = array(
     1 => array('Payment_iATSServiceACHEFT', 'String'),
@@ -135,7 +134,7 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
     2 => array('Payment_iATSServiceUKDD', 'String'),
   );
   $dao = CRM_Core_DAO::executeQuery($select,$args);
-  // watchdog('civicrm_iatspayments_com', 'quick: <pre>!pending</pre>', array('!pending' => print_r($quick,TRUE)), WATCHDOG_NOTICE);   
+  // watchdog('civicrm_iatspayments_com', 'pending: <pre>!pending</pre>', array('!pending' => print_r($acheft_pending,TRUE)), WATCHDOG_NOTICE);   
   while ($dao->fetch()) {
     /* get approvals from yesterday, approvals from previous days, and then rejections for this payment processor */
     $iats_service_params = array('type' => 'report', 'iats_domain' => parse_url($dao->url_site, PHP_URL_HOST)) + $iats_service_params;
@@ -336,7 +335,7 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
       1 => $error_count,
     )
   );
-  $message .= '<br />'. ts('Processed %1 approvals from yesterday, %2 approval and %3 rejection records from the previous month.',
+  $message .= '<br />'. ts('Processed %1 approvals from today, %2 approval and %3 rejection records from the previous 30 days.',
     array(
       1 => $processed['acheft_journal_csv'],
       2 => $processed['acheft_payment_box_journal_csv'],
