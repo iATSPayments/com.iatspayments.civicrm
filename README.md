@@ -8,7 +8,7 @@ Date: May 5, 2014, version 1.2
 Requirements
 ------------
 
-NOTE: to ensure all different types of transactions are working across all CiviCRM pathways [our test matrix includes 20 type of transactions at the moment] - a small patch to CiviCRM core is required. You can find iATS_4.4.10.diff and iATs_4.5.4.diff in the repository now. If you use another version of CiviCRM you may have to adjust the line numbers in these patches. 
+NOTE: to ensure all different types of transactions are working across all CiviCRM pathways [our test matrix includes 20 type of transactions at the moment] - a small patch to CiviCRM core is required. You can find iATS_4.4.10.diff and iATS_4.5.4.diff in the repository. If you use another version of CiviCRM you may have to adjust the line numbers in these patches. 
 
 CiviCRM 4.3+. These are instructions are based on 4.3, instructions for other releases are similar.
 
