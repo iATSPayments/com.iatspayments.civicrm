@@ -110,6 +110,25 @@ A beta release for the UK direct debit support will be out soon. Notes specfic t
 - Administer -> System Settings -> Payment Processors -> processors of type: iATS Payments UK Direct Debit require a Service User Number (SUN) in addition to the iATS Agent Code and Password
 - UK TEST purposes: https://www.uk.iatspayments.com/login/login.html Client Code: UDDD88 Password: UDDD888 SUN: 123456789
 
+SWIPE
+
+SWIPE on backend:
+- Set your Payment Processor of type iATSpayments SWIPE to default (Administer -> System Settings -> Payment Processor)
+- Search for a Contact (or add a new one) and in their Contact Summary screen hit the Contributions Tab -> then hit: + Submit Credit Card Contribution
+- Click in Encrypted -> SWIPE card -> add Expiration Date -> Save [transaction completed - confirmed monies are in iATSpayments.com]
+
+SWIPE on public contribution pages:
+To get SWIPE working on public contribution pages disable three lines in CiviCRM Core code:
+CRM -> Core -> Payment -> Form.php
+
+in 4.5.4:
+lines (367 -> 369):
+//elseif (!empty($values['credit_card_number'])) {
+// $errors['credit_card_number'] = ts('Please enter a valid Card Number');
+//}
+
+Working on something permanent (adding some parameter to say don't invoke credit card validation if expecting a long encrypted string) - but this will work - till then. 
+
 Issues
 ------
 
