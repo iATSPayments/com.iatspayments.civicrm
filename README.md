@@ -113,7 +113,7 @@ A beta release for the UK direct debit support will be out soon. Notes specfic t
 SWIPE
 
 SWIPE on backend:
-- Set your Payment Processor of type iATSpayments SWIPE to default (Administer -> System Settings -> Payment Processor)
+- Create and set your Payment Processor of type iATSpayments SWIPE to default (Administer -> System Settings -> Payment Processor)
 - Search for a Contact (or add a new one) and in their Contact Summary screen hit the Contributions Tab -> then hit: + Submit Credit Card Contribution
 - Click in Encrypted -> SWIPE card -> add Expiration Date -> Save [transaction completed - confirmed monies are in iATSpayments.com]
 
