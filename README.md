@@ -121,8 +121,9 @@ SWIPE on public contribution pages:
 To get SWIPE working on public contribution pages disable three lines in CiviCRM Core code:
 CRM -> Core -> Payment -> Form.php
 
-in 4.5.4:
-lines (367 -> 369):
+in 4.5.4
+lines (367 - 369)
+
 //elseif (!empty($values['credit_card_number'])) {
 // $errors['credit_card_number'] = ts('Please enter a valid Card Number');
 //}
