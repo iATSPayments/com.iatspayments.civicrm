@@ -30,50 +30,29 @@ function _civicrm_api3_job_iatsacheftverify_spec(&$spec) {
  */
 function civicrm_api3_job_iatsacheftverify($iats_service_params) {
 
-  // find all pending iats acheft contributions, and their corresponding recurring contribution id 
-  // Note: I'm not going to bother checking for is_test = 1 contributions, since these are never verified 
-  $select = 'SELECT c.*, cr.contribution_status_id as cr_contribution_status_id, icc.customer_code as customer_code, icc.cid as icc_contact_id, pp.is_test, pp.class_name
-      FROM civicrm_contribution c 
-      INNER JOIN civicrm_contribution_recur cr ON c.contribution_recur_id = cr.id
-      INNER JOIN civicrm_payment_processor pp ON cr.payment_processor_id = pp.id
-      INNER JOIN civicrm_iats_customer_codes icc ON cr.id = icc.recur_id
-      WHERE 
-        c.contribution_status_id = 2
-        AND pp.class_name = %1
-        AND pp.is_test = 0
-      ORDER BY c.id';
-  $args = array(
-    1 => array('Payment_iATSServiceACHEFT', 'String'),
-  );
-
-  $dao = CRM_Core_DAO::executeQuery($select,$args);
-  $acheft_pending = array();
-  while ($dao->fetch()) {
-    /* we will ask iats if this ach/eft is approved, if so update both the contribution and recurring contribution status id's to 1 */
-    /* todo: get_object_vars is a lazy way to do this! */
-    if (empty($acheft_pending[$dao->customer_code])) {
-      $acheft_pending[$dao->customer_code] = array();
-    }
-    $acheft_pending[$dao->customer_code][] = get_object_vars($dao);
-  }
-
-  // also get the one-off "QuickClients" that still need approval
-  $select = 'SELECT id,trxn_id,invoice_id,contact_id
+  define('IATS_VERIFY_DAYS',30);
+  // I've added an extra 2 days when getting candidates from CiviCRM to be sure i've got them all.
+  $civicrm_verify_days = IATS_VERFIY_DAYS + 2;
+  // get all the pending direct debit contributions that still need approval within the last civicrm_verify_days
+  $select = 'SELECT id, trxn_id, invoice_id, contact_id, contribution_recur_id
       FROM civicrm_contribution  
       WHERE 
         contribution_status_id = 2
         AND payment_instrument_id = 2
+        AND receive_date > %1
         AND is_test = 0';
-  $args = array();
+  $args = array(
+    1 => array(date('c',strtotime('-'.$civicrm_verify_days.' days')), 'String'),
+  );
   $dao = CRM_Core_DAO::executeQuery($select,$args);
-  $quick = array();
+  $acheft_pending = array();
   while ($dao->fetch()) {
-    /* we assume that the iATS transaction id is a unique field for matching */
-    $key = substr($dao->trxn_id,0,8); // split on the colon instead?
-    $quick[$key] = get_object_vars($dao);
+    /* we assume that the iATS transaction id is a unique field for matching, and that it is stored as the first part of the civicrm transaction */
+    /* this is not unreasonable, assuming that the site doesn't have other active direct debit payment processors with similar patterns */
+    $key = current(explode(':',$dao->trxn_id,2)); 
+    $acheft_pending[$key] = array('id' => $dao->id, 'trxn_id' => $dao->trxn_id, 'invoice_id' => $dao->invoice_id, 'contact_id' => $dao->contact_id, 'contribution_recur_id' => $dao->contribution_recur_id);
   }
-
-  // and all the recent UK DD recurring contributions. I've added an extra 2 days to be sure i've got them all.
+  // and all the recent UK DD recurring contributions. 
   $select = 'SELECT c.*, cr.contribution_status_id as cr_contribution_status_id, icc.customer_code as customer_code, icc.cid as icc_contact_id, iukddv.acheft_reference_num as reference_num, pp.is_test 
       FROM civicrm_contribution c 
       INNER JOIN civicrm_contribution_recur cr ON c.contribution_recur_id = cr.id
@@ -81,13 +60,10 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
       INNER JOIN civicrm_iats_customer_codes icc ON cr.id = icc.recur_id
       INNER JOIN civicrm_iats_ukdd_validate iukddv ON cr.id = iukddv.recur_id
       WHERE 
-        pp.class_name = %1
-        AND pp.is_test = 0
-        AND c.receive_date > %2';
-  $args = array(
-    1 => array('Payment_iATSServiceUKDD', 'String'),
-    2 => array(date('c',strtotime('-32 days')), 'String'),
-  );
+        c.receive_date > %1
+        AND pp.class_name = %2
+        AND pp.is_test = 0';
+  $args[2] = array('Payment_iATSServiceUKDD', 'String');
   $dao = CRM_Core_DAO::executeQuery($select,$args);
   $ukdd_contribution = array();
   while ($dao->fetch()) {
@@ -126,15 +102,15 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
   $found = array('recur' => 0, 'quick' => 0, 'new' => 0);
   // save all my api result messages as well
   $output = array();
-  /* do this loop for each relevant payment processor of type ACHEFT or UKDD (usually only one or none) */
-  /* since test payments are NEVER verified by iATS, don't bother checking them [unless/until they change this] */
+  /* do this loop for each relevant payment processor of type ACHEFT or UKDD */
+  /* since test payments are NEVER verified by iATS, don't bother checking them [unless/until they change this?] */
   $select = 'SELECT id,url_site,is_test FROM civicrm_payment_processor WHERE (class_name = %1 OR class_name = %2) AND is_test = 0';
   $args = array(
     1 => array('Payment_iATSServiceACHEFT', 'String'),
     2 => array('Payment_iATSServiceUKDD', 'String'),
   );
   $dao = CRM_Core_DAO::executeQuery($select,$args);
-  // watchdog('civicrm_iatspayments_com', 'pending: <pre>!pending</pre>', array('!pending' => print_r($acheft_pending,TRUE)), WATCHDOG_NOTICE);   
+  // watchdog('civicrm_iatspayments_com', 'pending: <pre>!pending</pre>', array('!pending' => print_r($iats_acheft_recur_pending,TRUE)), WATCHDOG_NOTICE);   
   while ($dao->fetch()) {
     /* get approvals from yesterday, approvals from previous days, and then rejections for this payment processor */
     $iats_service_params = array('type' => 'report', 'iats_domain' => parse_url($dao->url_site, PHP_URL_HOST)) + $iats_service_params;
@@ -146,7 +122,7 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
       // or, it could be configurable for the job
       $iats_service_params['method'] = $method;
       $iats = new iATS_Service_Request($iats_service_params);
-      // I'm now using the new v2 version of the payment_box_journal, so hack removed here
+      // I'm now using the new v2 version of the payment_box_journal, so a previous hack here is now removed 
       switch($method) {
         case 'acheft_journal_csv': // special case to get today's transactions, so we're as real-time as we can be
           $request = array(
@@ -154,9 +130,9 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
             'customerIPAddress' => (function_exists('ip_address') ? ip_address() : $_SERVER['REMOTE_ADDR']),
           );
           break;
-        default: // box journals only got up to the end of yesterday
+        default: // box journals only go up to the end of yesterday
           $request = array(
-            'fromDate' => date('Y-m-d',strtotime('-30 days')).'T00:00:00+00:00', 
+            'fromDate' => date('Y-m-d',strtotime('-'.IATS_VERIFY_DAYS.' days')).'T00:00:00+00:00', 
             'toDate' => date('Y-m-d',strtotime('-1 day')).'T23:59:59+00:00', 
             'customerIPAddress' => (function_exists('ip_address') ? ip_address() : $_SERVER['REMOTE_ADDR']),
           );
@@ -169,76 +145,27 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
       // watchdog('civicrm_iatspayments_com', 'transactions: <pre>!trans</pre>', array('!trans' => print_r($transactions,TRUE)), WATCHDOG_NOTICE);   
       foreach($transactions as $transaction_id => $transaction) {
         $contribution = NULL; // use this later to trigger an activity if it's not NULL
-        // deal with three possibilities: it's a one-off "quick client" ach/eft, it's an acheft from a series, or it's a new uk direct debit
-        if ('quick client' == strtolower($transaction->customer_code)) {
-          /* a one off : try to update the contribution status */
-          /* todo: extra testing of datetime value? */
-          if (!empty($quick[$transaction_id])) {
-            $found['quick']++;
-            $contribution = $quick[$transaction_id];
-            $params = array('version' => 3, 'sequential' => 1, 'contribution_status_id' => $contribution_status_id);
-            $params['id'] = $contribution['id'];
-            $result = civicrm_api('Contribution', 'create', $params); // update the contribution
-            if (TRUE) { // always log these requests in civicrm for auditing type purposes
-              $query_params = array(
-                1 => array($transaction->customer_code, 'String'),
-                2 => array($contribution['contact_id'], 'Integer'),
-                3 => array($contribution['id'], 'Integer'),
-                4 => array(0, 'Integer'),
-                5 => array($contribution_status_id, 'Integer'),
-              );
-              CRM_Core_DAO::executeQuery("INSERT INTO civicrm_iats_verify
-                (customer_code, cid, contribution_id, recur_id, contribution_status_id, verify_datetime) VALUES (%1, %2, %3, %4, %5, NOW())", $query_params);
-            }
-          }
+        // first deal with acheft_pending, [and possibly the corresponding recur sequence ? no? ]
+        if (!empty($acheft_pending[$transaction_id])) {
+          /* update the contribution status */
+          /* todo: additional sanity testing? We're assuming the uniqueness of the iATS transaction id here */
+          $is_recur = ('quick client' != strtolower($transaction->customer_code));
+          $found[$is_recur ? 'recur' : 'quick']++;
+          $contribution = $acheft_pending[$transaction_id];
+          $params = array('version' => 3, 'sequential' => 1, 'contribution_status_id' => $contribution_status_id, 'id' => $contribution['id']);
+          $result = civicrm_api('Contribution', 'create', $params); // update the contribution
+          // always log these requests in my cutom civicrm table for auditing type purposes
+          $query_params = array(
+            1 => array($transaction->customer_code, 'String'),
+            2 => array($contribution['contact_id'], 'Integer'),
+            3 => array($contribution['id'], 'Integer'),
+            4 => array($contribution['contribution_recur_id'], 'Integer'),
+            5 => array($contribution_status_id, 'Integer'),
+          );
+          CRM_Core_DAO::executeQuery("INSERT INTO civicrm_iats_verify
+            (customer_code, cid, contribution_id, recur_id, contribution_status_id, verify_datetime) VALUES (%1, %2, %3, %4, %5, NOW())", $query_params);
         }
-        elseif (empty($transaction->customer_code)) {
-          // ignore this row - only quick client entries are valid without a customer code 
-          // todo: log this as an error?
-        }
-        elseif (isset($acheft_pending[$transaction->customer_code])) {
-          // I'm only interested in acheft customer codes that are still in a pending state, or new ones (e.g. UK DD)
-          foreach($acheft_pending[$transaction->customer_code] as $i => $test) {
-            // match if: the invoice id matches and the date is within a day
-            $ts = strtotime($test['receive_date']);
-            $invoice_test = substr($test['invoice_id'],0,10); // iats only stores the first 10 characters of my civicrm invoice id
-            if ((abs($ts - $transaction->receive_date) < 60 * 60 * 24) && ($invoice_test == $transaction->invoice)) {
-              unset($acheft_pending[$transaction->customer_code][$i]);
-              $contribution = $test;
-              break;
-            }
-          }
-          if (!empty($contribution)) {
-            $found['recur']++;
-            // first update the contribution status
-            $params = array('version' => 3, 'sequential' => 1, 'contribution_status_id' => $contribution_status_id);
-            $params['id'] = $contribution['id'];
-            $result = civicrm_api('Contribution', 'create', $params); // update the contribution
-            // now see if I need to update the corresponding recurring contribution
-            if ($contribution_status_id != $contribution['cr_contribution_status_id']) {
-              // TODO: log this separately
-              $params = array('version' => 3, 'sequential' => 1, 'contribution_status_id' => $contribution_status_id);
-              $params['id'] = $contribution['contribution_recur_id'];
-              $result = civicrm_api('ContributionRecur', 'create', $params);
-            }
-            if (TRUE) { // always log these requests in civicrm for auditing type purposes
-              $query_params = array(
-                1 => array($transaction->customer_code, 'String'),
-                2 => array($contribution['contact_id'], 'Integer'),
-                3 => array($contribution['id'], 'Integer'),
-                4 => array($contribution['contribution_recur_id'], 'Integer'),
-                5 => array($contribution_status_id, 'Integer'),
-              );
-              CRM_Core_DAO::executeQuery("INSERT INTO civicrm_iats_verify
-                (customer_code, cid, contribution_id, recur_id, contribution_status_id, verify_datetime) VALUES (%1, %2, %3, %4, %5, NOW())", $query_params);
-              if ($contribution_status_id != $contribution['cr_contribution_status_id']) {
-                $query_params[3][0] = 0; // the recurring contribution itself got changed
-                CRM_Core_DAO::executeQuery("INSERT INTO civicrm_iats_verify
-                  (customer_code, cid, contribution_id, recur_id, contribution_status_id, verify_datetime) VALUES (%1, %2, %3, %4, %5, NOW())", $query_params);
-              }
-            }
-          }
-        }
+        // otherwise, test if it's a new uk direct debit
         elseif (isset($ukdd_contribution_recur[$transaction->customer_code])) {
           // it's a (possibly) new recurring UKDD contribution triggered from iATS
           // check my existing ukdd_contribution list in case it's the first one that just needs to be updated, or has already been processed
@@ -294,8 +221,8 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
           }
         }
         // if one of the above was true and I've got a new or confirmed contribution:
+        // so log it as an activity for administrative reference
         if (!empty($contribution)) {
-          // log it as an activity for administrative reference
           $subject_string = empty($contribution['id']) ? 'Found new iATS Payments UK DD contribution for contact id %3' : '%1 iATS Payments ACH/EFT contribution id %2 for contact id %3';
           $subject = ts($subject_string,
               array(
@@ -335,7 +262,7 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
       1 => $error_count,
     )
   );
-  $message .= '<br />'. ts('Processed %1 approvals from today, %2 approval and %3 rejection records from the previous 30 days.',
+  $message .= '<br />'. ts('Processed %1 approvals from today, %2 approval and %3 rejection records from the previous '.IATS_VERIFY_DAYS.' days.',
     array(
       1 => $processed['acheft_journal_csv'],
       2 => $processed['acheft_payment_box_journal_csv'],
@@ -349,19 +276,11 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
   // If no errors and some records processed ..
   if (array_sum($processed) > 0) {
     if (count($acheft_pending) > 0) {
-      $message .= '<br />'. ts('For %1 pending ACH/EFT recurring contributions from %2 contacts, %3 results applied.',
+      $message .= '<br />'. ts('For %1 pending ACH/EFT contributions, %2 non-recuring and %3 recurring contribution results applied.',
         array(
-          1 => count($acheft_pending, COUNT_RECURSIVE),
-          2 => count($acheft_pending),
-          3 => $found['recur'],
-        )
-      );
-    }
-    if (count($quick) > 0) {
-      $message .= '<br />'. ts('For %1 pending one-off ACH/EFT contributions, %2 results applied.',
-        array(
-          1 => count($quick),
+          1 => count($acheft_pending),
           2 => $found['quick'],
+          3 => $found['recur'],
         )
       );
     }
