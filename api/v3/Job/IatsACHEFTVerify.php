@@ -32,7 +32,7 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
 
   define('IATS_VERIFY_DAYS',30);
   // I've added an extra 2 days when getting candidates from CiviCRM to be sure i've got them all.
-  $civicrm_verify_days = IATS_VERFIY_DAYS + 2;
+  $civicrm_verify_days = IATS_VERIFY_DAYS + 2;
   // get all the pending direct debit contributions that still need approval within the last civicrm_verify_days
   $select = 'SELECT id, trxn_id, invoice_id, contact_id, contribution_recur_id
       FROM civicrm_contribution  
