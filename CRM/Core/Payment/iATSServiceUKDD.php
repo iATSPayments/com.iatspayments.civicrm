@@ -85,7 +85,7 @@ class CRM_Core_Payment_iATSServiceUKDD extends CRM_Core_Payment {
     // IATS requires begin and end date, calculated here
     // to be converted to date format later
     // begin date has to be more than 12 days from now, not checked here
-    $beginTime = strtotime($beginDate = $params['start_date']);
+    $beginTime = strtotime($beginDate = $params['payer_validate_start_date']);
     $date = getdate($beginTime);
     $interval = $params['frequency_interval'] ? $params['frequency_interval'] : 1;
     switch ($params['frequency_unit']) {
@@ -205,7 +205,7 @@ class CRM_Core_Payment_iATSServiceUKDD extends CRM_Core_Payment {
       // set the status of the initial contribution to pending (currently is redundant)
       $params['contribution_status_id'] = 2;
       // also set next_sched_contribution, though it won't be used
-      $params['next_sched_contribution'] = strtotime($params['start_date'].' + '.$params['frequency_interval'].' '.$params['frequency_unit']);
+      $params['next_sched_contribution'] = strtotime($params['payer_validate_start_date'].' + '.$params['frequency_interval'].' '.$params['frequency_unit']);
       return $params;
     }
     else {

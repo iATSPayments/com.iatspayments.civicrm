@@ -7,7 +7,8 @@
 Bank Address: {$form.payer_validate_address.html}<br />
 Service User Number: {$form.payer_validate_service_user_number.html}<br />
 Reference: {$form.payer_validate_reference.html}<br />
-Date: {$form.payer_validate_date.html}
+Start Date: {$form.payer_validate_start_date.html}
+Today's Date: {$form.payer_validate_date.html}
   </div>
   <h3>Direct Debit Guarantee</h3>
   <ul>

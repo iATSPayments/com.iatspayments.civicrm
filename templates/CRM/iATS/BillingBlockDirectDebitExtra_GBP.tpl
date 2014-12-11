@@ -45,8 +45,8 @@
 </div>
 <div id="iats-direct-debit-start-date">
   <div class="crm-section payer-validate-start-date">
-    <div class="label">{$form.start_date.label}</div>
-    <div class="content">{$form.start_date.html}</div>
+    <div class="label">{$form.payer_validate_start_date.label}</div>
+    <div class="content">{$form.payer_validate_start_date.html}</div>
     <div class="content">{ts domain='com.iatspayments.civicrm'}You may select a later start date if you wish.{/ts}</div>
     <div class="clear"></div>
   </div>
@@ -133,19 +133,6 @@
       inputButton.val('Processing ...').prop('disabled',true);
       // reset the list of errors
       cj('#payer-validate-required').html('');
-      var startDateStr = cj('#start_date').val();
-      var startDate = new Date(startDateStr);
-      var defaultStartDate = new Date(cj('#start_date').prop('defaultValue'));
-      if (isNaN(startDate)) {
-        cj('#payer-validate-required').append('<li>Please write your start date in a recognizable format.</li>');
-      }
-      else if (startDate < defaultStartDate) {
-        cj('#payer-validate-required').append('<li>You must choose a start date after the default value, resetting it.</li>');
-        cj('#start_date').val(cj('#start_date').prop('defaultValue'));
-      }
-      else {
-        cj('#start_date').val(cj.datepicker.formatDate('MM d, yy',startDate));
-      }
       // the billing address group is all required (except middle name) but doesn't have the class marked
       cj('#Main .billing_name_address-group input:visible, #Main input.required:visible').each(function() {
         // console.log(this.value.length);
@@ -154,14 +141,18 @@
             var myLabel = 'Installments';
           }
           else {
-            var myLabel = cj(this).parent('.content').prev('.label').find('label').text().replace('*','');
+            var myLabel = cj.trim(cj(this).parent('.content').prev('.label').find('label').text().replace('*',''));
           }
-          cj('#payer-validate-required').append('<li>' + myLabel + ' is a required field.</li>');
+          if (myLabel.length > 0) { // skip any weird hidden fields (e.g. select2-offscreen class)
+            cj('#payer-validate-required').append('<li>' + myLabel + ' is a required field.</li>');
+          }
         }
       })
       // if all pre-validation requirements are met, I can do the sycronous POST to try to get my banking information
       if (0 == cj('#payer-validate-required').html().length) {
         var validatePayer = {};
+        var startDateStr = cj('#payer_validate_start_date').val();
+        var startDate = new Date(startDateStr);
         validatePayer.beginDate = cj.datepicker.formatDate('yy-mm-dd',startDate);
         var endDate = startDate;
         var frequencyInterval = cj('input[name=frequency_interval]').val();

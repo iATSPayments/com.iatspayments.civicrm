@@ -524,7 +524,7 @@ function iats_ukdd_form_customize($form) {
   /* declaration checkbox at the top */
   $form->addElement('checkbox', 'payer_validate_declaration', ts('I wish to start a Direct Debit'));
   $form->addElement('static', 'payer_validate_contact', ts(''), ts('Organization: %1, Phone: %2, Email: %3', array('%1' => $payee, '%2' => $phone['phone'], '%3' => $email)));
-  $form->addElement('select', 'start_date', ts('Date of first collection'), $start_dates);
+  $form->addElement('select', 'payer_validate_start_date', ts('Date of first collection'), $start_dates);
   $form->addRule('payer_validate_declaration', ts('%1 is a required field.', array(1 => ts('The Declaration'))), 'required');
   $form->addRule('installments', ts('%1 is a required field.', array(1 => ts('Number of installments'))), 'required');
   /* customization of existing elements */
@@ -549,7 +549,7 @@ function iats_ukdd_form_customize($form) {
   $form->setDefaults(array(
     'is_recur' => 1,
     'payer_validate_date' => date('F j, Y'),
-    'start_date' => current(array_keys($start_dates)),
+    'payer_validate_start_date' => current(array_keys($start_dates)),
     'payer_validate_service_user_number' => $service_user_number,
   )); // make recurring contrib default to true
   CRM_Core_Region::instance('billing-block')->add(array(
@@ -704,12 +704,12 @@ function iats_civicrm_buildForm_Contribution_Confirm_Payment_iATSServiceUKDD(&$f
   $form->addElement('text', 'payer_validate_service_user_number', ts('Service User Number'));
   $form->addElement('text', 'payer_validate_reference', ts('Reference'));
   $form->addElement('text', 'payer_validate_date', ts('Today\'s Date'), array()); // date on which the validation happens, reference
+  $form->addElement('text', 'payer_validate_start_date', ts('Date of first collection'));
   $form->addElement('static', 'payer_validate_instruction', ts('Instruction to your Bank or Building Society'), ts('Please pay %1 Direct Debits from the account detailed in this instruction subject to the safeguards assured by the Direct Debit Guarantee. I understand that this instruction may remain with TestingTest and, if so, details will be passed electronically to my Bank / Building Society.',array('%1' => "<strong>$payee</strong>")));
   $defaults = array(
     'payer_validate_date' => date('F j, Y'),
-    'start_date' => $form->_params['start_date'],
   );
-  foreach(array('address','service_user_number','reference','date') as $k) {
+  foreach(array('address','service_user_number','reference','date','start_date') as $k) {
     $key = 'payer_validate_'.$k;
     $defaults[$key] = $form->_params[$key];
   };
@@ -723,7 +723,7 @@ function iats_civicrm_buildForm_Contribution_Confirm_Payment_iATSServiceUKDD(&$f
  * Modify the contribution Thank You screen for iATS UK DD
  */
 function iats_civicrm_buildForm_Contribution_ThankYou_Payment_iATSServiceUKDD(&$form) {
-  foreach(array('address','service_user_number','reference','date') as $k) {
+  foreach(array('address','service_user_number','reference','date','start_date') as $k) {
     $key = 'payer_validate_'.$k;
     $form->addElement('static', $key, $key, $form->_params[$key]);
   };

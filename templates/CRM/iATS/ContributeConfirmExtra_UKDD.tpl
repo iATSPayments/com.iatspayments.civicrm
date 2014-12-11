@@ -23,6 +23,11 @@
     <div class="content">{$form.payer_validate_instruction.html}</div>
     <div class="clear"></div>
   </div>
+  <div class="crm-section start-date">
+    <div class="label">{$form.payer_validate_start_date.label}</div>
+    <div class="content">{$form.payer_validate_start_date.html}</div>
+    <div class="clear"></div>
+  </div>
   <div class="crm-section payer-validate-date">
     <div class="label">{$form.payer_validate_date.label}</div>
     <div class="content">{$form.payer_validate_date.html}</div>
