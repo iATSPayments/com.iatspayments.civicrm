@@ -174,7 +174,7 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
           // build the civicrm invoice id, also used for the transaction id
           $invoice_id = $transaction->id.':iATSUKDD:'.date('Y-m-d',$transaction->receive_date);
           // now do a couple of tests:
-          if ($contribution_recur['reference_num'] != $transaction->achref) {
+          if (!empty($transaction->achref) && ($contribution_recur['reference_num'] != $transaction->achref)) {
             $output[] = ts(
               'Unexpected error: ACH Ref. %1 does not match for customer code %2 (should be %3)',
               array(
