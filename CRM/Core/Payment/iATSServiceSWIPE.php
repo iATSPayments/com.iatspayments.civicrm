@@ -37,7 +37,7 @@ class CRM_Core_Payment_iATSServiceSWIPE extends CRM_Core_Payment_iATSService {
    *
    * @return void
    */
-   function __construct($mode, &$paymentProcessor) {
+  function __construct($mode, &$paymentProcessor) {
     $this->_paymentProcessor = $paymentProcessor;
     $this->_processorName = ts('iATS Payments SWIPE');
 
@@ -55,6 +55,10 @@ class CRM_Core_Payment_iATSServiceSWIPE extends CRM_Core_Payment_iATSService {
       self::$_singleton[$processorName] = new CRM_Core_Payment_iATSServiceSWIPE($mode, $paymentProcessor);
     }
     return self::$_singleton[$processorName];
+  }
+
+  public function validatePaymentInstrument($values, &$errors) {
+    // override the default and don't do any validation because my values are encrypted
   }
 
 }
