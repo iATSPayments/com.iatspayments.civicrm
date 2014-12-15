@@ -326,16 +326,17 @@ function iats_civicrm_pre($op, $objectName, $objectId, &$params) {
           $field_name = _iats_civicrm_nscd_fid();
           $params[$field_name] = date('YmdHis',$next);
           break;
-        case 'iATSServiceUKDDContribution': // UK DD contribution: update the payment instrument
+        case 'iATSServiceUKDDContribution': // UK DD contribution: update the payment instrument, fix the receive date
           $params['payment_instrument_id'] = 2;
+          if ($start_date = strtotime($_POST['payer_validate_start_date'])) {
+            $params['receive_date'] = date('Ymd',$start_date).'120000';
+          }
           break;
-        case 'iATSServiceUKDDContributionRecur': // UK DD recurring contribution record
-          $params['payment_instrument_id'] = 2; // just update the payment instrument
-          // $params['contribution_status_id'] = 5; // we set this to 'in-progress' because even if the first one hasn't been verified, we still want to be attempting later ones
-          // $next = strtotime('+'.$params['frequency_interval'].' '.$params['frequency_unit']);
-          // the next scheduled contribution date field name is civicrm version dependent
-          // $field_name = _iats_civicrm_nscd_fid();
-          // $params[$field_name] = date('YmdHis',$next);
+        case 'iATSServiceUKDDContributionRecur': // UK DD recurring contribution record: update the payment instrument, fix the start_date
+          $params['payment_instrument_id'] = 2; 
+          if ($start_date = strtotime($_POST['payer_validate_start_date'])) {
+            $params['start_date'] = date('Ymd',$start_date).'120000';
+          }
           break;
       }
     }

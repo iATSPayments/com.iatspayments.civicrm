@@ -52,13 +52,12 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
     $key = current(explode(':',$dao->trxn_id,2)); 
     $acheft_pending[$key] = array('id' => $dao->id, 'trxn_id' => $dao->trxn_id, 'invoice_id' => $dao->invoice_id, 'contact_id' => $dao->contact_id, 'contribution_recur_id' => $dao->contribution_recur_id);
   }
-  // and all the recent UK DD recurring contributions. 
-  $select = 'SELECT c.*, cr.contribution_status_id as cr_contribution_status_id, icc.customer_code as customer_code, icc.cid as icc_contact_id, iukddv.acheft_reference_num as reference_num, pp.is_test 
+  // and some recent UK DD recurring contributions 
+  $select = 'SELECT c.id, c.contribution_status_id, c.trxn_id, c.invoice_id, icc.customer_code
       FROM civicrm_contribution c 
       INNER JOIN civicrm_contribution_recur cr ON c.contribution_recur_id = cr.id
       INNER JOIN civicrm_payment_processor pp ON cr.payment_processor_id = pp.id
       INNER JOIN civicrm_iats_customer_codes icc ON cr.id = icc.recur_id
-      INNER JOIN civicrm_iats_ukdd_validate iukddv ON cr.id = iukddv.recur_id
       WHERE 
         c.receive_date > %1
         AND pp.class_name = %2
@@ -70,8 +69,9 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
     if (empty($ukdd_contribution[$dao->customer_code])) {
       $ukdd_contribution[$dao->customer_code] = array();
     }
-    $key = $dao->trxn_id;
-    $ukdd_contribution[$dao->customer_code][$key] = get_object_vars($dao);
+    // I want to key on my trxn_id that I can match up with data from iATS, but use the invoice_id for that initial pending one
+    $key = (empty($dao->trxn_id)) ? $dao->invoice_id : $dao->trxn_id;
+    $ukdd_contribution[$dao->customer_code][$key] = array('id' => $dao->id, 'contribution_status_id' => $dao->contribution_status_id, 'invoice_id' => $dao->invoice_id);
   }
   // and now get all the non-completed UKDD sequences, in order to track new contributions from iATS
   $select = 'SELECT cr.*, icc.customer_code as customer_code, icc.cid as icc_contact_id, iukddv.acheft_reference_num as reference_num, pp.is_test 
@@ -179,9 +179,9 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
           // check my existing ukdd_contribution list in case it's the first one that just needs to be updated, or has already been processed
           // I also confirm that it's got the right ach reference field, which i get from the ukdd_contribution_recur record
           $contribution_recur = $ukdd_contribution_recur[$transaction->customer_code];
-          // build the civicrm invoice id, also used for the transaction id
-          $invoice_id = $transaction->id.':iATSUKDD:'.date('Y-m-d',$transaction->receive_date);
-          // now do a couple of tests:
+          // build the (unique) civicrm trxn id that we can use to match up against civicrm-stored transactions
+          $trxn_id = $transaction->id.':iATSUKDD:'.$transaction->customer_code;
+          // sanity check against the ACH Reference number, but only if I get it from iATS
           if (!empty($transaction->achref) && ($contribution_recur['reference_num'] != $transaction->achref)) {
             $output[] = ts(
               'Unexpected error: ACH Ref. %1 does not match for customer code %2 (should be %3)',
@@ -193,9 +193,8 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
             );
             ++$error_count;
           }
-          elseif (isset($ukdd_contribution[$transaction->customer_code][$invoice_id])) {
+          elseif (isset($ukdd_contribution[$transaction->customer_code][$trxn_id])) {
             // I can ignore it, i've already created this one
-            // TODO: show I confirm status?
           }
           else { // save my contribution in civicrm
             $contribution = array(
@@ -205,8 +204,8 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
               'total_amount'       => $transaction->amount,
               'payment_instrument_id'  => $contribution_recur['payment_instrument_id'],
               'contribution_recur_id'  => $contribution_recur['id'],
-              'trxn_id'        => $invoice_id, // because it has to be unique, use my invoice id
-              'invoice_id'       => $invoice_id,
+              'trxn_id'        => $trxn_id, 
+              'invoice_id'       => md5(uniqid(rand(), TRUE)),
               'source'         => 'iATS UK DD Reference: '.$contribution_recur['reference_num'],
               'contribution_status_id' => $contribution_status_id, 
               'currency'  => $contribution_recur['currency'], // better be GBP!
@@ -218,6 +217,18 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
             }
             else { // 4.3+
                $contribution['financial_type_id'] = $contribution_recur['financial_type_id'];
+            }
+            // if I have an outstanding pending contribution for this series, I'll recycle it here
+            foreach($ukdd_contribution[$transaction->customer_code] as $key => $contrib_ukdd) {
+              if ($contrib_ukdd['contribution_status_id'] == 2) { // it's pending
+                $contribution['id'] = $contrib_ukdd['id'];
+                // don't change my invoice id in this case
+                unset($contribution['invoice_id']);
+                // ensure I don't pull this trick more than once somehow
+                unset($ukdd_contribution[$transaction->customer_code][$key]);
+                // and note that I ignore everything else about the pending contribution in civicrm
+                break;
+              }
             }
             $result = civicrm_api('contribution', 'create', $contribution);
             if ($result['is_error']) {

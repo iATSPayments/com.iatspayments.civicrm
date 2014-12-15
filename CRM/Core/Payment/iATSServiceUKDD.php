@@ -202,8 +202,11 @@ class CRM_Core_Payment_iATSServiceUKDD extends CRM_Core_Payment {
       // drupal_set_message('<pre>'.print_r($query_params,TRUE).'</pre>');
       CRM_Core_DAO::executeQuery("INSERT INTO civicrm_iats_ukdd_validate
         (customer_code, acheft_reference_num, cid, recur_id, validated, validated_datetime) VALUES (%1, %2, %3, %4, %5, %6)", $query_params);
-      // set the status of the initial contribution to pending (currently is redundant)
+      // set the status of the initial contribution to pending (currently is redundant), and the date to what I'm asking iATS for
       $params['contribution_status_id'] = 2;
+      $params['start_date'] = $params['payer_validate_start_date'];
+      // optimistically set this date, even though CiviCRM will likely not do anything with it yet - I'll change it with my pre hook in the meanwhile
+      $params['receive_date'] = $params['payer_validate_start_date'];
       // also set next_sched_contribution, though it won't be used
       $params['next_sched_contribution'] = strtotime($params['payer_validate_start_date'].' + '.$params['frequency_interval'].' '.$params['frequency_unit']);
       return $params;
