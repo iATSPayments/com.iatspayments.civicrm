@@ -155,15 +155,23 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
           $params = array('version' => 3, 'sequential' => 1, 'contribution_status_id' => $contribution_status_id, 'id' => $contribution['id']);
           $result = civicrm_api('Contribution', 'create', $params); // update the contribution
           // always log these requests in my cutom civicrm table for auditing type purposes
+          // watchdog('civicrm_iatspayments_com', 'contribution: <pre>!contribution</pre>', array('!contribution' => print_r($query_params,TRUE)), WATCHDOG_NOTICE);   
           $query_params = array(
             1 => array($transaction->customer_code, 'String'),
             2 => array($contribution['contact_id'], 'Integer'),
             3 => array($contribution['id'], 'Integer'),
-            4 => array($contribution['contribution_recur_id'], 'Integer'),
-            5 => array($contribution_status_id, 'Integer'),
+            4 => array($contribution_status_id, 'Integer'),
+            5 => array($contribution['contribution_recur_id'], 'Integer'),
           );
-          CRM_Core_DAO::executeQuery("INSERT INTO civicrm_iats_verify
-            (customer_code, cid, contribution_id, recur_id, contribution_status_id, verify_datetime) VALUES (%1, %2, %3, %4, %5, NOW())", $query_params);
+          if (empty($contribution['contribution_recur_id'])) {
+            unset($query_params[5]);
+            CRM_Core_DAO::executeQuery("INSERT INTO civicrm_iats_verify
+              (customer_code, cid, contribution_id, contribution_status_id, verify_datetime) VALUES (%1, %2, %3, %4, NOW())", $query_params);
+          }
+          else {
+            CRM_Core_DAO::executeQuery("INSERT INTO civicrm_iats_verify
+              (customer_code, cid, contribution_id, contribution_status_id, verify_datetime, recur_id) VALUES (%1, %2, %3, %4, NOW(), %5)", $query_params);
+          }
         }
         // otherwise, test if it's a new uk direct debit
         elseif (isset($ukdd_contribution_recur[$transaction->customer_code])) {
