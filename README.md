@@ -45,6 +45,8 @@ use Agent Code = UDDD88, Password = UDDD888 and Service User Number = 123456789
 Testing
 -------
 
+0. Our test matrix includes 20 type of transactions at the moment -> view a summary of the results here: https://cloud.githubusercontent.com/assets/5340555/5615874/850ff53e-94bc-11e4-868d-6a6d9d017cfa.png
+
 1. Contribution Links -> online Contribution -> Live.
 
 2a. - iATS Payments Credit Card: use test VISA: 4222222222222220 security code = 123 and any future Expiration date - to process any $amount.
