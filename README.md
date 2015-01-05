@@ -37,7 +37,7 @@ Once the extension is installed, you need to add the payment processor(s) and in
 use Agent Code = TEST88 and Password = TEST88 for both Live and Test
 
 6. For iATS Payments UK Direct Debit:
-use Agent Code = UDDD88, Password = UDDD888 and Service User Number = 123456789
+use Agent Code = UDDD88, Password = UDDD888 and Service User Number = 123456789 for both Live and Test
 
 7. Create a Contribution Page (or go to an existing one) -> Under Configure -> Contribution Amounts -> select your newly installed/configured Payment Processor(s) - hit Save
 
