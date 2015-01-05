@@ -45,15 +45,17 @@ use Agent Code = UDDD88, Password = UDDD888 and Service User Number = 123456789
 Testing
 -------
 
-1. If you're using Drupal: turn on CiviCRM debug and Drupal Watchdog logging in the Settings - Debugging and Error Handling. This will add some extra verbose SOAP logging to the Drupal log.
+1. Contribution Links -> online Contribution -> Live.
 
-2. Contribution Links -> online Contribution -> Live.
+2a. - iATS Payments Credit Card: use test VISA: 4222222222222220 security code = 123 and any future Expiration date - to process any $amount.
+2b. - iATS Payments ACH/EFT: use 1234 for the Bank Account Number and 111111111111 for the Bank Identification Number (Bank number + branch transit number)
+2c - iATS Payments SWIPE: not easy to test - even if you have an Encrypted USB Card Reader (sourced by iATS Payments) you will need a physical fake credit card with: 4222222222222220 security code = 123 and any future Expiration date - to process any $amount.
+2d - iATS Payments UK Direct Debit: use
 
-3. Use test VISA:  4222222222222220 security code = 123 and any future Expiration date - to process any $amount.
 
-4. iATS has another test VISA: 41111111111111111 security code = 123 and any future Expiration date
+3. iATS has another test VISA: 41111111111111111 security code = 123 and any future Expiration date
 
-5. Reponses depend on the $amount processed - as follows
+4. Reponses depend on the $amount processed - as follows
   * 1.00 OK: 678594;
   * 2.00 REJ: 15;
   * 3.00 OK: 678594;
@@ -68,13 +70,13 @@ Testing
   * 16.00 REJ: 2;
   * Other Amount REJ: 15
 
-6. Visit the custom menu item under Contributions -> iATS Payments Admin. This will give you a list of recent transactions with the iATS payment processor, including details like the Auth code and last 4 digits of the credit card that aren't stored/searchable in CiviCRM.
+5. Visit the custom menu item under Contributions -> iATS Payments Admin. This will give you a list of recent transactions with the iATS payment processor, including details like the Auth code and last 4 digits of the credit card that aren't stored/searchable in CiviCRM.
 
-7. You can also visit http://home.iatspayments.com/ -> and click the Client Login button (top right)
+6. You can also visit http://home.iatspayments.com/ -> and click the Client Login button (top right)
   * Login with TEST88 and TEST88
   * hit Journal and Get Journal -> if it has been a busy day there will be lots of transactions here - so hit display all and scroll down to see the transaction you just processed via CiviCRM.
 
-8. If things don't look right, you can open the Drupal log and see some detailed logging of the SOAP exchanges for more hints about where it might have gone wrong.
+7. If things don't look right, you can open the Drupal log and see some detailed logging of the SOAP exchanges for more hints about where it might have gone wrong.
 
 9. Also test recurring contributions - try creating a recurring contribution for every day and then go back the next day and manually trigger the corresponding Scheduled Job.
 
