@@ -33,13 +33,13 @@ Once the extension is installed, you need to add the payment processor(s) and in
 
 4. To test your new processor using live workflows: 
 
-For iATS Payments Credit Card, iATS Payments ACH/EFT or iATS Payments SWIPE:
+5. For iATS Payments Credit Card, iATS Payments ACH/EFT or iATS Payments SWIPE:
 use Agent Code = TEST88 and Password = TEST88 for both Live and Test
 
-For iATS Payments UK Direct Debit:
+6. For iATS Payments UK Direct Debit:
 use Agent Code = UDDD88, Password = UDDD888 and Service User Number = 123456789
 
-5. Create a Contribution Page (or go to an existing one) -> Under Configure -> Contribution Amounts -> select your newly installed/configured Payment Processor(s) - hit Save
+7. Create a Contribution Page (or go to an existing one) -> Under Configure -> Contribution Amounts -> select your newly installed/configured Payment Processor(s) - hit Save
 
 Testing
 -------
