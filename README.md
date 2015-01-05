@@ -46,13 +46,13 @@ Testing
 
 2. Manage Contribution Pages -> Links -> Live Page.
 
-3. iATS Payments Credit Card: use test VISA: 4222222222222220 security code = 123 and any future Expiration date - to process any $amount.
+  * iATS Payments Credit Card: use test VISA: 4222222222222220 security code = 123 and any future Expiration date - to process any $amount.
 
-4. iATS Payments ACH/EFT: use 000000 for the Transit Number; 123 for the Bank Number; 123456 for the Bank Account Number $1
+  * iATS Payments ACH/EFT: use 000000 for the Transit Number; 123 for the Bank Number; 123456 for the Bank Account Number $1
 
-5. iATS Payments SWIPE: not easy to test - even if you have an Encrypted USB Card Reader (sourced by iATS Payments) you will need a physical fake credit card with: 4222222222222220 security code = 123 and any future Expiration date in the magnetic strip - to process any $amount.
+  * iATS Payments SWIPE: not easy to test - even if you have an Encrypted USB Card Reader (sourced by iATS Payments) you will need a physical fake credit card with: 4222222222222220 security code = 123 and any future Expiration date in the magnetic strip - to process any $amount.
 
-6. iATS Payments UK Direct Debit: use 12345678 for Account Number; 000000 for Sort Code
+  * iATS Payments UK Direct Debit: use 12345678 for Account Number; 000000 for Sort Code
 
 7. iATS has another test VISA: 41111111111111111 security code = 123 and any future Expiration date
 
