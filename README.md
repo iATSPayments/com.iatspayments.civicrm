@@ -73,12 +73,14 @@ Testing
 
 9. After completing a TEST payment -> check the Contributions -> Dashboard. Credit Card Transactions are authorized (=Completed) right away. ACH/EFT + UK direct Debit will be (=Pending).
 
-10. Visit http://home.iatspayments.com -> and click the Client Login button (top right)
+10. Visit https://home.iatspayments.com -> and click the Client Login button (top right)
   * Login with TEST88 and TEST88
   * hit Reports -> Journal - Credit Card Transactions -> Get Journal -> if it has been a busy day there will be lots of transactions here - so hit display all and scroll down to see the transaction you just processed via CiviCRM.
   * hit Reports -> Journal - ACHEFT Transactions -> List Batches (the test transaction will be here until it is sent to the bank for processing - after that - and depending on the Result - it will appear in either the ACHEFT Approval or the ACHEFT Reject journal.
 
-11. For iATS Payments UK Direct Debit -> visit: 
+11. For iATS Payments UK Direct Debit -> visit: https://www.uk.iatspayments.com
+  * Login with UDDD88 and UDDD888
+  * hit Virtual Terminal -> Customer Database -> Search by Name -> hit Edit icon (on the left) -> to see all details, including the Reference Number (which should match up with what you saw on your Thank you screen in CiviCRM). 
 
 12. If things don't look right, you can turn on Drupal and CiviCRM logging - try another TEST transaction - and then see some detailed logging of the SOAP exchanges for more hints about where it might have gone wrong.
 
