@@ -1,8 +1,7 @@
 com.iatspayments.civicrm
 ===============
 
-CiviCRM Extension for iATS Web Services Payment Processor
-Date: January 5, 2015, version 1.3.1
+CiviCRM Extension for iATS Web Services Payment Processor - Date: January 5, 2015, version 1.3.1
 
 This README.md contains information specific to system administrators/developers. Information for users/implementors can be found in the Documentation Wiki: https://github.com/iATSPayments/com.iatspayments.civicrm/wiki/Documentation
 
@@ -13,14 +12,14 @@ Requirements
 
 2. Your PHP needs to include the SOAP extension (php.net/manual/en/soap.setup.php).
 
-3. NOTE: to ensure all different types of transactions are working across all CiviCRM pathways [our test matrix includes 20 type of transactions at the moment] - a small patch to CiviCRM core is required. You can find iATS_4.4.10.diff and iATS_4.5.4.diff in the repository. If you use another version of CiviCRM you may have to adjust the line numbers in these patches. The patches have been submitted to be included into CiviCRM Core - but until they are you need to include these yourself. 
+3. NOTE: to ensure all different types of transactions are working across all CiviCRM pathways [our test matrix includes 21 type of transactions at the moment] - a small patch to CiviCRM core is required. You can find iATS_4.4.10.diff and iATS_4.5.4.diff in the repository. If you use another version of CiviCRM you may have to adjust the line numbers in these patches. The patches have been submitted to be included into CiviCRM Core - but until they are you need to include these yourself. 
 
 4. You must have an iATS Payments Account - and have configured it to accept payment though WebServices. For details please see the Documentation Wiki: https://github.com/iATSPayments/com.iatspayments.civicrm/wiki/Documentation
 
 Installation
 ------------
 
-This extension follows the standard installation method - if you've got the right CiviCRM version and you've set up your extensions directory, it'll appear in the Manage Extensions list as 'iATS Payments (com.iatspayments.civicrm)'. Hit Install.
+This extension follows the standard installation method - if you've got a supported CiviCRM version and you've set up your extensions directory, it'll appear in the Manage Extensions list as 'iATS Payments (com.iatspayments.civicrm)'. Hit Install.
 
 If you need help with installing extensions, try: https://wiki.civicrm.org/confluence/display/CRMDOC/Extensions - If you want to try out a particular version directly from github, you probably already know how to do that.
 
@@ -28,31 +27,31 @@ Once the extension is installed, you need to add the payment processor(s) and in
 
 1. Administer -> System Settings -> Payment Processors -> + Add Payment Processor
 
-2. Select iATS Payments Credit Card, (iATS Payments ACH/EFT, iATS Payments SWIPE or iATS Payments UK Direct Debit) provided by this extension and modify the instructions below appropriately).
+2. Select iATS Payments Credit Card, iATS Payments ACH/EFT, iATS Payments SWIPE or iATS Payments UK Direct Debit - all provided by this extension and modify the instructions below appropriately.
 
-3. The "Name" of the payment processor is what your visitors will see when they select a payment method, so typically use "Credit Card" here, or "Credit Card, C$" (or US$) if there's any doubt about the currency. Your iATS Payments Account is configured for a single currency, so when you set up the payment page, you'll have to manually ensure you set the right currency (not an issue if you're only handling one currency).
+3. The "Name" of the payment processor is what your site visitors will see when they select a payment method, so typically use "Credit Card" here, or "Credit Card C$" (or US$) if there's any doubt about the currency. Your iATS Payments Account is configured for a single currency, so when you set up the payment page, you'll have to manually ensure you set the right currency (not an issue if you're only handling one currency).
 
 4. To test your new processor using live workflows: 
+
 For iATS Payments Credit Card, iATS Payments ACH/EFT or iATS Payments SWIPE:
 use Agent Code = TEST88 and Password = TEST88 for both Live and Test
+
 For iATS Payments UK Direct Debit:
 use Agent Code = UDDD88, Password = UDDD888 and Service User Number = 123456789
 
-5. Create a Contribution Page (or go to an existing one)
-
-6. Under Configure -> Contribution Amounts -> select your newly installed/configured Payment Processor - hit Save
+5. Create a Contribution Page (or go to an existing one) -> Under Configure -> Contribution Amounts -> select your newly installed/configured Payment Processor(s) - hit Save
 
 Testing
 -------
 
-0. Our test matrix includes 20 type of transactions at the moment -> view a summary of the results here: https://cloud.githubusercontent.com/assets/5340555/5616064/2459a9b8-94be-11e4-84c7-2ef0c83cc744.png
+1. Our test matrix includes 21 type of transactions at the moment -> view a summary of the results here: https://cloud.githubusercontent.com/assets/5340555/5616064/2459a9b8-94be-11e4-84c7-2ef0c83cc744.png - UK Direct Debit is still in beta at this time. 
 
-1. Contribution Links -> online Contribution -> Live.
+2. Manage Contribution Pages -> Links -> Live Page.
 
-2a. - iATS Payments Credit Card: use test VISA: 4222222222222220 security code = 123 and any future Expiration date - to process any $amount.
-2b. - iATS Payments ACH/EFT: use 1234 for the Bank Account Number and 111111111111 for the Bank Identification Number (Bank number + branch transit number)
-2c - iATS Payments SWIPE: not easy to test - even if you have an Encrypted USB Card Reader (sourced by iATS Payments) you will need a physical fake credit card with: 4222222222222220 security code = 123 and any future Expiration date - to process any $amount.
-2d - iATS Payments UK Direct Debit: use
+3. iATS Payments Credit Card: use test VISA: 4222222222222220 security code = 123 and any future Expiration date - to process any $amount.
+4. iATS Payments ACH/EFT: use 000000 for the Transit Number; 123 for the Bank Number; 123456 for the Bank Account Number $1
+5. iATS Payments SWIPE: not easy to test - even if you have an Encrypted USB Card Reader (sourced by iATS Payments) you will need a physical fake credit card with: 4222222222222220 security code = 123 and any future Expiration date in the magnetic strip - to process any $amount.
+6. iATS Payments UK Direct Debit: use 12345678 for Account Number; 000000 for Sort Code
 
 
 3. iATS has another test VISA: 41111111111111111 security code = 123 and any future Expiration date
