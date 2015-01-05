@@ -16,6 +16,8 @@ Requirements
 
 4. You must have an iATS Payments Account - and have configured it to accept payment though WebServices. For details please see the Documentation Wiki: https://github.com/iATSPayments/com.iatspayments.civicrm/wiki/Documentation
 
+5. To handle ACH/EFT Contributions (verification of them) and to handle Recurring Contributions (of any type) you must configure cron for your CiviCRM install. Information about how to do this can be found in: http://wiki.civicrm.org/confluence/display/CRMDOC/Managing+Scheduled+Jobs
+
 Installation
 ------------
 
