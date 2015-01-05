@@ -32,10 +32,9 @@ Once the extension is installed, you need to add the payment processor(s) and in
 3. The "Name" of the payment processor is what your site visitors will see when they select a payment method, so typically use "Credit Card" here, or "Credit Card C$" (or US$) if there's any doubt about the currency. Your iATS Payments Account is configured for a single currency, so when you set up the payment page, you'll have to manually ensure you set the right currency (not an issue if you're only handling one currency).
 
 4. To test your new processor using live workflows: 
-
-*For iATS Payments Credit Card, iATS Payments ACH/EFT or iATS Payments SWIPE:
+  *For iATS Payments Credit Card, iATS Payments ACH/EFT or iATS Payments SWIPE:
 use Agent Code = TEST88 and Password = TEST88 for both Live and Test
-*For iATS Payments UK Direct Debit:
+  *For iATS Payments UK Direct Debit:
 use Agent Code = UDDD88, Password = UDDD888 and Service User Number = 123456789 for both Live and Test
 
 7. Create a Contribution Page (or go to an existing one) -> Under Configure -> Contribution Amounts -> select your newly installed/configured Payment Processor(s) - hit Save
