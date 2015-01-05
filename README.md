@@ -71,19 +71,22 @@ Testing
   * 16.00 REJ: 2;
   * Other Amount REJ: 15
 
-9. After completing a TEST payment -> check the Contributions -> Dashboard. Credit Card Transactions are authorized (=Completed) right away. ACH/EFT + UK direct Debit take longer and will be (=Pending).
+9. After completing a TEST payment -> check the Contributions -> Dashboard. Credit Card Transactions are authorized (=Completed) right away. ACH/EFT + UK direct Debit will be (=Pending).
 
 10. Visit http://home.iatspayments.com -> and click the Client Login button (top right)
   * Login with TEST88 and TEST88
-  * hit Journal and Get Journal -> if it has been a busy day there will be lots of transactions here - so hit display all and scroll down to see the transaction you just processed via CiviCRM.
+  * hit Reports -> Journal - Credit Card Transactions -> Get Journal -> if it has been a busy day there will be lots of transactions here - so hit display all and scroll down to see the transaction you just processed via CiviCRM.
+  * hit Reports -> Journal - ACHEFT Transactions -> List Batches (the test transaction will be here until it is sent to the bank for processing - after that - and depending on the Result - it will appear in either the ACHEFT Approval or the ACHEFT Reject journal.
 
-11. If things don't look right, you can open the Drupal log and see some detailed logging of the SOAP exchanges for more hints about where it might have gone wrong.
+11. If things don't look right, you can turn on Drupal and CiviCRM logging - try another TEST transaction - and then see some detailed logging of the SOAP exchanges for more hints about where it might have gone wrong.
 
-12. Also test recurring contributions - try creating a recurring contribution for every day and then go back the next day and manually trigger the corresponding Scheduled Job.
+12. To test recurring contributions - try creating a recurring contribution for every day and then go back the next day and manually trigger Scheduled Job: iATS Payments Recurring Contributions
+
+13. To test ACH/EFT contributions - manually run Scheduled Job: iATS Payments Verification - it will check with iATS to see if there is any word from the bank yet. How long it takes before a yeah or neah is available depends on the day of the week and the time the transaction is submitted. It can take overnight (over weekend) to get a verification. 
 
 Once you're happy all is well - then all you need to do is update the Payment Processor data - with your own iATS' Agent Code and Password.
 
-Remember that iATS master accounts (ending in 01) can NOT be used to push monies into via web services. So when setting up your Account with iATS - ask them to create another (set of) Agent Codes for you: e.g. 80 or 90, etc.
+Remember that iATS master accounts (ending in 01) can typically NOT be used to push monies into via web services. So when setting up your Account with iATS - ask them to create another (set of) Agent Codes for you: e.g. 80 or 90, etc.
 
 Also remember to turn off debugging/logging on any production environment!
 
