@@ -49,7 +49,7 @@ Class iATS_Service_Request {
       default:
         $this->_wsdl_url = 'https://' . $iats_domain . self::iATS_URL_PROCESSLINK;
         if ($method == 'cc') { /* as suggested by iATS, though not necessary I believe */
-          $this->_tag_order = array('agentCode','password','customerIPAddress','invoiceNum','creditCardNum','ccNum','creditCardExpiry','ccExp','firstName','lastName','address','city','state','zipCode','cvv2','total');
+          $this->_tag_order = array('agentCode','password','customerIPAddress','invoiceNum','creditCardNum','ccNum','creditCardExpiry','ccExp','firstName','lastName','address','city','state','zipCode','cvv2','total','comment');
         }
         break;
     }
@@ -137,6 +137,7 @@ Class iATS_Service_Request {
       /* build the request manually as per the iATS docs */
       $xml = '<'.$message.' xmlns="'.$this->_wsdl_url_ns.'">';
       $request = array_merge($this->request,(array) $credentials, (array) $payment);
+      $request['comment'] = 'CiviCRM';
       $tags = (!empty($this->_tag_order)) ? $this->_tag_order : array_keys($request);
       foreach($tags as $k) {
         if (isset($request[$k])) {
