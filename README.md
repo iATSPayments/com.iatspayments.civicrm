@@ -73,9 +73,9 @@ Testing
   * 16.00 REJ: 2;
   * Other Amount REJ: 15
 
-9. Visit the custom menu item under Contributions -> iATS Payments Admin. This will give you a list of recent transactions with the iATS payment processor, including details like the Auth code and last 4 digits of the credit card that aren't stored/searchable in CiviCRM.
+9. After completing a TEST payment -> check the Contributions -> Dashboard. Credit Card Transactions are authorized (=Completed) right away. ACH/EFT + UK direct Debit take longer and will be (=Pending).
 
-10. You can also visit http://home.iatspayments.com/ -> and click the Client Login button (top right)
+10. Visit http://home.iatspayments.com -> and click the Client Login button (top right)
   * Login with TEST88 and TEST88
   * hit Journal and Get Journal -> if it has been a busy day there will be lots of transactions here - so hit display all and scroll down to see the transaction you just processed via CiviCRM.
 
