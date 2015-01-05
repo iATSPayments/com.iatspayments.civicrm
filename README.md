@@ -81,6 +81,7 @@ Testing
 11. For iATS Payments UK Direct Debit -> visit: https://www.uk.iatspayments.com
   * Login with UDDD88 and UDDD888
   * hit Virtual Terminal -> Customer Database -> Search by Name -> hit Edit icon (on the left) -> to see all details, including the Reference Number (which should match up with what you saw on your Thank you screen in CiviCRM). 
+  * NOTE: Each charity needs to have a BACS accredited supplier vet their CiviCRM Direct Debit - Contribution Pages
 
 12. If things don't look right, you can turn on Drupal and CiviCRM logging - try another TEST transaction - and then see some detailed logging of the SOAP exchanges for more hints about where it might have gone wrong.
 
@@ -93,47 +94,6 @@ Once you're happy all is well - then all you need to do is update the Payment Pr
 Remember that iATS master accounts (ending in 01) can typically NOT be used to push monies into via web services. So when setting up your Account with iATS - ask them to create another (set of) Agent Codes for you: e.g. 80 or 90, etc.
 
 Also remember to turn off debugging/logging on any production environment!
-
-
-ACH/EFT
--------
-
-ACH/EFT is pretty new, suggestions to improve this function welcome! It is currently only implemented for North American accounts.
-
-The ACH/EFT testing value for the TEST88 account is: 1234111111111111 - iATS Payments is working to improve ACH/EFT testing as currently all direct debits in TEST88 get rejected.
-
-So use:
-  * 1234 for the Bank Account Number
-  * 111111111111 for the Bank Identification Number (Bank number + branch transit number)
-
-When you enable this payment processor for a contribution page, it modifies the form to set recurring contributions as the default, but no longer forces recurring contributions as it did up until version 1.2.3.
-
-Please note that ACH Returns require manually processing. iATS Payments will notify an organization by Email in case such ACH Returns occur - the reason (e.g. NSF) is included. It is up to CiviCRM administrators to handle this in CiviCRM according to your organization's procedures (e.g. if these were monies re: Event registration -> should that registration be canceled as well or will you ask participant to bring cash; if and the amount of NSF fees should be charged to the participant etc).
-
-A beta release for the UK direct debit support will be out soon. Notes specfic to that:
-- Each charity needs to have a BACS accredited supplier confirm their CiviCRM Direct Debit - Contribution Pages
-- Administer -> System Settings -> Payment Processors -> processors of type: iATS Payments UK Direct Debit require a Service User Number (SUN) in addition to the iATS Agent Code and Password
-- UK TEST purposes: https://www.uk.iatspayments.com/login/login.html Client Code: UDDD88 Password: UDDD888 SUN: 123456789
-
-SWIPE
-
-SWIPE on backend:
-- Create and set your Payment Processor of type iATSpayments SWIPE to default (Administer -> System Settings -> Payment Processor)
-- Search for a Contact (or add a new one) and in their Contact Summary screen hit the Contributions Tab -> then hit: + Submit Credit Card Contribution
-- Click in Encrypted -> SWIPE card -> add Expiration Date -> Save [transaction completed - confirmed monies are in iATSpayments.com]
-
-SWIPE on public contribution pages:
-To get SWIPE working on public contribution pages disable three lines in CiviCRM Core code:
-CRM -> Core -> Payment -> Form.php
-
-in 4.5.4
-lines (367 - 369)
-
-//elseif (!empty($values['credit_card_number'])) {
-// $errors['credit_card_number'] = ts('Please enter a valid Card Number');
-//}
-
-Working on something permanent (adding some parameter to say don't invoke credit card validation if expecting a long encrypted string) - but this will work - till then. 
 
 Issues
 ------
@@ -152,5 +112,7 @@ ACH/EFT contributions go in with a pending status until a process at iATS confir
 9002 Error - if you get this when trying to make a contribution, then you're getting that error back from the iATS server due to an account misconfiguration. One source is due to some special characters in your passwd.
 
 CiviCRM core assigns Membership status (=new) and extends Membership End date as well as Event status (=registered) as soon as ACH/EFT is submitted (so while payment is still pending - this could be up to 3-5 days for ACH/EFT). If the contribution receives a Ok:BankAccept -> the extension will mark the contribution in CiviCRM as completed. If the contribution does NOT receive a Ok:BankAccept -> the extension will mark the contribution in CiviCRM as rejected - however - associated existing Membership and Event records may need to be updated manually.
+
+Please note that ACH Returns require manually processing. iATS Payments will notify an organization by Email in case such ACH Returns occur - the reason (e.g. NSF) is included. It is up to CiviCRM administrators to handle this in CiviCRM according to your organization's procedures (e.g. if these were monies re: Event registration -> should that registration be canceled as well or will you ask participant to bring cash; if and the amount of NSF fees should be charged to the participant etc).
 
 Please post an issue to the github repository if you have any questions.
