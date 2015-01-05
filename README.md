@@ -9,38 +9,38 @@ This README.md contains information specific to system administrators/developers
 Requirements
 ------------
 
-1) CiviCRM 4.4.x or 4.5.x
+1. CiviCRM 4.4.x or 4.5.x
 
-2) Your PHP needs to include the SOAP extension (php.net/manual/en/soap.setup.php).
+2. Your PHP needs to include the SOAP extension (php.net/manual/en/soap.setup.php).
 
-3) NOTE: to ensure all different types of transactions are working across all CiviCRM pathways [our test matrix includes 20 type of transactions at the moment] - a small patch to CiviCRM core is required. You can find iATS_4.4.10.diff and iATS_4.5.4.diff in the repository. If you use another version of CiviCRM you may have to adjust the line numbers in these patches. The patches have been submitted to be included into CiviCRM Core - but until they are you need to include these yourself. 
+3. NOTE: to ensure all different types of transactions are working across all CiviCRM pathways [our test matrix includes 20 type of transactions at the moment] - a small patch to CiviCRM core is required. You can find iATS_4.4.10.diff and iATS_4.5.4.diff in the repository. If you use another version of CiviCRM you may have to adjust the line numbers in these patches. The patches have been submitted to be included into CiviCRM Core - but until they are you need to include these yourself. 
 
-4) You must have an iATS Payments Account - and have configured it to accept payment though WebServices. For details please see the Documentation Wiki: https://github.com/iATSPayments/com.iatspayments.civicrm/wiki/Documentation
+4. You must have an iATS Payments Account - and have configured it to accept payment though WebServices. For details please see the Documentation Wiki: https://github.com/iATSPayments/com.iatspayments.civicrm/wiki/Documentation
 
 Installation
 ------------
 
-This extension follows the standard installation method - if you've got the right CiviCRM version and you've set up your extensions directory, it'll appear in the extensions list as 'iATS Payments'.
+This extension follows the standard installation method - if you've got the right CiviCRM version and you've set up your extensions directory, it'll appear in the Manage Extensions list as 'iATS Payments (com.iatspayments.civicrm)'. Hit Install.
 
-For details, try: https://wiki.civicrm.org/confluence/display/CRMDOC/Extensions
+If you need help with installing extensions, try: https://wiki.civicrm.org/confluence/display/CRMDOC/Extensions - If you want to try out a particular version directly from github, you probably already know how to do that.
 
-If you want to try out a particular version directly from github, you probably already know how to do that.
+Once the extension is installed, you need to add the payment processor(s) and input your iATS credentials:
 
-Once the extension is installed, you need to add the payment processor(s) and input your iATS credentials
+1. Administer -> System Settings -> Payment Processors -> + Add Payment Processor
 
-1. Administer -> System Settings -> Payment Processor + Add Payment Processor
+2. Select iATS Payments Credit Card, (iATS Payments ACH/EFT, iATS Payments SWIPE or iATS Payments UK Direct Debit) provided by this extension and modify the instructions below appropriately).
 
-2. Select iATS Payments Credit Card, (or iATS Payment ACH/EFT, both are provided by this extension and modify the instructions below appropriately).
+3. The "Name" of the payment processor is what your visitors will see when they select a payment method, so typically use "Credit Card" here, or "Credit Card, C$" (or US$) if there's any doubt about the currency. Your iATS Payments Account is configured for a single currency, so when you set up the payment page, you'll have to manually ensure you set the right currency (not an issue if you're only handling one currency).
 
-3. The "Name" of the payment processor is what your visitors will see when they select a payment method, so typically use "Credit Card" here, or "Credit Card, C$" (or US$) if there's any doubt about the currency. Your iATS account is configured for a single currency, so when you set up the payment page, you'll have to manually ensure you set the right currency (not an issue if you're only handling one currency).
+4. To test your new processor using live workflows: 
+For iATS Payments Credit Card, iATS Payments ACH/EFT or iATS Payments SWIPE:
+use Agent Code = TEST88 and Password = TEST88 for both Live and Test
+For iATS Payments UK Direct Debit:
+use Agent Code = UDDD88, Password = UDDD888 and Service User Number = 123456789
 
-4. Use the url https://www.iatspayments.com/NetGate/, or https://www.uk.iatspayments.com/NetGate/ for the Site URL and Recurring payments URL. Only the domain is actually used, but it's important to let the payment processor plugin know whether your account is on the UK or NA server.
+5. Create a Contribution Page (or go to an existing one)
 
-5. To test your new processor using live workflows: use Agent Code = TEST88 and Password = TEST88 for both Live and Test.
-
-6. Create a Contribution Page (or go to an existing one)
-
-7. Under Configure -> Contribution Amounts -> select your newly installed/configured Payment Processor - hit Save
+6. Under Configure -> Contribution Amounts -> select your newly installed/configured Payment Processor - hit Save
 
 Testing
 -------
