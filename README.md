@@ -78,11 +78,13 @@ Testing
   * hit Reports -> Journal - Credit Card Transactions -> Get Journal -> if it has been a busy day there will be lots of transactions here - so hit display all and scroll down to see the transaction you just processed via CiviCRM.
   * hit Reports -> Journal - ACHEFT Transactions -> List Batches (the test transaction will be here until it is sent to the bank for processing - after that - and depending on the Result - it will appear in either the ACHEFT Approval or the ACHEFT Reject journal.
 
-11. If things don't look right, you can turn on Drupal and CiviCRM logging - try another TEST transaction - and then see some detailed logging of the SOAP exchanges for more hints about where it might have gone wrong.
+11. For iATS Payments UK Direct Debit -> visit: 
 
-12. To test recurring contributions - try creating a recurring contribution for every day and then go back the next day and manually trigger Scheduled Job: iATS Payments Recurring Contributions
+12. If things don't look right, you can turn on Drupal and CiviCRM logging - try another TEST transaction - and then see some detailed logging of the SOAP exchanges for more hints about where it might have gone wrong.
 
-13. To test ACH/EFT contributions - manually run Scheduled Job: iATS Payments Verification - it will check with iATS to see if there is any word from the bank yet. How long it takes before a yeah or neah is available depends on the day of the week and the time the transaction is submitted. It can take overnight (over weekend) to get a verification. 
+13. To test recurring contributions - try creating a recurring contribution for every day and then go back the next day and manually trigger Scheduled Job: iATS Payments Recurring Contributions
+
+14. To test ACH/EFT contributions - manually run Scheduled Job: iATS Payments Verification - it will check with iATS to see if there is any word from the bank yet. How long it takes before a yeah or neah is available depends on the day of the week and the time the transaction is submitted. It can take overnight (over weekend) to get a verification. 
 
 Once you're happy all is well - then all you need to do is update the Payment Processor data - with your own iATS' Agent Code and Password.
 
