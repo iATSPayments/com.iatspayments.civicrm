@@ -4,15 +4,15 @@
 // database as appropriate. For more details, see "hook_civicrm_managed" at:
 // http://wiki.civicrm.org/confluence/display/CRMDOC42/Hook+Reference
 return array (
-  0 => 
+  0 =>
   array (
     'name' => 'Cron:Job.IatsRecurringContributions',
     'entity' => 'Job',
-    'params' => 
+    'params' =>
     array (
       'version' => 3,
       'name' => 'iATS Payments Recurring Contributions',
-      'description' => 'Generate recurring contributions for iATS Payments',
+      'description' => 'Trigger + Generate recurring contributions for iATS Payments',
       'run_frequency' => 'Daily',
       'api_entity' => 'Job',
       'api_action' => 'IatsRecurringContributions',
