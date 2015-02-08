@@ -333,7 +333,7 @@ function iats_civicrm_pre($op, $objectName, $objectId, &$params) {
           }
           break;
         case 'iATSServiceUKDDContributionRecur': // UK DD recurring contribution record: update the payment instrument, fix the start_date
-          $params['payment_instrument_id'] = 2; 
+          $params['payment_instrument_id'] = 2;
           if ($start_date = strtotime($_POST['payer_validate_start_date'])) {
             $params['start_date'] = date('Ymd',$start_date).'120000';
           }
@@ -461,7 +461,7 @@ function iats_acheft_form_customize_CAD($form) {
   $form->addRule('cad_bank_number', ts('%1 is a required field.', array(1 => ts('Bank Number'))), 'required');
   $form->addElement('text', 'cad_transit_number', ts('Transit Number'));
   $form->addRule('cad_transit_number', ts('%1 is a required field.', array(1 => ts('Transit Number'))), 'required');
-  $form->addElement('select', 'bank_account_type', ts('Account type'), array('CHECKING' => 'Checking', 'SAVING' => 'Saving'));
+  $form->addElement('select', 'bank_account_type', ts('Account type'), array('CHECKING' => 'Chequing', 'SAVING' => 'Savings'));
   $form->addRule('bank_account_type', ts('%1 is a required field.', array(1 => ts('Account type'))), 'required');
   /* minor customization of labels + make them required */
   $element = $form->getElement('account_holder');
