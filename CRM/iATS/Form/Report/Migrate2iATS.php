@@ -7,8 +7,20 @@ class CRM_iATS_Form_Report_Migrate2iATS extends CRM_Report_Form {
 
   public function buildQuickForm() {
 
-    $this->addDate('start_date', ts('Start Date:'), FALSE, array('formatType' => 'custom'));
-    $this->addDate('end_date', ts('End Date:'), FALSE, array('formatType' => 'custom'));
+    //Setting Upload File Size
+    $config = CRM_Core_Config::singleton();
+
+    $uploadFileSize = CRM_Core_Config_Defaults::formatUnitSize($config->maxFileSize.'m');
+    $uploadSize = round(($uploadFileSize / (1024 * 1024)), 2);
+
+    $this->assign('uploadSize', $uploadSize);
+
+    $this->add('File', 'uploadFile', ts('Import Data File'), 'size=30 maxlength=255', TRUE);
+    $this->setMaxFileSize($uploadFileSize);
+    $this->addRule('uploadFile', ts('File size should be less than %1 MBytes (%2 bytes)', array(1 => $uploadSize, 2 => $uploadFileSize)), 'maxfilesize', $uploadFileSize);
+    $this->addRule('uploadFile', ts('A valid file must be uploaded.'), 'uploadedfile');
+    $this->addRule('uploadFile', ts('Input file must be in CSV format'), 'utf8File');
+
     $this->addButtons(array(
         array(
           'type' => 'upload',
@@ -18,7 +30,6 @@ class CRM_iATS_Form_Report_Migrate2iATS extends CRM_Report_Form {
       )
     );
   }
-
 
   function preProcess() {
     parent::preProcess();
