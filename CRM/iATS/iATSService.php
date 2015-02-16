@@ -237,15 +237,15 @@ Class iATS_Service_Request {
         }
         // If the payment failed, display an error and rebuild the form.
         if (empty($result['status'])) {
-          $result['reasonMessage'] = isset($result['BANKERROR']) ? $result['BANKERROR'] : 
-             (isset($result['AUTHORIZATIONRESULT']) ? $result['AUTHORIZATIONRESULT'] : 
-               (isset($result['ERRORS']) ? $result['ERRORS'] : 
+          $result['reasonMessage'] = isset($result['BANKERROR']) ? $result['BANKERROR'] :
+             (isset($result['AUTHORIZATIONRESULT']) ? $result['AUTHORIZATIONRESULT'] :
+               (isset($result['ERRORS']) ? $result['ERRORS'] :
                  'Unexpected error'
                )
              );
         }
         break;
-    }       
+    }
     if ($log && !empty($this->invoiceNum)) {
       $query_params = array(
         1 => array($this->invoiceNum, 'String'),
@@ -435,6 +435,13 @@ Class iATS_Service_Request {
             'method' => 'GetACHEFTRejectCSV',
             'message' => 'GetACHEFTRejectCSVV1',
             'response' => 'GetACHEFTRejectCSVV1Result',
+          ),
+          'acheft_return_csv' => array(
+            'title' => 'ACH-EFT Return CSV',
+            'description'=> $desc. 'GetACHEFTReturnCSVV1',
+            'method' => 'GetACHEFTReturnCSV',
+            'message' => 'GetACHEFTReturnCSVV1',
+            'response' => 'GetACHEFTReturnCSVV1Result',
           ),
         );
         break;
