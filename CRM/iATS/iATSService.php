@@ -309,6 +309,12 @@ Class iATS_Service_Request {
           $transaction->customer_code = $data[$headers['Customer Code']];
           // now the method specific headers
           switch($method) {
+            case 'acheft_return_csv':
+              $datetime = $data[$headers['Date']];
+              $transaction->invoice = $data[$headers['Invoice']];
+              $transaction->amount = $data[$headers[' Total']];
+              $transaction->result = $data[$headers[' Result']];
+              break;
             case 'acheft_journal_csv':
               $datetime = $data[$headers['Date']];
               $transaction->invoice = $data[$headers['Invoice']];

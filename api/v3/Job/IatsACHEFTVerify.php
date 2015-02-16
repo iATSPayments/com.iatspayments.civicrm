@@ -22,7 +22,7 @@ function _civicrm_api3_job_iatsacheftverify_spec(&$spec) {
  * @throws API_Exception
 
  * Look up all pending (status = 2) ACH/EFT contributions and see if they've been approved or rejected
- * Update the corresponding recurring contribution record to status = 1 (or 4) 
+ * Update the corresponding recurring contribution record to status = 1 (or 4)
  * This works for both the initial contribution and subsequent contributions of recurring contributions, as well as one offs.
  * TODO: what kind of alerts should be provided if it fails?
  *
@@ -35,8 +35,8 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
   $civicrm_verify_days = IATS_VERIFY_DAYS + 2;
   // get all the pending direct debit contributions that still need approval within the last civicrm_verify_days
   $select = 'SELECT id, trxn_id, invoice_id, contact_id, contribution_recur_id
-      FROM civicrm_contribution  
-      WHERE 
+      FROM civicrm_contribution
+      WHERE
         contribution_status_id = 2
         AND payment_instrument_id = 2
         AND receive_date > %1
@@ -49,16 +49,16 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
   while ($dao->fetch()) {
     /* we assume that the iATS transaction id is a unique field for matching, and that it is stored as the first part of the civicrm transaction */
     /* this is not unreasonable, assuming that the site doesn't have other active direct debit payment processors with similar patterns */
-    $key = current(explode(':',$dao->trxn_id,2)); 
+    $key = current(explode(':',$dao->trxn_id,2));
     $acheft_pending[$key] = array('id' => $dao->id, 'trxn_id' => $dao->trxn_id, 'invoice_id' => $dao->invoice_id, 'contact_id' => $dao->contact_id, 'contribution_recur_id' => $dao->contribution_recur_id);
   }
-  // and some recent UK DD recurring contributions 
+  // and some recent UK DD recurring contributions
   $select = 'SELECT c.id, c.contribution_status_id, c.trxn_id, c.invoice_id, icc.customer_code
-      FROM civicrm_contribution c 
+      FROM civicrm_contribution c
       INNER JOIN civicrm_contribution_recur cr ON c.contribution_recur_id = cr.id
       INNER JOIN civicrm_payment_processor pp ON cr.payment_processor_id = pp.id
       INNER JOIN civicrm_iats_customer_codes icc ON cr.id = icc.recur_id
-      WHERE 
+      WHERE
         c.receive_date > %1
         AND pp.class_name = %2
         AND pp.is_test = 0';
@@ -74,12 +74,12 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
     $ukdd_contribution[$dao->customer_code][$key] = array('id' => $dao->id, 'contribution_status_id' => $dao->contribution_status_id, 'invoice_id' => $dao->invoice_id);
   }
   // and now get all the non-completed UKDD sequences, in order to track new contributions from iATS
-  $select = 'SELECT cr.*, icc.customer_code as customer_code, icc.cid as icc_contact_id, iukddv.acheft_reference_num as reference_num, pp.is_test 
-      FROM civicrm_contribution_recur cr 
+  $select = 'SELECT cr.*, icc.customer_code as customer_code, icc.cid as icc_contact_id, iukddv.acheft_reference_num as reference_num, pp.is_test
+      FROM civicrm_contribution_recur cr
       INNER JOIN civicrm_payment_processor pp ON cr.payment_processor_id = pp.id
       INNER JOIN civicrm_iats_customer_codes icc ON cr.id = icc.recur_id
       INNER JOIN civicrm_iats_ukdd_validate iukddv ON cr.id = iukddv.recur_id
-      WHERE 
+      WHERE
         pp.class_name = %1
         AND pp.is_test = 0
         AND (cr.end_date IS NULL OR cr.end_date > NOW())';
@@ -94,7 +94,9 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
   /* get "recent" approvals and rejects from iats and match them up with my pending list, or one-offs, or UK DD via the customer code */
   require_once("CRM/iATS/iATSService.php");
   // an array of methods => contribution status of the records retrieved
-  $process_methods = array('acheft_journal_csv' => 1,'acheft_payment_box_journal_csv' => 1, 'acheft_payment_box_reject_csv' => 4);
+  // KG: 3 => Cancelled [it's not possible to Failed a Transaction again once it has gone to Completed] - but not doing this -> write to log/report instead
+  // I only have the first 10 digits of the invoice to match + total amount - and that's not unique enough
+  $process_methods = array('acheft_journal_csv' => 1,'acheft_payment_box_journal_csv' => 1, 'acheft_payment_box_reject_csv' => 4, 'acheft_return_csv' => 3);
   /* initialize some values so I can report at the end */
   $error_count = 0;
   // count the number of each record from iats analysed, and the number of each kind found
@@ -110,9 +112,10 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
     2 => array('Payment_iATSServiceUKDD', 'String'),
   );
   $dao = CRM_Core_DAO::executeQuery($select,$args);
-  // watchdog('civicrm_iatspayments_com', 'pending: <pre>!pending</pre>', array('!pending' => print_r($iats_acheft_recur_pending,TRUE)), WATCHDOG_NOTICE);   
+  // watchdog('civicrm_iatspayments_com', 'pending: <pre>!pending</pre>', array('!pending' => print_r($iats_acheft_recur_pending,TRUE)), WATCHDOG_NOTICE);
   while ($dao->fetch()) {
     /* get approvals from yesterday, approvals from previous days, and then rejections for this payment processor */
+    /* KG - also get today's returns */
     $iats_service_params = array('type' => 'report', 'iats_domain' => parse_url($dao->url_site, PHP_URL_HOST)) + $iats_service_params;
     /* the is_test below should always be 0, but I'm leaving it in, in case eventually we want to be verifying tests */
     $credentials = iATS_Service_Request::credentials($dao->id, $dao->is_test);
@@ -122,18 +125,27 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
       // or, it could be configurable for the job
       $iats_service_params['method'] = $method;
       $iats = new iATS_Service_Request($iats_service_params);
-      // I'm now using the new v2 version of the payment_box_journal, so a previous hack here is now removed 
+      // I'm now using the new v2 version of the payment_box_journal, so a previous hack here is now removed
       switch($method) {
         case 'acheft_journal_csv': // special case to get today's transactions, so we're as real-time as we can be
           $request = array(
-            'date' => date('Y-m-d').'T23:59:59+00:00', 
+            'date' => date('Y-m-d').'T23:59:59+00:00',
+            'customerIPAddress' => (function_exists('ip_address') ? ip_address() : $_SERVER['REMOTE_ADDR']),
+          );
+          break;
+        // KG
+        case 'acheft_return_csv': // no box journal available - only one date at a time - get today's transactions, so we're as real-time as we can be
+          $request = array(
+            //'date' => date('Y-m-d').'T23:59:59+00:00',
+            // KG I see two returns in iATSpayments.com TEST88 on Feb. 12 - use for now until my own recurring $3 ACH/EFTs are returned
+            'date' => date('2015-02-12'),
             'customerIPAddress' => (function_exists('ip_address') ? ip_address() : $_SERVER['REMOTE_ADDR']),
           );
           break;
         default: // box journals only go up to the end of yesterday
           $request = array(
-            'fromDate' => date('Y-m-d',strtotime('-'.IATS_VERIFY_DAYS.' days')).'T00:00:00+00:00', 
-            'toDate' => date('Y-m-d',strtotime('-1 day')).'T23:59:59+00:00', 
+            'fromDate' => date('Y-m-d',strtotime('-'.IATS_VERIFY_DAYS.' days')).'T00:00:00+00:00',
+            'toDate' => date('Y-m-d',strtotime('-1 day')).'T23:59:59+00:00',
             'customerIPAddress' => (function_exists('ip_address') ? ip_address() : $_SERVER['REMOTE_ADDR']),
           );
           break;
@@ -142,9 +154,22 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
       $response = $iats->request($credentials,$request);
       $transactions = $iats->getCSV($response, $method);
       $processed[$method]+= count($transactions);
-      // watchdog('civicrm_iatspayments_com', 'transactions: <pre>!trans</pre>', array('!trans' => print_r($transactions,TRUE)), WATCHDOG_NOTICE);   
+      // watchdog('civicrm_iatspayments_com', 'transactions: <pre>!trans</pre>', array('!trans' => print_r($transactions,TRUE)), WATCHDOG_NOTICE);
       foreach($transactions as $transaction_id => $transaction) {
         $contribution = NULL; // use this later to trigger an activity if it's not NULL
+        // KG first deal with acheft returns from today
+        if ($method == 'acheft_return_csv') {
+          // write to log table
+          // then write a report that visualizes the log table
+          // report here to in processed
+          $achreturn_info = $transaction->customer_code . ':' . $transaction->amount . ':' . $transaction->result . ':' . $transaction->id . ':' . $transaction->invoice;
+          $query_params = array(
+            1 => array($achreturn_info, 'String'),
+            4 => array($contribution_status_id, 'Integer'),
+          );
+          CRM_Core_DAO::executeQuery("INSERT INTO civicrm_iats_verify
+            (customer_code, cid, contribution_id, contribution_status_id, verify_datetime) VALUES (%1, NULL, NULL, %4, NOW())", $query_params);
+        }
         // first deal with acheft_pending, [and possibly the corresponding recur sequence ? no? ]
         if (!empty($acheft_pending[$transaction_id])) {
           /* update the contribution status */
@@ -155,7 +180,7 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
           $params = array('version' => 3, 'sequential' => 1, 'contribution_status_id' => $contribution_status_id, 'id' => $contribution['id']);
           $result = civicrm_api('Contribution', 'create', $params); // update the contribution
           // always log these requests in my cutom civicrm table for auditing type purposes
-          // watchdog('civicrm_iatspayments_com', 'contribution: <pre>!contribution</pre>', array('!contribution' => print_r($query_params,TRUE)), WATCHDOG_NOTICE);   
+          // watchdog('civicrm_iatspayments_com', 'contribution: <pre>!contribution</pre>', array('!contribution' => print_r($query_params,TRUE)), WATCHDOG_NOTICE);
           $query_params = array(
             1 => array($transaction->customer_code, 'String'),
             2 => array($contribution['contact_id'], 'Integer'),
@@ -204,13 +229,13 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
               'total_amount'       => $transaction->amount,
               'payment_instrument_id'  => $contribution_recur['payment_instrument_id'],
               'contribution_recur_id'  => $contribution_recur['id'],
-              'trxn_id'        => $trxn_id, 
+              'trxn_id'        => $trxn_id,
               'invoice_id'       => md5(uniqid(rand(), TRUE)),
               'source'         => 'iATS UK DD Reference: '.$contribution_recur['reference_num'],
-              'contribution_status_id' => $contribution_status_id, 
+              'contribution_status_id' => $contribution_status_id,
               'currency'  => $contribution_recur['currency'], // better be GBP!
               'payment_processor'   => $contribution_recur['payment_processor_id'],
-              'is_test'        => 0, 
+              'is_test'        => 0,
             );
             if (isset($dao->contribution_type_id)) {  // 4.2
                $contribution['contribution_type_id'] = $contribution_recur['contribution_type_id'];
@@ -267,7 +292,7 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
               )
             );
             ++$error_count;
-          } 
+          }
           else {
             $output[] = $subject;
           }
@@ -281,11 +306,13 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
       1 => $error_count,
     )
   );
-  $message .= '<br />'. ts('Processed %1 approvals from today, %2 approval and %3 rejection records from the previous '.IATS_VERIFY_DAYS.' days.',
+  // KG
+  $message .= '<br />'. ts('Processed %1 approvals from today, %2 approval, %3 rejection and %4 return records from the previous '.IATS_VERIFY_DAYS.' days.',
     array(
       1 => $processed['acheft_journal_csv'],
       2 => $processed['acheft_payment_box_journal_csv'],
       3 => $processed['acheft_payment_box_reject_csv'],
+      4 => $processed['acheft_return_csv'],
     )
   );
   // If errors ..
@@ -317,5 +344,5 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
   }
   // No records processed
   return civicrm_api3_create_success(ts('No records found to process.'));
- 
+
 }
