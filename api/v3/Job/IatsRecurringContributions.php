@@ -229,9 +229,9 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
       ++$error_count;
       ++$counter;
       /* create the failed contribution record */
-      $result = civicrm_api('contribution', 'create', $contribution);
-      if ($result['is_error']) {
-        $errors[] = $result['error_message'];
+      $contributionResult = civicrm_api('contribution', 'create', $contribution);
+      if ($contributionResult['is_error']) {
+        $errors[] = $contributionResult['error_message'];
       }
       continue;
     }
@@ -264,14 +264,14 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
       if (empty($result['status'])) {
         /* create the contribution record in civicrm with the failed status */
         $contribution['source'] .= ' '.$result['reasonMessage'];
-        civicrm_api('contribution', 'create', $contribution);
+        $contributionResult = civicrm_api('contribution', 'create', $contribution);
         $output[] = ts('Failed to process recurring contribution id %1: ', array(1 => $contribution_recur_id)).$result['reasonMessage'];
       } 
       else {
         /* success, create the contribution record with corrected status + trxn_id */
         $contribution['trxn_id'] = trim($result['remote_id']) . ':' . time();
         $contribution['contribution_status_id'] = 1; 
-        civicrm_api('contribution','create', $contribution);
+        $contributionResult = civicrm_api('contribution','create', $contribution);
         $output[] = ts('Successfully processed recurring contribution id %1: ', array(1 => $contribution_recur_id)).$result['auth_result'];
       }
     }
@@ -298,6 +298,7 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
         'version'       => 3,
         'activity_type_id'  => 6,
         'source_contact_id'   => $contact_id,
+        'source_record_id' => CRM_Utils_Array::value('id', $contributionResult),
         'assignee_contact_id' => $contact_id,
         'subject'       => "Attempted iATS Payments $subtype Recurring Contribution for " . $total_amount,
         'status_id'       => 2,
