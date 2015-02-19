@@ -312,8 +312,8 @@ Class iATS_Service_Request {
             case 'acheft_return_csv':
               $datetime = $data[$headers['Date']];
               $transaction->invoice = $data[$headers['Invoice']];
-              $transaction->amount = $data[$headers[' Total']];
-              $transaction->result = $data[$headers[' Result']];
+              $transaction->amount = $data[$headers['Total']];
+              $transaction->result = $data[$headers['Result']];
               break;
             case 'acheft_journal_csv':
               $datetime = $data[$headers['Date']];
