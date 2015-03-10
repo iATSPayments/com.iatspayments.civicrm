@@ -4,11 +4,11 @@
 // database as appropriate. For more details, see "hook_civicrm_managed" at:
 // http://wiki.civicrm.org/confluence/display/CRMDOC42/Hook+Reference
 return array (
-  0 => 
+  0 =>
   array (
     'name' => 'Cron:Job.IatsACHEFTVerify',
     'entity' => 'Job',
-    'params' => 
+    'params' =>
     array (
       'version' => 3,
       'name' => 'iATS Payments Verification',

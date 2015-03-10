@@ -64,7 +64,7 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
     }
     // use the iATSService object for interacting with iATS, mostly the same for recurring contributions
     require_once("CRM/iATS/iATSService.php");
-    $isRecur =  CRM_Utils_Array::value('is_recur', $params) && $params['contributionRecurID'];
+    $isRecur = CRM_Utils_Array::value('is_recur', $params) && $params['contributionRecurID'];
     $method = $isRecur ? 'cc_create_customer_code':'cc';
     $iats = new iATS_Service_Request(array('type' => 'process', 'method' => $method, 'iats_domain' => $this->_profile['iats_domain'], 'currencyID' => $params['currencyID']));
     $request = $this->convertParams($params, $method);
