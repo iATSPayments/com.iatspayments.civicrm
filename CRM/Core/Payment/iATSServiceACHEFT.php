@@ -1,5 +1,6 @@
 <?php
-/* Copyright iATS Payments (c) 2014
+/**
+ * Copyright iATS Payments (c) 2014
  * @author Alan Dixon
  *
  * This file is a part of CiviCRM published extension.
