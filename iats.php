@@ -18,15 +18,10 @@
  * License with this program; if not, see http://www.gnu.org/licenses/
  */
 
-/* this constant is used because civicrm has changed the field name of
- * the 'next scheduled contribution date' field in version 4.3 and above
- * TODO: remove this when we no longer support 4.2
- */
-
 require_once 'iats.civix.php';
 
 /**
- * Implementation of hook_civicrm_config
+ * Implementation of hook_civicrm_config().
  */
 function iats_civicrm_config(&$config) {
   _iats_civix_civicrm_config($config);
@@ -187,7 +182,7 @@ function iats_civicrm_managed(&$entities) {
 
 function _iats_getMenuKeyMax($menuArray) {
   $max = array(max(array_keys($menuArray)));
-  foreach($menuArray as $v) {
+  foreach ($menuArray as $v) {
     if (!empty($v['child'])) {
       $max[] = _iats_getMenuKeyMax($v['child']);
     }
@@ -198,53 +193,57 @@ function _iats_getMenuKeyMax($menuArray) {
 function iats_civicrm_navigationMenu(&$params) {
   // get the maximum key of $params
   $maxKey = 1 + _iats_getMenuKeyMax($params);
-  foreach($params as $key => $value) {
+  foreach ($params as $key => $value) {
     if ('Contributions' == $value['attributes']['name']) {
-      $params[$key]['child'][$maxKey] =  array (
-        'attributes' => array (
+      $params[$key]['child'][$maxKey] = array(
+        'attributes' => array(
           'label'      => 'iATS Payments Admin',
           'name'       => 'iATS Payments Admin',
           'url'        => 'civicrm/iATSAdmin',
           'permission' => 'access CiviContribute,administer CiviCRM',
           'operator'   => 'AND',
-          'separator'  => null,
+          'separator'  => NULL,
           'parentID'   => 28,
           'navID'      => $maxKey,
           'active'     => 1
         )
       );
-      $maxKey++; // just in case ...
+      // Just in case ...
+      $maxKey++;
     }
   }
 }
 
-
-/*
- * hook_civicrm_buildForm
+/**
+ * hook_civicrm_buildForm.
  * Do a Drupal 7 style thing so we can write smaller functions
  */
 function iats_civicrm_buildForm($formName, &$form) {
   // but start by grouping a few forms together for nicer code
-  switch($formName) {
+  switch ($formName) {
     case 'CRM_Event_Form_Participant':
     case 'CRM_Member_Form_Membership':
     case 'CRM_Contribute_Form_Contribution':
       // override normal convention, deal with all these backend credit card contribution forms the same way
       $fname = 'iats_civicrm_buildForm_CreditCard_Backend';
       break;
+
     case 'CRM_Contribute_Form_Contribution_Main':
     case 'CRM_Event_Form_Registration_Register':
       // override normal convention, deal with all these front-end contribution forms the same way
       $fname = 'iats_civicrm_buildForm_Contribution_Frontend';
       break;
+
     case 'CRM_Contribute_Form_Contribution_Confirm':
       // on the confirmation form, we know the processor, so only do processor specific customizations
       $fname = 'iats_civicrm_buildForm_Contribution_Confirm_'.$form->_paymentProcessor['class_name'];
       break;
+
     case 'CRM_Contribute_Form_Contribution_ThankYou':
       // on the confirmation form, we know the processor, so only do processor specific customizations
       $fname = 'iats_civicrm_buildForm_Contribution_ThankYou_'.$form->_paymentProcessor['class_name'];
       break;
+
     default:
       $fname = 'iats_civicrm_buildForm_'.$formName;
       break;
@@ -255,7 +254,7 @@ function iats_civicrm_buildForm($formName, &$form) {
   // else echo $fname;
 }
 
-/*
+/**
  * hook_civicrm_merge
  * Deal with contact merges - our custom iats customer code table contains contact id's as a check, it might need to be updated
  */
@@ -267,7 +266,7 @@ function iats_civicrm_merge($type, &$data, $mainId = NULL, $otherId = NULL, $tab
 }
 
 
-/*
+/**
  * hook_civicrm_pre
  *
  * Handle special cases of creating contribution (regular and recurring) records when using IATS Payments
@@ -283,7 +282,6 @@ function iats_civicrm_merge($type, &$data, $mainId = NULL, $otherId = NULL, $tab
  * TODO: update this code with constants for the various id values of 1 and 2.
  * TODO: CiviCRM should have nicer ways to handle this.
  */
-
 function iats_civicrm_pre($op, $objectName, $objectId, &$params) {
   // since this function gets called a lot, quickly determine if I care about the record being created
   if (('create' == $op) && ('Contribution' == $objectName || 'ContributionRecur' == $objectName) && !empty($params['contribution_status_id'])) {
@@ -344,7 +342,7 @@ function iats_civicrm_pre($op, $objectName, $objectId, &$params) {
   }
 }
 
-/*
+/**
  * The contribution itself doesn't tell you which payment processor it came from
  * So we have to dig back via the contribution_recur_id that it is associated with.
  */
