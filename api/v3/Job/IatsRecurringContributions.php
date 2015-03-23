@@ -30,6 +30,8 @@ function _civicrm_api3_job_iatsrecurringcontributions_spec(&$spec) {
  * @throws API_Exception
  */
 function civicrm_api3_job_iatsrecurringcontributions($params) {
+  // running this job in parallell could generate bad duplicate contributions
+  $lock = new CRM_Core_Lock('civimail.job.IatsRecurringContributions');
   // TODO: what kind of extra security do we want or need here to prevent it from being triggered inappropriately? Or does it matter?
 
   // the next scheduled contribution date field name is civicrm version dependent
@@ -342,7 +344,7 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
     }
   }
 
-
+  $lock->release();
   // If errors ..
   if ($error_count) {
     return civicrm_api3_create_error(
