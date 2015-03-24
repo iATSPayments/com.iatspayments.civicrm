@@ -118,9 +118,13 @@ Class iATS_Service_Request {
       // log: ip, invoiceNum, , cc, total, date
       // dpm($logged_request);
       $cc = isset($logged_request['creditCardNum']) ? $logged_request['creditCardNum'] :  (isset($logged_request['ccNum']) ? $logged_request['ccNum'] : '');
+      $ip = $logged_request['customerIPAddress'];
+      if (!$this->is_ipv4($ip)) {
+        $ip = '';
+      }
       $query_params = array(
         1 => array($logged_request['invoiceNum'], 'String'),
-        2 => array($logged_request['customerIPAddress'], 'String'),
+        2 => array($ip, 'String'),
         3 => array(substr($cc, -4), 'String'),
         4 => array('', 'String'),
         5 => array($logged_request['total'], 'String'),
@@ -643,5 +647,13 @@ Class iATS_Service_Request {
       return;
     }
     return $credentials[$payment_processor_id];
+  }
+
+  public static function is_ipv4($ip) {
+    // The regular expression checks for any number between 0 and 255 beginning with a dot (repeated 3 times)
+    // followed by another number between 0 and 255 at the end. The equivalent to an IPv4 address.
+    //It does not allow leading zeros [from http://runnable.com/UmrneujI6Q4_AAIW/how-to-validate-an-ipv4-address-using-regular-expressions-for-php-and-pcre]
+    return (bool) preg_match('/^(?:(?:25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]|[0-9])'.
+    '\.){3}(?:25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]?|[0-9])$/', $ip);
   }
 }
