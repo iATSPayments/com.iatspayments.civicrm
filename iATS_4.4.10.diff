@@ -35,3 +35,15 @@
  
        foreach ($processors as $ppID => $label) {
          $paymentProcessor = CRM_Financial_BAO_PaymentProcessor::getPayment($ppID, $this->_mode);
+--- ./CRM/Event/Form/KEEP.Participant.php.KEEP  2015-03-26 19:51:15.208118122 -0400
++++ ./CRM/Event/Form/Participant.php    2015-03-26 19:52:20.455620537 -0400
+@@ -1340,7 +1340,8 @@
+       $payment = CRM_Core_Payment::singleton($this->_mode, $this->_paymentProcessor, $this);
+ 
+       // CRM-15622: fix for incorrect contribution.fee_amount
+-      $paymentParams['fee_amount'] = NULL;
++      // KG
++      // $paymentParams['fee_amount'] = NULL;
+       $result = $payment->doDirectPayment($paymentParams);
+ 
+       if (is_a($result, 'CRM_Core_Error')) {
