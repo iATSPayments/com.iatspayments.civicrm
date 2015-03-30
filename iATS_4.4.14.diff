@@ -42,7 +42,7 @@
  
        // CRM-15622: fix for incorrect contribution.fee_amount
 -      $paymentParams['fee_amount'] = NULL;
-+      // KG
++      // KG 4.4 issue only
 +      // $paymentParams['fee_amount'] = NULL;
        $result = $payment->doDirectPayment($paymentParams);
  
