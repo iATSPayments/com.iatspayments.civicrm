@@ -212,7 +212,7 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
           // I also confirm that it's got the right ach reference field, which i get from the ukdd_contribution_recur record
           $contribution_recur = $ukdd_contribution_recur[$transaction->customer_code];
           // build the (unique) civicrm trxn id that we can use to match up against civicrm-stored transactions
-          $trxn_id = $transaction->id.':iATSUKDD:'.$transaction->customer_code;
+          $trxn_id = $transaction->id . ':iATSUKDD:' . $transaction->customer_code;
           // sanity check against the ACH Reference number, but only if I get it from iATS
           if (!empty($transaction->achref) && ($contribution_recur['reference_num'] != $transaction->achref)) {
             $output[] = ts(
