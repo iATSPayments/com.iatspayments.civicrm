@@ -18,11 +18,6 @@
  * License with this program; if not, see http://www.gnu.org/licenses/
  */
 
-/* this constant is used because civicrm has changed the field name of
- * the 'next scheduled contribution date' field in version 4.3 and above
- * TODO: remove this when we no longer support 4.2
- */
-
 require_once 'iats.civix.php';
 
 /**
@@ -200,7 +195,7 @@ function iats_civicrm_navigationMenu(&$params) {
   $maxKey = 1 + _iats_getMenuKeyMax($params);
   foreach($params as $key => $value) {
     if ('Contributions' == $value['attributes']['name']) {
-      $params[$key]['child'][$maxKey] =  array (
+      $params[$key]['child'][$maxKey] = array(
         'attributes' => array (
           'label'      => 'iATS Payments Admin',
           'name'       => 'iATS Payments Admin',
