@@ -30,18 +30,15 @@ class CRM_Core_Payment_iATSServiceACHEFT extends CRM_Core_Payment {
   static private $_singleton = NULL;
 
   /**
-   * Constructor
+   * Constructor.
    *
    * @param string $mode the mode of operation: live or test
-   *
-   * @return void
+   * @param array $paymentProcessor
    */
-   function __construct($mode, &$paymentProcessor) {
+  public function __construct($mode, &$paymentProcessor) {
     $this->_paymentProcessor = $paymentProcessor;
     $this->_processorName = ts('iATS Payments ACHEFT');
 
-    // get merchant data from config
-    $config = CRM_Core_Config::singleton();
     // live or test
     $this->_profile['mode'] = $mode;
     // we only use the domain of the configured url, which is different for NA vs. UK
