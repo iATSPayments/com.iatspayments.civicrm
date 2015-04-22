@@ -31,13 +31,13 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
   static private $_singleton = NULL;
 
   /**
-   * Constructor
+   * Constructor.
    *
    * @param string $mode the mode of operation: live or test
    *
-   * @return void
+   * @param array $paymentProcessor
    */
-   function __construct($mode, &$paymentProcessor) {
+  public function __construct($mode, &$paymentProcessor) {
     $this->_paymentProcessor = $paymentProcessor;
     $this->_processorName = ts('iATS Payments');
 
@@ -65,18 +65,20 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
     // use the iATSService object for interacting with iATS, mostly the same for recurring contributions
     require_once("CRM/iATS/iATSService.php");
     $isRecur = CRM_Utils_Array::value('is_recur', $params) && $params['contributionRecurID'];
-    $method = $isRecur ? 'cc_create_customer_code':'cc';
+    $method = $isRecur ? 'cc_create_customer_code' : 'cc';
     $iats = new iATS_Service_Request(array('type' => 'process', 'method' => $method, 'iats_domain' => $this->_profile['iats_domain'], 'currencyID' => $params['currencyID']));
     $request = $this->convertParams($params, $method);
     $request['customerIPAddress'] = (function_exists('ip_address') ? ip_address() : $_SERVER['REMOTE_ADDR']);
-    $credentials = array('agentCode' => $this->_paymentProcessor['user_name'],
-                         'password'  => $this->_paymentProcessor['password' ]);
+    $credentials = array(
+      'agentCode' => $this->_paymentProcessor['user_name'],
+      'password'  => $this->_paymentProcessor['password'],
+    );
     // Get the API endpoint URL for the method's transaction mode.
     // TODO: enable override of the default url in the request object
     // $url = $this->_paymentProcessor['url_site'];
 
     // make the soap request
-    $response = $iats->request($credentials,$request);
+    $response = $iats->request($credentials, $request);
     // process the soap response into a readable result
     $result = $iats->result($response);
     if ($result['status']) {
@@ -94,10 +96,10 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
         if (isset($params['email'])) {
           $email = $params['email'];
         }
-        elseif(isset($params['email-5'])) {
+        elseif (isset($params['email-5'])) {
           $email = $params['email-5'];
         }
-        elseif(isset($params['email-Primary'])) {
+        elseif (isset($params['email-Primary'])) {
           $email = $params['email-Primary'];
         }
         $query_params = array(
@@ -160,14 +162,12 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
   }
 
   /**
-   * This function checks to see if we have the right config values
+   * This function checks to see if we have the right config values.
    *
-   * @param  string $mode the mode we are operating in (live or test)
-   *
-   * @return string the error message if any
-   * @public
+   * @return string
+   *   The error message if any
    */
-  function checkConfig() {
+  public function checkConfig() {
     $error = array();
 
     if (empty($this->_paymentProcessor['user_name'])) {
@@ -186,10 +186,15 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
     }
   }
 
-  /*
-   * Convert the values in the civicrm params to the request array with keys as expected by iATS
+  /**
+   * Convert the values in the civicrm params to the request array with keys as expected by iATS.
+   *
+   * @param array $params
+   * @param string $method
+   *
+   * @return array
    */
-  function convertParams($params, $method) {
+  protected function convertParams($params, $method) {
     $request = array();
     $convert = array(
       'firstName' => 'billing_first_name',
