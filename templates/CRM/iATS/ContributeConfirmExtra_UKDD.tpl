@@ -39,12 +39,3 @@
     </div>
   </div>
 </div>
-
-<script type="text/javascript">
-  {literal}
-  cj( function( ) {
-    /* move my custom fields up where they belong */
-  });
-  {/literal}
-</script>
-

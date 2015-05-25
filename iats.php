@@ -180,6 +180,57 @@ function iats_civicrm_managed(&$entities) {
   return _iats_civix_civicrm_managed($entities);
 }
 
+
+/**
+ * Utility function to get domain info
+ *
+ * Get values from the civicrm_domain table
+ */
+function _iats_civicrm_domain_info($key) {
+  static $domain;
+  if (empty($domain)) {
+    $domain = civicrm_api('Domain', 'getsingle', array('version' => 3, 'current_domain' => TRUE));
+  }
+  switch($key) {
+    case 'version':
+      return explode('.',$domain['version']);
+    default:
+      if (!empty($domain[$key])) {
+        return $domain[$key];
+      }
+      $config_backend = unserialize($domain['config_backend']);
+      return $config_backend[$key];
+  }
+}
+
+/* START utility functions to allow this extension to work with different civicrm version */
+
+/**
+ * Get the name of the next scheduled contribution date field, (not necessary since 4.4)
+ */
+function _iats_civicrm_nscd_fid() {
+  $version = CRM_Utils_System::version();
+  return (version_compare($version, '4.4') < 0) ? 'next_sched_contribution' : 'next_sched_contribution_date';
+}
+
+/**
+ * Set values in the civicrm_setting table
+ */
+function _iats_civicrm_varset($vars) {
+  $version = CRM_Utils_System::version();
+  if (version_compare($version, '4.5') < 0) { /// support 4.4!
+    CRM_Core_Resources::singleton()->addSetting('iatspayments', $vars);
+  }
+  else {
+    CRM_Core_Resources::singleton()->addVars('iatspayments', $vars);
+  }
+}
+
+/* END functions to allow this extension to work with different civicrm version */
+
+/**
+ * Utility to get the next available menu key
+ */
 function _iats_getMenuKeyMax($menuArray) {
   $max = array(max(array_keys($menuArray)));
   foreach ($menuArray as $v) {
@@ -360,6 +411,11 @@ function _iats_civicrm_get_payment_processor_id($contribution_recur_id) {
   return $result['payment_processor_id'];
 }
 
+/*
+ * Utility function to see if a payment processor id is using one of the iATS payment processors
+ * 
+ * This function relies on our naming convention for the iats payment processor classes, staring with the string Payment_iATSService
+ */
 function _iats_civicrm_is_iats($payment_processor_id) {
   $params = array(
     'version' => 3,
@@ -376,7 +432,9 @@ function _iats_civicrm_is_iats($payment_processor_id) {
   return ('Payment_iATSService' == $type) ? 'iATSService'.$subtype  : FALSE;
 }
 
-/* internal utility function: return the id's of any iATS processors matching various conditions
+/**
+ * Internal utility function: return the id's of any iATS processors matching various conditions
+ *
  * processors: an array of payment processors indexed by id to filter by,
  *             or if NULL, it searches through all
  * subtype: the iats service class name subtype
@@ -407,6 +465,8 @@ function iats_civicrm_processors($processors, $subtype = '', $params = array()) 
  * The currency-specific functions will do things like modify labels, add exta fields,
  * add legal requirement notice and perhaps checkbox acceptance for electronic acceptance of ACH/EFT, and
  * make this form nicer by include a sample check with instructions for getting the various numbers
+ * 
+ * Each one also includes some javascript to move the new fields around on the DOM
  */
 
 function iats_acheft_form_customize($form) {
@@ -430,6 +490,7 @@ function iats_acheft_form_customize($form) {
     CRM_Core_Region::instance('billing-block')->add(array(
       'template' => 'CRM/iATS/BillingBlockDirectDebitExtra_Other.tpl'
     ));
+    CRM_Core_Resources::singleton()->addScriptFile('com.iatspayments.civicrm', 'js/dd_acheft.js');
   }
 }
 
@@ -449,6 +510,7 @@ function iats_acheft_form_customize_USD($form) {
   CRM_Core_Region::instance('billing-block')->add(array(
     'template' => 'CRM/iATS/BillingBlockDirectDebitExtra_USD.tpl'
   ));
+  CRM_Core_Resources::singleton()->addScriptFile('com.iatspayments.civicrm', 'js/dd_acheft.js');
 }
 
 /*
@@ -472,6 +534,7 @@ function iats_acheft_form_customize_CAD($form) {
   CRM_Core_Region::instance('billing-block')->add(array(
     'template' => 'CRM/iATS/BillingBlockDirectDebitExtra_CAD.tpl'
   ));
+  CRM_Core_Resources::singleton()->addScriptFile('com.iatspayments.civicrm', 'js/dd_acheft.js');
 }
 
 /*
@@ -490,6 +553,7 @@ function iats_swipe_form_customize($form) {
  CRM_Core_Region::instance('billing-block')->add(array(
    'template' => 'CRM/iATS/BillingBlockSwipe.tpl'
  ));
+ CRM_Core_Resources::singleton()->addScriptFile('com.iatspayments.civicrm', 'js/swipe.js');
 }
 
 /*
@@ -554,6 +618,7 @@ function iats_ukdd_form_customize($form) {
   CRM_Core_Region::instance('billing-block')->add(array(
     'template' => 'CRM/iATS/BillingBlockDirectDebitExtra_GBP.tpl'
   ));
+  CRM_Core_Resources::singleton()->addScriptFile('com.iatspayments.civicrm', 'js/dd_uk.js');
 }
 
 /* Modifications to a (public/frontend) contribution forms if iATS ACH/EFT or SWIPE is enabled
@@ -681,9 +746,8 @@ function iats_civicrm_buildForm_CRM_Contribute_Form_Search(&$form) {
     }
   }
   if (count($acheft_backoffice_links)) {
-    // a hackish way to inject these links into the form, they are displayed nicely using some javascript
-    // that is added using the Tab.extra.tpl mechanism
-    $form->addElement('hidden','acheft_backoffice_links',json_encode($acheft_backoffice_links));
+    _iats_civicrm_varset(array('backofficeLinks' => $acheft_backoffice_links));
+    CRM_Core_Resources::singleton()->addScriptFile('com.iatspayments.civicrm', 'js/contribute_form_search.js');
   }
 }
 
@@ -731,26 +795,4 @@ function iats_civicrm_buildForm_Contribution_ThankYou_Payment_iATSServiceUKDD(&$
   CRM_Core_Region::instance('contribution-thankyou-billing-block')->add(array(
     'template' => 'CRM/iATS/ContributeThankYouExtra_UKDD.tpl'
   ));
-}
-
-function _iats_civicrm_domain_info($key) {
-  static $domain;
-  if (empty($domain)) {
-    $domain = civicrm_api('Domain', 'getsingle', array('version' => 3, 'current_domain' => TRUE));
-  }
-  switch($key) {
-    case 'version':
-      return explode('.',$domain['version']);
-    default:
-      if (!empty($domain[$key])) {
-        return $domain[$key];
-      }
-      $config_backend = unserialize($domain['config_backend']);
-      return $config_backend[$key];
-  }
-}
-
-function _iats_civicrm_nscd_fid() {
-  $version = CRM_Utils_System::version();
-  return (version_compare($version, '4.4') < 0) ? 'next_sched_contribution' : 'next_sched_contribution_date';
 }

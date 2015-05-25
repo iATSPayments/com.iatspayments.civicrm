@@ -33,6 +33,7 @@ Class iATS_Service_Request {
   CONST iATS_URL_PROCESSLINK = '/NetGate/ProcessLink.asmx?WSDL';
   CONST iATS_URL_REPORTLINK = '/NetGate/ReportLink.asmx?WSDL';
   CONST iATS_URL_CUSTOMERLINK = '/NetGate/CustomerLink.asmx?WSDL';
+  CONST iATS_URL_DPMPROCESS = '/NetGate/IATSDPMProcess.aspx';
 
   function __construct($options) {
     $this->type = isset($options['type']) ? $options['type'] : 'process';
