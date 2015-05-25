@@ -657,4 +657,8 @@ Class iATS_Service_Request {
     return (bool) preg_match('/^(?:(?:25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]|[0-9])'.
     '\.){3}(?:25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]?|[0-9])$/', $ip);
   }
+
+  public static function dpm_url($iats_domain) {
+    return 'https://' . $iats_domain . self::iATS_URL_DPMPROCESS; 
+  }
 }

@@ -214,7 +214,7 @@ function _iats_civicrm_nscd_fid() {
 }
 
 /**
- * Set values in the civicrm_setting table
+ * Set js config values, version dependent. Access is also version dependent.
  */
 function _iats_civicrm_varset($vars) {
   $version = CRM_Utils_System::version();
@@ -658,6 +658,19 @@ function iats_civicrm_buildForm_Contribution_Frontend(&$form) {
     // watchdog('iats_acheft',kprint_r($form,TRUE));
   }
 
+  /* and finally, for most frontend forms, use the dpm.js script to use the DirectPost Method override 
+   * TODO: provide an admin way to prevent this
+   * TODO: use it for swipe, never for ukdd?
+   */
+  CRM_Core_Region::instance('billing-block')->add(array(
+    'template' => 'CRM/iATS/BillingBlockDPM.tpl'
+  ));
+  $iats_domain = parse_url($form->_paymentProcessor['url_site'],PHP_URL_HOST);
+  require_once("CRM/iATS/iATSService.php");
+  $dpm_url = iATS_Service_Request::dpm_url($iats_domain);
+  _iats_civicrm_varset(array('dpmURL' => $dpm_url));
+  CRM_Core_Resources::singleton()->addScriptFile('com.iatspayments.civicrm', 'js/dpm.js');
+  
 }
 
 /*  Fix the backend credit card contribution forms
