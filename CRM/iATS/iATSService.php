@@ -34,6 +34,7 @@ Class iATS_Service_Request {
   CONST iATS_URL_REPORTLINK = '/NetGate/ReportLink.asmx?WSDL';
   CONST iATS_URL_CUSTOMERLINK = '/NetGate/CustomerLink.asmx?WSDL';
   CONST iATS_URL_DPMPROCESS = '/NetGate/IATSDPMProcess.aspx';
+  CONST iATS_USE_DPMPROCESS = FALSE;
 
   function __construct($options) {
     $this->type = isset($options['type']) ? $options['type'] : 'process';
@@ -656,6 +657,10 @@ Class iATS_Service_Request {
     //It does not allow leading zeros [from http://runnable.com/UmrneujI6Q4_AAIW/how-to-validate-an-ipv4-address-using-regular-expressions-for-php-and-pcre]
     return (bool) preg_match('/^(?:(?:25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]|[0-9])'.
     '\.){3}(?:25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]?|[0-9])$/', $ip);
+  }
+
+  public static function isDPM($pp) {
+    return self::iATS_USE_DPMPROCESS; 
   }
 
   public static function dpm_url($iats_domain) {

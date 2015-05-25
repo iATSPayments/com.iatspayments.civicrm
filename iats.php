@@ -662,15 +662,16 @@ function iats_civicrm_buildForm_Contribution_Frontend(&$form) {
    * TODO: provide an admin way to prevent this
    * TODO: use it for swipe, never for ukdd?
    */
-  CRM_Core_Region::instance('billing-block')->add(array(
-    'template' => 'CRM/iATS/BillingBlockDPM.tpl'
-  ));
-  $iats_domain = parse_url($form->_paymentProcessor['url_site'],PHP_URL_HOST);
   require_once("CRM/iATS/iATSService.php");
-  $dpm_url = iATS_Service_Request::dpm_url($iats_domain);
-  _iats_civicrm_varset(array('dpmURL' => $dpm_url));
-  CRM_Core_Resources::singleton()->addScriptFile('com.iatspayments.civicrm', 'js/dpm.js');
-  
+  if (iATS_Service_Request::isDPM($form->_paymentProcessor)) {
+    CRM_Core_Region::instance('billing-block')->add(array(
+      'template' => 'CRM/iATS/BillingBlockDPM.tpl'
+    ));
+    $iats_domain = parse_url($form->_paymentProcessor['url_site'],PHP_URL_HOST);
+    $dpm_url = iATS_Service_Request::dpm_url($iats_domain);
+    _iats_civicrm_varset(array('dpmURL' => $dpm_url));
+    CRM_Core_Resources::singleton()->addScriptFile('com.iatspayments.civicrm', 'js/dpm.js');
+  }
 }
 
 /*  Fix the backend credit card contribution forms
