@@ -49,7 +49,7 @@ class CRM_Core_Payment_iATSServiceUKDD extends CRM_Core_Payment {
     $this->_profile['iats_domain'] = parse_url($this->_paymentProcessor['url_site'], PHP_URL_HOST);
   }
 
-  static function &singleton($mode, &$paymentProcessor) {
+  static function &singleton($mode, &$paymentProcessor, &$paymentForm = NULL, $force = FALSE) {
     $processorName = $paymentProcessor['name'];
     if (self::$_singleton[$processorName] === NULL) {
       self::$_singleton[$processorName] = new CRM_Core_Payment_iATSServiceUKDD($mode, $paymentProcessor);
