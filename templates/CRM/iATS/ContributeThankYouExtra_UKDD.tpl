@@ -36,12 +36,3 @@ Today's Date: {$form.payer_validate_date.html}
       <img width=134 height=55 src="{crmResURL ext=com.iatspayments.civicrm file=templates/CRM/iATS/iats.jpg}">
     </div>
 </div>
-
-<script type="text/javascript">
-  {literal}
-  cj( function( ) {
-    /* move my custom fields up where they belong */
-  });
-  {/literal}
-</script>
-

@@ -13,12 +13,3 @@
     <div class="clear"></div>
   </div>
 </div>
-
-<script type="text/javascript">
-  {literal}
-  cj( function( ) { /* move my account type box up where it belongs */
-    cj('.direct_debit_info-section').prepend(cj('#iats-direct-debit-extra'));
-  });
-  {/literal}
-</script>
-
