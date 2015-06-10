@@ -413,7 +413,7 @@ function _iats_civicrm_get_payment_processor_id($contribution_recur_id) {
 
 /*
  * Utility function to see if a payment processor id is using one of the iATS payment processors
- * 
+ *
  * This function relies on our naming convention for the iats payment processor classes, staring with the string Payment_iATSService
  */
 function _iats_civicrm_is_iats($payment_processor_id) {
@@ -465,7 +465,7 @@ function iats_civicrm_processors($processors, $subtype = '', $params = array()) 
  * The currency-specific functions will do things like modify labels, add exta fields,
  * add legal requirement notice and perhaps checkbox acceptance for electronic acceptance of ACH/EFT, and
  * make this form nicer by include a sample check with instructions for getting the various numbers
- * 
+ *
  * Each one also includes some javascript to move the new fields around on the DOM
  */
 
@@ -658,7 +658,7 @@ function iats_civicrm_buildForm_Contribution_Frontend(&$form) {
     // watchdog('iats_acheft',kprint_r($form,TRUE));
   }
 
-  /* and finally, for most frontend forms, use the dpm.js script to use the DirectPost Method override 
+  /* and finally, for most frontend forms, use the dpm.js script to use the DirectPost Method override
    * TODO: provide an admin way to prevent this
    * TODO: use it for swipe, never for ukdd?
    */
@@ -810,3 +810,13 @@ function iats_civicrm_buildForm_Contribution_ThankYou_Payment_iATSServiceUKDD(&$
     'template' => 'CRM/iATS/ContributeThankYouExtra_UKDD.tpl'
   ));
 }
+
+/**
+ * Implementation of hook_civicrm_alterSettingsFolders
+ *
+ * @link http://wiki.civicrm.org/confluence/display/CRMDOC/hook_civicrm_alterSettingsFolders
+ */
+function iats_civicrm_alterSettingsFolders(&$metaDataFolders = NULL) {
+  _iats_civix_civicrm_alterSettingsFolders($metaDataFolders);
+}
+
