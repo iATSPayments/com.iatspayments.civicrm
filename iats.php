@@ -490,7 +490,6 @@ function iats_acheft_form_customize($form) {
     CRM_Core_Region::instance('billing-block')->add(array(
       'template' => 'CRM/iATS/BillingBlockDirectDebitExtra_Other.tpl'
     ));
-    CRM_Core_Resources::singleton()->addScriptFile('com.iatspayments.civicrm', 'js/dd_acheft.js');
   }
 }
 
@@ -510,7 +509,6 @@ function iats_acheft_form_customize_USD($form) {
   CRM_Core_Region::instance('billing-block')->add(array(
     'template' => 'CRM/iATS/BillingBlockDirectDebitExtra_USD.tpl'
   ));
-  CRM_Core_Resources::singleton()->addScriptFile('com.iatspayments.civicrm', 'js/dd_acheft.js');
 }
 
 /*
@@ -534,7 +532,6 @@ function iats_acheft_form_customize_CAD($form) {
   CRM_Core_Region::instance('billing-block')->add(array(
     'template' => 'CRM/iATS/BillingBlockDirectDebitExtra_CAD.tpl'
   ));
-  CRM_Core_Resources::singleton()->addScriptFile('com.iatspayments.civicrm', 'js/dd_acheft.js');
 }
 
 /*
@@ -629,7 +626,6 @@ function iats_civicrm_buildForm_Contribution_Frontend(&$form) {
   if (empty($form->_paymentProcessors)) {
     return;
   }
-
   $acheft = iats_civicrm_processors($form->_paymentProcessors,'ACHEFT');
   $swipe = iats_civicrm_processors($form->_paymentProcessors,'SWIPE');
   $ukdd = iats_civicrm_processors($form->_paymentProcessors,'UKDD');
@@ -640,7 +636,10 @@ function iats_civicrm_buildForm_Contribution_Frontend(&$form) {
       $form->setDefaults(array('is_recur' => 1)); // make recurring contrib default to true
     }
   }
-
+  // include the required javascripts for available customized selections
+  if (count($acheft)) {
+    CRM_Core_Resources::singleton()->addScriptFile('com.iatspayments.civicrm', 'js/dd_acheft.js');
+  }
   /* Mangle (in a currency-dependent way) the ajax-bit of the form if I've just selected an ach/eft option */
   if (!empty($acheft[$form->_paymentProcessor['id']])){
     iats_acheft_form_customize($form);
