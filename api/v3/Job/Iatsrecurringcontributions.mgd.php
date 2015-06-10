@@ -6,7 +6,7 @@
 return array (
   0 =>
   array (
-    'name' => 'Cron:Job.IatsRecurringContributions',
+    'name' => 'Cron:Job.Iatsrecurringcontributions',
     'entity' => 'Job',
     'params' =>
     array (
@@ -15,7 +15,7 @@ return array (
       'description' => 'Trigger + Generate recurring contributions for iATS Payments',
       'run_frequency' => 'Daily',
       'api_entity' => 'Job',
-      'api_action' => 'IatsRecurringContributions',
+      'api_action' => 'iatsrecurringcontributions',
       'parameters' => '',
     ),
   ),

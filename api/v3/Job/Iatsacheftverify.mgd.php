@@ -6,7 +6,7 @@
 return array (
   0 =>
   array (
-    'name' => 'Cron:Job.IatsACHEFTVerify',
+    'name' => 'Cron:Job.Iatsacheftverify',
     'entity' => 'Job',
     'params' =>
     array (
@@ -15,7 +15,7 @@ return array (
       'description' => 'Call into iATS for approvals, etc.',
       'run_frequency' => 'Hourly',
       'api_entity' => 'Job',
-      'api_action' => 'IatsACHEFTVerify',
+      'api_action' => 'iatsacheftverify',
       'parameters' => '',
     ),
   ),
