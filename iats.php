@@ -550,7 +550,6 @@ function iats_swipe_form_customize($form) {
  CRM_Core_Region::instance('billing-block')->add(array(
    'template' => 'CRM/iATS/BillingBlockSwipe.tpl'
  ));
- CRM_Core_Resources::singleton()->addScriptFile('com.iatspayments.civicrm', 'js/swipe.js');
 }
 
 /*
@@ -561,6 +560,10 @@ function iats_swipe_form_customize($form) {
 
 function iats_ukdd_form_customize($form) {
   /* uk direct debits have to start 16 days after the initial request is made */
+  if (!$form->elementExists('is_recur')) {
+    // todo generate an error on the page
+    return;
+  }
   define('IATS_UKDD_START_DELAY',16 * 24 * 60 * 60);
   /* for batch efficiencies, restrict to a specific set of days of the month, less than 28 */
   $start_days = array('1', '15'); // you can change these if you're sensible and careful
@@ -615,7 +618,6 @@ function iats_ukdd_form_customize($form) {
   CRM_Core_Region::instance('billing-block')->add(array(
     'template' => 'CRM/iATS/BillingBlockDirectDebitExtra_GBP.tpl'
   ));
-  CRM_Core_Resources::singleton()->addScriptFile('com.iatspayments.civicrm', 'js/dd_uk.js');
 }
 
 /* Modifications to a (public/frontend) contribution forms if iATS ACH/EFT or SWIPE is enabled
@@ -630,15 +632,23 @@ function iats_civicrm_buildForm_Contribution_Frontend(&$form) {
   $swipe = iats_civicrm_processors($form->_paymentProcessors,'SWIPE');
   $ukdd = iats_civicrm_processors($form->_paymentProcessors,'UKDD');
 
+  // include the required javascripts for available customized selections
+  // TODO: skip this if we're just loading a fragment of the page via ajax
   // If a form allows ACH/EFT and enables recurring, set recurring to the default
   if (0 < count($acheft)) {
+    CRM_Core_Resources::singleton()->addScriptFile('com.iatspayments.civicrm', 'js/dd_acheft.js');
     if (isset($form->_elementIndex['is_recur'])) {
       $form->setDefaults(array('is_recur' => 1)); // make recurring contrib default to true
     }
   }
-  // include the required javascripts for available customized selections
-  if (count($acheft)) {
-    CRM_Core_Resources::singleton()->addScriptFile('com.iatspayments.civicrm', 'js/dd_acheft.js');
+  if (0 < count($swipe)) {
+    CRM_Core_Resources::singleton()->addScriptFile('com.iatspayments.civicrm', 'js/swipe.js');
+  }
+  if (0 < count($ukdd)) {
+    CRM_Core_Resources::singleton()->addScriptFile('com.iatspayments.civicrm', 'js/dd_uk.js');
+    if (isset($form->_elementIndex['is_recur'])) {
+      $form->setDefaults(array('is_recur' => 1)); // make recurring contrib default to true
+    }
   }
   /* Mangle (in a currency-dependent way) the ajax-bit of the form if I've just selected an ach/eft option */
   if (!empty($acheft[$form->_paymentProcessor['id']])){
@@ -646,7 +656,7 @@ function iats_civicrm_buildForm_Contribution_Frontend(&$form) {
     // watchdog('iats_acheft',kprint_r($form,TRUE));
   }
 
-  /* now something similar for swipe, though front end forms with swipe is an unusual option */
+  /* now something similar for swipe */
   if (!empty($swipe[$form->_paymentProcessor['id']]) && !empty($form->_elementIndex['credit_card_exp_date'])) {
     iats_swipe_form_customize($form);
   }

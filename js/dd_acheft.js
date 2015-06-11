@@ -1,7 +1,11 @@
-cj( function($) {
+/*jslint indent: 2 */
+/*global CRM, ts */
+
+cj(function ($) {
+  'use strict';
   function iatsSetBankIdenficationNumber() {
     var bin = $('#cad_bank_number').val() + $('#cad_transit_number').val();
-    console.log('bin: '+bin);
+    // console.log('bin: '+bin);
     $('#bank_identification_number').val(bin);
   }
   function iatsACHEFTRefresh() {
