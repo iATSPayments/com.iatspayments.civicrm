@@ -829,3 +829,32 @@ function iats_civicrm_alterSettingsFolders(&$metaDataFolders = NULL) {
   _iats_civix_civicrm_alterSettingsFolders($metaDataFolders);
 }
 
+/**
+ * For a recurring contribution, find a reasonable candidate for a template, where possible
+ */
+function _iats_civicrm_getContributionTemplate($contribution) {
+  // Get the first contribution in this series that matches the same total_amount, if present
+  $template = array();
+  $get = array('version'  => 3, 'contribution_recur_id' => $contribution['contribution_recur_id'], 'options'  => array('sort'  => ' id' , 'limit'  => 1));
+  if (!empty($contribution['total_amount'])) {
+    $get['total_amount'] = $contribution['total_amount'];
+  }
+  $result = civicrm_api('contribution', 'get', $get);
+  if (!empty($result['values'])) {
+    $contribution_ids = array_keys($result['values']);
+    $template = $result['values'][$contribution_ids[0]];
+    $template['line_items'] = array();
+    $get = array('version'  => 3, 'entity_table' => 'civicrm_contribution', 'entity_id' => $contribution_ids[0]);
+    $result = civicrm_api('LineItem', 'get', $get);
+    if (!empty($result['values'])) {
+      foreach($result['values'] as $initial_line_item) {
+        $line_item = array();
+        foreach(array('price_field_id','qty','line_total','unit_price','label','price_field_value_id','financial_type_id') as $key) {
+          $line_item[$key] = $initial_line_item[$key];
+        }
+        $template['line_items'] = $line_item;
+      }
+    }
+  }
+  return $template;
+}

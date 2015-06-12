@@ -152,27 +152,8 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
   while ($dao->fetch()) {
 
     // Strategy: create the contribution record with status = 2 (= pending), try the payment, and update the status to 1 if successful
-    // Get the first contribution in this series that matches the same total as a template to help with line items, and some other values
-    // If none matches (e.g. if a donation amount has been changed), we'll just be naive about it.
-    $contribution_template = array();
-    $line_items = array();
-    $get = array('version'  => 3, 'contribution_recur_id' => $dao->id, 'total_amount' => $dao->amount, 'options'  => array('sort'  => ' id' , 'limit'  => 1));
-    $result = civicrm_api('contribution', 'get', $get);
-    if (!empty($result['values'])) {
-      $contribution_ids = array_keys($result['values']);
-      $contribution_template = $result['values'][$contribution_ids[0]];
-      $get = array('version'  => 3, 'entity_table' => 'civicrm_contribution', 'entity_id' => $contribution_ids[0]);
-      $result = civicrm_api('LineItem', 'get', $get);
-      if (!empty($result['values'])) {
-        foreach($result['values'] as $initial_line_item) {
-          $line_item = array();
-          foreach(array('price_field_id','qty','line_total','unit_price','label','price_field_value_id','financial_type_id') as $key) {
-            $line_item[$key] = $initial_line_item[$key];
-          }
-          $line_items[] = $line_item;
-        }
-      }
-    }
+    // Try to get a contribution template for this contribution series - if none matches (e.g. if a donation amount has been changed), we'll just be naive about it.
+    $contribution_template = _iats_civicrm_getContributionTemplate(array('contribution_recur_id' => $dao->id, 'total_amount' => $dao->amount));
     $contact_id = $dao->contact_id;
     $total_amount = $dao->amount;
     $hash = md5(uniqid(rand(), true));
@@ -223,9 +204,9 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
     else { // 4.3+
        $contribution['financial_type_id'] = $dao->financial_type_id;
     }
-    if (count($line_items) > 0) {
+    if (!empty($contribution_template['line_items'])) {
       $contribution['skipLineItem'] = 1;
-      $contribution[ 'api.line_item.create'] = $line_items;
+      $contribution[ 'api.line_item.create'] = $contribution_template['line_items'];
     }
     if (count($errors)) {
       ++$error_count;
@@ -277,8 +258,14 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
       } 
       elseif ($contribution_status_id == 1) {
         /* success, done */
-        $complete = array('version' => 3, 'id' => $contribution_id, 'trxn_id' => trim($result['remote_id']) . ':' . time());
-        $contributionResult = civicrm_api('contribution', 'completetransaction', $complete);
+        $complete = array('version' => 3, 'id' => $contribution_id, 'trxn_id' => trim($result['remote_id']) . ':' . time(), 'receive_date' => $receive_date);
+        if (!empty($contribution_template['id'])) { // use the repeattransaction api for extra niceness
+          $complete['original_contribution_id'] = $contribution_template['id'];
+          $contributionResult = civicrm_api('contribution', 'repeattransaction', $complete);
+        }
+        else { // fall back to just regular completion
+          $contributionResult = civicrm_api('contribution', 'completetransaction', $complete);
+        }
         $output[] = ts('Successfully processed recurring contribution id %1: ', array(1 => $contribution_recur_id)).$result['auth_result'];
       }
       else { // success, but just update the transaction id, wait for completion

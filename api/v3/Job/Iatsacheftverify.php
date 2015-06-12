@@ -34,7 +34,7 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
   // I've added an extra 2 days when getting candidates from CiviCRM to be sure i've got them all.
   $civicrm_verify_days = IATS_VERIFY_DAYS + 2;
   // get all the pending direct debit contributions that still need approval within the last civicrm_verify_days
-  $select = 'SELECT id, trxn_id, invoice_id, contact_id, contribution_recur_id
+  $select = 'SELECT id, trxn_id, invoice_id, contact_id, contribution_recur_id, receive_date
       FROM civicrm_contribution
       WHERE
         contribution_status_id = 2
@@ -50,7 +50,7 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
     /* we assume that the iATS transaction id is a unique field for matching, and that it is stored as the first part of the civicrm transaction */
     /* this is not unreasonable, assuming that the site doesn't have other active direct debit payment processors with similar patterns */
     $key = current(explode(':',$dao->trxn_id,2));
-    $acheft_pending[$key] = array('id' => $dao->id, 'trxn_id' => $dao->trxn_id, 'invoice_id' => $dao->invoice_id, 'contact_id' => $dao->contact_id, 'contribution_recur_id' => $dao->contribution_recur_id);
+    $acheft_pending[$key] = array('id' => $dao->id, 'trxn_id' => $dao->trxn_id, 'invoice_id' => $dao->invoice_id, 'contact_id' => $dao->contact_id, 'contribution_recur_id' => $dao->contribution_recur_id, 'receive_date' => $dao->receive_date);
   }
   // and some recent UK DD recurring contributions
   $select = 'SELECT c.id, c.contribution_status_id, c.trxn_id, c.invoice_id, icc.customer_code
@@ -186,8 +186,22 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
           $contribution = $acheft_pending[$transaction_id];
           // updating a contribution status to complete needs some extra bookkeeping
           if (1 == $contribution_status_id) {
-            $params = array('version' => 3, 'id' => $contribution['id']);
-            $result = civicrm_api('Contribution', 'completetransaction', $params); // complete the contribution
+            // note that I'm updating the timestamp portion of the transaction id here, since this might be useful at some point
+            // should I update the receive date to when it was actually received? Would that confuse membership dates?
+            $complete = array('version' => 3, 'id' => $contribution['id'], 'trxn_id' => $transaction_id.':'.time(), 'receive_date' => $contribution['receive_date']);
+            // see if I can make use of a template for completion
+            $contribution_template = array();
+            if (!empty($contribution['contribution_recur_id'])) {
+              // see if i can use a template when completing my contribution
+              $contribution_template = _iats_civicrm_getContributionTemplate(array('contribution_recur_id' => $contribution['contribution_recur_id']));
+            }
+            if (!empty($contribution_template['id'])) { // use the repeattransaction api for extra niceness
+              $complete['original_contribution_id'] = $contribution_template['id'];
+              $contributionResult = civicrm_api('contribution', 'repeattransaction', $complete);
+            }
+            else { // fall back to just regular completion
+              $contributionResult = civicrm_api('contribution', 'completetransaction', $complete);
+            }
           }
           else {
             $params = array('version' => 3, 'sequential' => 1, 'contribution_status_id' => $contribution_status_id, 'id' => $contribution['id']);
@@ -269,12 +283,34 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
                 break;
               }
             }
+            // otherwise I'll make do with a template if available
+            $contribution_template = array();
+            if (empty($contribution['id'])) {
+              // populate my contribution from a template if possible
+              $contribution_template = _iats_civicrm_getContributionTemplate(array('contribution_recur_id' => $contribution_recur['id'], 'total_amount' => $transation->amount));
+              $get_from_template = array('contribution_campaign_id','amount_level');
+              foreach($get_from_template as $field) {
+                if (isset($contribution_template[$field])) {
+                  $contribution[$field] = $contribution_template[$field];
+                }
+              }
+              if (!empty($contribution_template['line_items'])) {
+                $contribution['skipLineItem'] = 1;
+                $contribution[ 'api.line_item.create'] = $contribution_template['line_items'];
+              }
+            }
             if ($contribution_status_id == 1) {
               // create or update as pending and then complete 
               $contribution['contribution_status_id'] = 2;
               $result = civicrm_api('contribution', 'create', $contribution);
-              $complete = array('version' => 3, 'contribution_id' => $result['id']);
-              $result = civicrm_api('contribution', 'completetransaction', $complete);
+              $complete = array('version' => 3, 'id' => $result['id'], 'trxn_id' => $trxn_id, 'receive_date' => $contribution['receive_date']);
+              if (!empty($contribution_template['id'])) { // use the repeattransaction api for extra niceness
+                $complete['original_contribution_id'] = $contribution_template['id'];
+                $result = civicrm_api('contribution', 'repeattransaction', $complete);
+              }
+              else { // fall back to just regular completion
+                $result = civicrm_api('contribution', 'completetransaction', $complete);
+              }
             }
             else {
               // create or update 
