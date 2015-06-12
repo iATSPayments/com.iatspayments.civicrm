@@ -184,8 +184,15 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
           $is_recur = ('quick client' != strtolower($transaction->customer_code));
           $found[$is_recur ? 'recur' : 'quick']++;
           $contribution = $acheft_pending[$transaction_id];
-          $params = array('version' => 3, 'sequential' => 1, 'contribution_status_id' => $contribution_status_id, 'id' => $contribution['id']);
-          $result = civicrm_api('Contribution', 'create', $params); // update the contribution
+          // updating a contribution status to complete needs some extra bookkeeping
+          if (1 == $contribution_status_id) {
+            $params = array('version' => 3, 'id' => $contribution['id']);
+            $result = civicrm_api('Contribution', 'completetransaction', $params); // complete the contribution
+          }
+          else {
+            $params = array('version' => 3, 'sequential' => 1, 'contribution_status_id' => $contribution_status_id, 'id' => $contribution['id']);
+            $result = civicrm_api('Contribution', 'create', $params); // update the contribution
+          }
           // always log these requests in my cutom civicrm table for auditing type purposes
           // watchdog('civicrm_iatspayments_com', 'contribution: <pre>!contribution</pre>', array('!contribution' => print_r($query_params,TRUE)), WATCHDOG_NOTICE);
           $query_params = array(
@@ -250,7 +257,7 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
             else { // 4.3+
                $contribution['financial_type_id'] = $contribution_recur['financial_type_id'];
             }
-            // if I have an outstanding pending contribution for this series, I'll recycle it here
+            // if I have an outstanding pending contribution for this series, I'll recycle and update it here
             foreach($ukdd_contribution[$transaction->customer_code] as $key => $contrib_ukdd) {
               if ($contrib_ukdd['contribution_status_id'] == 2) { // it's pending
                 $contribution['id'] = $contrib_ukdd['id'];
@@ -262,7 +269,17 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
                 break;
               }
             }
-            $result = civicrm_api('contribution', 'create', $contribution);
+            if ($contribution_status_id == 1) {
+              // create or update as pending and then complete 
+              $contribution['contribution_status_id'] = 2;
+              $result = civicrm_api('contribution', 'create', $contribution);
+              $complete = array('version' => 3, 'contribution_id' => $result['id']);
+              $result = civicrm_api('contribution', 'completetransaction', $complete);
+            }
+            else {
+              // create or update 
+              $result = civicrm_api('contribution', 'create', $contribution);
+            } 
             if ($result['is_error']) {
               $output[] = $result['error_message'];
             }

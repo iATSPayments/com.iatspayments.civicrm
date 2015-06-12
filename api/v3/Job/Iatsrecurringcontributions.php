@@ -206,7 +206,7 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
       'trxn_id'        => $hash, /* placeholder: just something unique that can also be seen as the same as invoice_id */
       'invoice_id'       => $hash,
       'source'         => $source,
-      'contribution_status_id' => 4, /* default is failed, unless we actually take the money successfully */
+      'contribution_status_id' => 2, /* initialize as pending, so we can run completetransaction after taking the money */
       'currency'  => $dao->currency,
       'payment_processor'   => $dao->payment_processor_id,
       'is_test'        => $dao->is_test, /* propagate the is_test value from the parent contribution */
@@ -230,7 +230,8 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
     if (count($errors)) {
       ++$error_count;
       ++$counter;
-      /* create the failed contribution record */
+      /* create a failed contribution record, don't bother talking to iats */
+      $contribution['contribution_status_id'] = 4;
       $contributionResult = civicrm_api('contribution', 'create', $contribution);
       if ($contributionResult['is_error']) {
         $errors[] = $contributionResult['error_message'];
@@ -238,14 +239,19 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
       continue;
     }
     else { 
-      // so far so, good ... now try to trigger the payment on iATS
+      // so far so, good ... create the pending contribution, and save its id
+      $contributionResult = civicrm_api('contribution','create', $contribution);
+      $contribution_id = CRM_Utils_Array::value('id', $contributionResult);
+      // now try to get the money, and then do one of: update the contribution to failed, complete the transaction, or update a pending ach/eft with it's transaction id
       require_once("CRM/iATS/iATSService.php");
       switch($subtype) {
         case 'ACHEFT':
           $method = 'acheft_with_customer_code';
+          $contribution_status_id = 2; // will not complete
           break;
         default:
           $method = 'cc_with_customer_code';
+          $contribution_status_id = 1;
           break;
       }
       $iats_service_params = array('method' => $method, 'type' => 'process', 'iats_domain' => parse_url($dao->url_site, PHP_URL_HOST));
@@ -264,17 +270,21 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
       // process the soap response into a readable result
       $result = $iats->result($response);
       if (empty($result['status'])) {
-        /* create the contribution record in civicrm with the failed status */
-        $contribution['source'] .= ' '.$result['reasonMessage'];
+        /* update the contribution record in civicrm with the failed status and include the reason in the source field */
+        $contribution = array('version' => 3, 'id' => $contribution_id, 'source' => $contribution['source'].' '.$result['reasonMessage'], 'contribution_status_id' => 4);
         $contributionResult = civicrm_api('contribution', 'create', $contribution);
         $output[] = ts('Failed to process recurring contribution id %1: ', array(1 => $contribution_recur_id)).$result['reasonMessage'];
       } 
-      else {
-        /* success, create the contribution record with corrected status + trxn_id */
-        $contribution['trxn_id'] = trim($result['remote_id']) . ':' . time();
-        $contribution['contribution_status_id'] = 1; 
-        $contributionResult = civicrm_api('contribution','create', $contribution);
+      elseif ($contribution_status_id == 1) {
+        /* success, done */
+        $complete = array('version' => 3, 'id' => $contribution_id, 'trxn_id' => trim($result['remote_id']) . ':' . time());
+        $contributionResult = civicrm_api('contribution', 'completetransaction', $complete);
         $output[] = ts('Successfully processed recurring contribution id %1: ', array(1 => $contribution_recur_id)).$result['auth_result'];
+      }
+      else { // success, but just update the transaction id, wait for completion
+        $contribution = array('version' => 3, 'id' => $contribution_id, 'trxn_id' => trim($result['remote_id']) . ':' . time());
+        $contributionResult = civicrm_api('contribution', 'create', $contribution);
+        $output[] = ts('Successfully processed pending recurring contribution id %1: ', array(1 => $contribution_recur_id)).$result['auth_result'];
       }
     }
 
