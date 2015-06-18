@@ -189,19 +189,7 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
             // note that I'm updating the timestamp portion of the transaction id here, since this might be useful at some point
             // should I update the receive date to when it was actually received? Would that confuse membership dates?
             $complete = array('version' => 3, 'id' => $contribution['id'], 'trxn_id' => $transaction_id.':'.time(), 'receive_date' => $contribution['receive_date']);
-            // see if I can make use of a template for completion
-            $contribution_template = array();
-            if (!empty($contribution['contribution_recur_id'])) {
-              // see if i can use a template when completing my contribution
-              $contribution_template = _iats_civicrm_getContributionTemplate(array('contribution_recur_id' => $contribution['contribution_recur_id']));
-            }
-            if (!empty($contribution_template['id'])) { // use the repeattransaction api for extra niceness
-              $complete['original_contribution_id'] = $contribution_template['id'];
-              $contributionResult = civicrm_api('contribution', 'repeattransaction', $complete);
-            }
-            else { // fall back to just regular completion
-              $contributionResult = civicrm_api('contribution', 'completetransaction', $complete);
-            }
+            $contributionResult = civicrm_api('contribution', 'completetransaction', $complete);
           }
           else {
             $params = array('version' => 3, 'sequential' => 1, 'contribution_status_id' => $contribution_status_id, 'id' => $contribution['id']);
