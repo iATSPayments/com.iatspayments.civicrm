@@ -2,9 +2,9 @@
 /*jslint indent: 2 */
 /*global CRM, ts */
 
-cj(function ($) {
-  'use strict';
-  function iatsUKDDRefresh() {
+function iatsUKDDRefresh() {
+  cj(function ($) {
+    'use strict';
     if (0 < $('#iats-direct-debit-gbp-payer-validate').length) {
       /* move my custom fields around and make it a multistep form experience via javascript */
       /* move my custom fields up where they belong */
@@ -146,7 +146,5 @@ cj(function ($) {
         return true;
       }); // end of click handler
     }
-  }
-  iatsUKDDRefresh();
-  $('input[name=payment_processor]').click(iatsUKDDRefresh);
-});
+  });
+}

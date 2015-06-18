@@ -14,3 +14,4 @@
         <div class="clear"></div>
       </div>
 </div>
+{literal}<script type="text/javascript">iatsSWIPERefresh()</script>{literal}
