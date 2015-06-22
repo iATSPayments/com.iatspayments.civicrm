@@ -37,7 +37,7 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
    *
    * @param array $paymentProcessor
    */
-  function __construct($mode, &$paymentProcessor, &$paymentForm = NULL, $force = FALSE) {
+  public function __construct($mode, &$paymentProcessor, &$paymentForm = NULL, $force = FALSE) {
     $this->_paymentProcessor = $paymentProcessor;
     $this->_processorName = ts('iATS Payments');
 
