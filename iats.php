@@ -636,16 +636,16 @@ function iats_civicrm_buildForm_Contribution_Frontend(&$form) {
   // TODO: skip this if we're just loading a fragment of the page via ajax
   // If a form allows ACH/EFT and enables recurring, set recurring to the default
   if (0 < count($acheft)) {
-    CRM_Core_Resources::singleton()->addScriptFile('com.iatspayments.civicrm', 'js/dd_acheft.js');
+    CRM_Core_Resources::singleton()->addScriptFile('com.iatspayments.civicrm', 'js/dd_acheft.js',10,'html-header');
     if (isset($form->_elementIndex['is_recur'])) {
       $form->setDefaults(array('is_recur' => 1)); // make recurring contrib default to true
     }
   }
   if (0 < count($swipe)) {
-    CRM_Core_Resources::singleton()->addScriptFile('com.iatspayments.civicrm', 'js/swipe.js');
+    CRM_Core_Resources::singleton()->addScriptFile('com.iatspayments.civicrm', 'js/swipe.js',10,'html-header');
   }
   if (0 < count($ukdd)) {
-    CRM_Core_Resources::singleton()->addScriptFile('com.iatspayments.civicrm', 'js/dd_uk.js');
+    CRM_Core_Resources::singleton()->addScriptFile('com.iatspayments.civicrm', 'js/dd_uk.js',10,'html-header');
     if (isset($form->_elementIndex['is_recur'])) {
       $form->setDefaults(array('is_recur' => 1)); // make recurring contrib default to true
     }
