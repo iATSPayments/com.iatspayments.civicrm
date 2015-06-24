@@ -224,6 +224,18 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
       // so far so, good ... create the pending contribution, and save its id
       $contributionResult = civicrm_api('contribution','create', $contribution);
       $contribution_id = CRM_Utils_Array::value('id', $contributionResult);
+      // if our template contribution has a membership payment, make this one also
+      if (!empty($contribution_template['contribution_id'])) {
+        try {
+          $membership_payment = civicrm_api('MembershipPayment','getsingle', array('version' => 3, 'contribution_id' => $contribution_template['contribution_id']));
+          if (!empty($membership_payment['membership_id'])) {
+            civicrm_api('MembershipPayment','create', array('version' => 3, 'contribution_id' => $contribution_id, 'membership_id' => $membership_payment['membership_id']));
+          }
+        }
+        catch (Exception $e) {
+          // ignore, if will fail correctly if there is no membership payment
+        }
+      } 
       // now try to get the money, and then do one of: update the contribution to failed, complete the transaction, or update a pending ach/eft with it's transaction id
       require_once("CRM/iATS/iATSService.php");
       switch($subtype) {
@@ -260,7 +272,14 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
       elseif ($contribution_status_id == 1) {
         /* success, done */
         $complete = array('version' => 3, 'id' => $contribution_id, 'trxn_id' => trim($result['remote_id']) . ':' . time(), 'receive_date' => $receive_date);
-        $contributionResult = civicrm_api('contribution', 'completetransaction', $complete);
+        try {
+          $contributionResult = civicrm_api('contribution', 'completetransaction', $complete);
+          // restore my source field that ipn irritatingly overwrites
+          civicrm_api('contribution','setvalue', array('version' => 3, 'id' => $contribution_id, 'value' => $source, 'field' => 'source'));
+        }
+        catch (Exception $e) {
+          throw new API_Exception('Failed to complete transaction: ' . $e->getMessage() . "\n" . $e->getTraceAsString()); 
+        }
         $output[] = ts('Successfully processed recurring contribution id %1: ', array(1 => $contribution_recur_id)).$result['auth_result'];
       }
       else { // success, but just update the transaction id, wait for completion

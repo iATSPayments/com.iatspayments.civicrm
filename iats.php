@@ -349,7 +349,8 @@ function iats_civicrm_pre($op, $objectName, $objectId, &$params) {
         case 'iATSServiceSWIPEContribution':
           if ((2 == $params['contribution_status_id'])
             && !empty($params['contribution_recur_id'])) {
-            $params['contribution_status_id'] = 1;
+            // commented out in 1.4.0, no longer necessary
+            // $params['contribution_status_id'] = 1;
           }
           break;
         case 'iATSServiceContributionRecur': // cc recurring contribution record
