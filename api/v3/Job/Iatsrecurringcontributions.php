@@ -191,7 +191,6 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
       'currency'  => $dao->currency,
       'payment_processor'   => $dao->payment_processor_id,
       'is_test'        => $dao->is_test, /* propagate the is_test value from the parent contribution */
-      'is_email_receipt' => 0, /* do not send receipt by default. TODO: make it configurable */
     );
     $get_from_template = array('contribution_campaign_id','amount_level');
     foreach($get_from_template as $field) {
@@ -272,6 +271,7 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
       elseif ($contribution_status_id == 1) {
         /* success, done */
         $complete = array('version' => 3, 'id' => $contribution_id, 'trxn_id' => trim($result['remote_id']) . ':' . time(), 'receive_date' => $receive_date);
+        $complete['is_email_receipt'] = 0; /* do not send receipt by default. TODO: make it configurable */
         try {
           $contributionResult = civicrm_api('contribution', 'completetransaction', $complete);
           // restore my source field that ipn irritatingly overwrites
