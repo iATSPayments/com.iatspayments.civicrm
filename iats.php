@@ -324,8 +324,8 @@ function iats_civicrm_merge($type, &$data, $mainId = NULL, $otherId = NULL, $tab
  *
  * 1. CiviCRM assumes all recurring contributions need to be confirmed using the IPN mechanism. This is not true for iATS recurring contributions.
  * So when creating a contribution that is part of a recurring series, test for status = 2, and set to status = 1 instead.
- * Do this for the initial and recurring contribution record.
- * The (subsequent) recurring contributions' status id is set explicitly in the job that creates it, and doesn't need this modification.
+ * Do this only for the initial contribution record.
+ * The (subsequent) recurring contributions' status id is set explicitly in the job that creates it, this modification breaks that process.
  *
  * 2. For ACH/EFT, we also have the opposite problem - all contributions will need to verified by iATS and only later set to status success or
  * failed via the acheft verify job. We also want to modify the payment instrument from CC to ACH/EFT
@@ -349,8 +349,11 @@ function iats_civicrm_pre($op, $objectName, $objectId, &$params) {
         case 'iATSServiceSWIPEContribution':
           if ((2 == $params['contribution_status_id'])
             && !empty($params['contribution_recur_id'])) {
-            // commented out in 1.4.0, no longer necessary
-            // $params['contribution_status_id'] = 1;
+            // only necessary for the first one
+            $count = civicrm_api('Contribution', 'getcount', array('version' => 3, 'contribution_recur_id' => $params['contribution_recur_id']));
+            if (empty($count['result'])) { 
+              $params['contribution_status_id'] = 1;
+            }
           }
           break;
         case 'iATSServiceContributionRecur': // cc recurring contribution record
