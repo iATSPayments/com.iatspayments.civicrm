@@ -305,6 +305,21 @@ function iats_civicrm_buildForm($formName, &$form) {
   // else echo $fname;
 }
 
+function iats_civicrm_pageRun(&$page) {
+  $fname = 'iats_civicrm_pageRun_'.$page->getVar('_name');
+  if (function_exists($fname)) {
+    $fname($page);
+  }
+}
+
+function iats_civicrm_pageRun_CRM_Contact_Page_View_Summary(&$page) {
+  // because of AJAX loading, I need to load my backend swipe js here
+  $swipe = iats_civicrm_processors(NULL,'SWIPE',array('is_default' => 1));
+  if (count($swipe) > 0) {
+    CRM_Core_Resources::singleton()->addScriptFile('com.iatspayments.civicrm', 'js/swipe.js',10,'html-header');
+  }
+}
+
 /**
  * hook_civicrm_merge
  * Deal with contact merges - our custom iats customer code table contains contact id's as a check, it might need to be updated
@@ -744,7 +759,7 @@ function iats_civicrm_buildForm_CreditCard_Backend(&$form) {
 
   // if i'm using swipe as default and I've got a billing section, then customize it
   if ($swipe_id_default && !empty($form->_elementIndex['credit_card_exp_date'])) {
-    CRM_Core_Resources::singleton()->addScriptFile('com.iatspayments.civicrm', 'js/swipe.js',0);
+    CRM_Core_Resources::singleton()->addScriptFile('com.iatspayments.civicrm', 'js/swipe.js',10,'html-header');
     iats_swipe_form_customize($form);
   }
 }
