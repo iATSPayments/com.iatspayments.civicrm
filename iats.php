@@ -372,6 +372,7 @@ function iats_civicrm_pre($op, $objectName, $objectId, &$params) {
           }
           break;
         case 'iATSServiceContributionRecur': // cc recurring contribution record
+          break;
         case 'iATSServiceSWIPEContributionRecur':
           // we've already taken the first payment, so calculate the next one
           $params['contribution_status_id'] = 5;
