@@ -82,6 +82,8 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
     // process the soap response into a readable result
     $result = $iats->result($response);
     if ($result['status']) {
+      $params['contribution_status_id'] = 1; // success
+      $params['payment_status_id'] = 1; // for future versions, the proper key
       $params['trxn_id'] = trim($result['remote_id']) . ':' . time();
       $params['gross_amount'] = $params['amount'];
       if ($isRecur) {
