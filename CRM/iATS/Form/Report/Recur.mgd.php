@@ -12,9 +12,9 @@ return array (
     array (
       'version' => 3,
       'label' => 'iATS Payments - Recurring Contributions',
-      'description' => 'iATS Paymnents - Recurring Contributions Report',
+      'description' => 'iATS Payments - Recurring Contributions Report',
       'class_name' => 'CRM_iATS_Form_Report_Recur',
-      'report_url' => 'com.iatspaymnents.com/recur',
+      'report_url' => 'com.iatspayments.com/recur',
       'component' => 'CiviContribute',
     ),
   ),
