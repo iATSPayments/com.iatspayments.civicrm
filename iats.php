@@ -371,28 +371,28 @@ function iats_civicrm_pre($op, $objectName, $objectId, &$params) {
             }
           }
           break;
-        case 'iATSServiceContributionRecur': // cc recurring contribution record
+        case 'iATSServiceContributionRecur': // cc/swipe/ACHEFT recurring contribution record
         case 'iATSServiceSWIPEContributionRecur':
-          // we've already taken the first payment, so calculate the next one
-          $params['contribution_status_id'] = 5;
-          $params['trxn_id'] = NULL;
-          $next = strtotime('+'.$params['frequency_interval'].' '.$params['frequency_unit']);
+        case 'iATSServiceACHEFTContributionRecur':
           // the next scheduled contribution date field name is civicrm version dependent
           $field_name = _iats_civicrm_nscd_fid();
-          $params[$field_name] = date('YmdHis',$next);
+          // when creating a recurring contribution record via a civicrm contribution form
+          // we've already taken the first payment, so calculate the next one (core assumes the intial contribution is pending)
+          // we set this to 'in-progress' even for ACH/EFT if the first one hasn't been verified, because we still want to be attempting later ones
+          // this condition helps avoid mangling records being imported from a csv file
+          if (5 != $params['contribution_status_id'] && empty($params[$field_name])) {
+            $params['contribution_status_id'] = 5;
+            $params['trxn_id'] = NULL;
+            $next = strtotime('+'.$params['frequency_interval'].' '.$params['frequency_unit']);
+            $params[$field_name] = date('YmdHis',$next);
+          }
+          if ($type == 'iATSServiceACHEFT') { // fix the payment type for ACH/EFT
+            $params['payment_instrument_id'] = 2;
+          } 
           break;
         case 'iATSServiceACHEFTContribution': // ach/eft contribution: update the payment instrument and ensure the status is 2 i.e. for one-time contributions
           $params['payment_instrument_id'] = 2;
           $params['contribution_status_id'] = 2;
-          break;
-        case 'iATSServiceACHEFTContributionRecur':
-          // watchdog('iats_civicrm_recur','<pre>'.print_r($params,TRUE).'</pre>');
-          $params['payment_instrument_id'] = 2;
-          $params['contribution_status_id'] = 5; // we set this to 'in-progress' because even if the first one hasn't been verified, we still want to be attempting later ones
-          $next = strtotime('+'.$params['frequency_interval'].' '.$params['frequency_unit']);
-          // the next scheduled contribution date field name is civicrm version dependent
-          $field_name = _iats_civicrm_nscd_fid();
-          $params[$field_name] = date('YmdHis',$next);
           break;
         case 'iATSServiceUKDDContribution': // UK DD contribution: update the payment instrument, fix the receive date
           $params['payment_instrument_id'] = 2;
