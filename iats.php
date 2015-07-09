@@ -758,9 +758,11 @@ function iats_civicrm_buildForm_CreditCard_Backend(&$form) {
   }
 
   // if i'm using swipe as default and I've got a billing section, then customize it
-  if ($swipe_id_default && !empty($form->_elementIndex['credit_card_exp_date'])) {
+  if ($swipe_id_default) {
     CRM_Core_Resources::singleton()->addScriptFile('com.iatspayments.civicrm', 'js/swipe.js',10,'html-header');
-    iats_swipe_form_customize($form);
+    if (!empty($form->_elementIndex['credit_card_exp_date'])) {
+      iats_swipe_form_customize($form);
+    }
   }
 }
 
