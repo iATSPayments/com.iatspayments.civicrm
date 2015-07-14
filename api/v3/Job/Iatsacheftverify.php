@@ -188,9 +188,18 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
           if (1 == $contribution_status_id) {
             // note that I'm updating the timestamp portion of the transaction id here, since this might be useful at some point
             // should I update the receive date to when it was actually received? Would that confuse membership dates?
+            $trxn_id = $transaction_id.':'.time();
             $complete = array('version' => 3, 'id' => $contribution['id'], 'trxn_id' => $transaction_id.':'.time(), 'receive_date' => $contribution['receive_date']);
             $complete['is_email_receipt'] = 0; /* do not send receipt by default. TODO: make it configurable */ 
-            $contributionResult = civicrm_api('contribution', 'completetransaction', $complete);
+            try {
+              $contributionResult = civicrm_api('contribution', 'completetransaction', $complete);
+              // restore my source field that ipn irritatingly overwrites, and make sure that the trxn_id is set also
+              civicrm_api('contribution','setvalue', array('version' => 3, 'id' => $contribution['id'], 'value' => $contribution['source'], 'field' => 'source'));
+              civicrm_api('contribution','setvalue', array('version' => 3, 'id' => $contribution['id'], 'value' => $trxn_id, 'field' => 'trxn_id'));
+            }
+            catch (Exception $e) {
+              throw new API_Exception('Failed to complete transaction: ' . $e->getMessage() . "\n" . $e->getTraceAsString()); 
+            }
           }
           else {
             $params = array('version' => 3, 'sequential' => 1, 'contribution_status_id' => $contribution_status_id, 'id' => $contribution['id']);
@@ -294,7 +303,15 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
               $result = civicrm_api('contribution', 'create', $contribution);
               $complete = array('version' => 3, 'id' => $result['id'], 'trxn_id' => $trxn_id, 'receive_date' => $contribution['receive_date']);
               $complete['is_email_receipt'] = 0; /* do not send receipt by default. TODO: make it configurable */ 
-              $result = civicrm_api('contribution', 'completetransaction', $complete);
+              try {
+                $contributionResult = civicrm_api('contribution', 'completetransaction', $complete);
+                // restore my source field that ipn irritatingly overwrites, and make sure that the trxn_id is set also
+                civicrm_api('contribution','setvalue', array('version' => 3, 'id' => $contribution['id'], 'value' => $contribution['source'], 'field' => 'source'));
+                civicrm_api('contribution','setvalue', array('version' => 3, 'id' => $contribution['id'], 'value' => $trxn_id, 'field' => 'trxn_id'));
+              }
+              catch (Exception $e) {
+                throw new API_Exception('Failed to complete transaction: ' . $e->getMessage() . "\n" . $e->getTraceAsString()); 
+              }
             }
             else {
               // create or update 
