@@ -13,4 +13,4 @@
     <div class="clear"></div>
   </div>
 </div>
-{literal}<script type="text/javascript">iatsACHEFTRefresh()</script>{literal}
+{literal}<script type="text/javascript">iatsACHEFTRefresh()</script>{/literal}

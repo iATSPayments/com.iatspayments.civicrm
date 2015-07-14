@@ -79,6 +79,8 @@ class CRM_Core_Payment_iATSServiceACHEFT extends CRM_Core_Payment {
     // process the soap response into a readable result
     $result = $iats->result($response);
     if ($result['status']) {
+      $params['contribution_status_id'] = 2; // always pending status
+      $params['payment_status_id'] = 2; // for future versions, the proper key
       $params['trxn_id'] = trim($result['remote_id']) . ':' . time();
       $params['gross_amount'] = $params['amount'];
       if ($isRecur) {
@@ -110,7 +112,6 @@ class CRM_Core_Payment_iATSServiceACHEFT extends CRM_Core_Payment {
         );
         CRM_Core_DAO::executeQuery("INSERT INTO civicrm_iats_customer_codes
           (customer_code, ip, expiry, cid, email, recur_id) VALUES (%1, %2, %3, %4, %5, %6)", $query_params);
-        $params['contribution_status_id'] = 1;
         // also set next_sched_contribution, the field name is civicrm version dependent
         $field_name = _iats_civicrm_nscd_fid();
         $params[$field_name] = strtotime('+'.$params['frequency_interval'].' '.$params['frequency_unit']);
