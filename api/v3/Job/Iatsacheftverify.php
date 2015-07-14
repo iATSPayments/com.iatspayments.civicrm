@@ -189,6 +189,7 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
             // note that I'm updating the timestamp portion of the transaction id here, since this might be useful at some point
             // should I update the receive date to when it was actually received? Would that confuse membership dates?
             $complete = array('version' => 3, 'id' => $contribution['id'], 'trxn_id' => $transaction_id.':'.time(), 'receive_date' => $contribution['receive_date']);
+            $complete['is_email_receipt'] = 0; /* do not send receipt by default. TODO: make it configurable */ 
             $contributionResult = civicrm_api('contribution', 'completetransaction', $complete);
           }
           else {
@@ -292,13 +293,8 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
               $contribution['contribution_status_id'] = 2;
               $result = civicrm_api('contribution', 'create', $contribution);
               $complete = array('version' => 3, 'id' => $result['id'], 'trxn_id' => $trxn_id, 'receive_date' => $contribution['receive_date']);
-              if (!empty($contribution_template['id'])) { // use the repeattransaction api for extra niceness
-                $complete['original_contribution_id'] = $contribution_template['id'];
-                $result = civicrm_api('contribution', 'repeattransaction', $complete);
-              }
-              else { // fall back to just regular completion
-                $result = civicrm_api('contribution', 'completetransaction', $complete);
-              }
+              $complete['is_email_receipt'] = 0; /* do not send receipt by default. TODO: make it configurable */ 
+              $result = civicrm_api('contribution', 'completetransaction', $complete);
             }
             else {
               // create or update 
