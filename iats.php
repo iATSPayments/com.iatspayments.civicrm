@@ -390,9 +390,14 @@ function iats_civicrm_pre($op, $objectName, $objectId, &$params) {
             $params['payment_instrument_id'] = 2;
           } 
           break;
-        case 'iATSServiceACHEFTContribution': // ach/eft contribution: update the payment instrument and ensure the status is 2 i.e. for one-time contributions
+        case 'iATSServiceACHEFTContribution': 
+          // ach/eft contribution: update the payment instrument 
           $params['payment_instrument_id'] = 2;
-          $params['contribution_status_id'] = 2;
+          // and push the status to 2 if civicrm thinks it's 1, i.e. for one-time contributions
+          // in other words, never create ach/eft contributions as complete, always push back to pending and verify
+          if ($params['contribution_status_id'] == 1) {
+            $params['contribution_status_id'] = 2;
+          }
           break;
         case 'iATSServiceUKDDContribution': // UK DD contribution: update the payment instrument, fix the receive date
           $params['payment_instrument_id'] = 2;
