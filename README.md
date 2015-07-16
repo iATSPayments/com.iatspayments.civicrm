@@ -8,11 +8,11 @@ This README.md contains information specific to system administrators/developers
 Requirements
 ------------
 
-1. CiviCRM 4.4.x or 4.5.x
+1. CiviCRM 4.4.x, 4.5.x, or 4.6.x
 
 2. Your PHP needs to include the SOAP extension (php.net/manual/en/soap.setup.php).
 
-3. NOTE: to ensure all different types of transactions are working across all CiviCRM pathways [our test matrix includes 21 type of transactions at the moment] - a small patch to CiviCRM core is required. You can find iATS_4.4.10.diff and iATS_4.5.4.diff in the repository. If you use another version of CiviCRM you may have to adjust the line numbers in these patches. The patches have been submitted to be included into CiviCRM Core - but until they are you need to include these yourself. 
+3. NOTE: to ensure all different types of transactions are working across all CiviCRM pathways [our test matrix includes 21 type of transactions at the moment] - a small patch to CiviCRM core is required for 4.4 and 4.5. You can find iATS_4.4.14.diff and iATS_4.5.8.diff in the repository. If you use another version of CiviCRM you may have to adjust the line numbers in these patches. 
 
 4. You must have an iATS Payments Account - and have configured it to accept payment though WebServices. For details please see the Documentation Wiki: https://github.com/iATSPayments/com.iatspayments.civicrm/wiki/Documentation
 
@@ -107,14 +107,16 @@ Most of the outstanding issues are related in some way to core CiviCRM issues, a
 
 Below is a list of some of the most common issues:
 
-'Backend' ACH/EFT is not supported by CiviCRM core. Having an enabled ACH/EFT payment processor broke the backend live credit card payment page in core (until it was fixed here https://issues.civicrm.org/jira/browse/CRM-14442), so this module fixes that if it's an issue, and also provides links to easily allow administrators to input ACH/EFT on behalf of constituents. A similar problem existings for backend membership and event payments, and this has not been fixed in core.
+'Backend' ACH/EFT is not supported by CiviCRM core. Having an enabled ACH/EFT payment processor broke the backend live credit card payment page in core (until it was fixed here https://issues.civicrm.org/jira/browse/CRM-14442), so this module fixes that if it's an issue, and also provides links to easily allow administrators to input ACH/EFT on behalf of constituents. A similar problem existings for backend membership and event payments, and this has only been fixed in core for 4.6.
 
 9002 Error - if you get this when trying to make a contribution, then you're getting that error back from the iATS server due to an account misconfiguration. One source is due to some special characters in your passwd.
 
 CiviCRM core assigns Membership status (=new) and extends Membership End date as well as Event status (=registered) as soon as ACH/EFT is submitted (so while payment is still pending - this could be several days for ACH/EFT). If the contribution receives a Ok:BankAccept -> the extension will mark the contribution in CiviCRM as completed. If the contribution does NOT receive a Ok:BankAccept -> the extension will mark the contribution in CiviCRM as rejected - however - associated existing Membership and Event records may need to be updated manually.
 
+For 4.6, recurring ACH/EFT memberships contributions are automatically approved by CiviCRM due to a bug in CiviCRM Core, but which should be fixed in the near future.
+
 Please note that ACH Returns require manually processing. iATS Payments will notify an organization by Email in case such ACH Returns occur - the reason (e.g. NSF) is included. It is up to CiviCRM administrators to handle this in CiviCRM according to your organization's procedures (e.g. if these were monies re: Event registration -> should that registration be canceled as well or will you ask participant to bring cash; if and the amount of NSF fees should be charged to the participant etc).
 
-Caution on the use of Pricesets in recurring contributions. This extension will try to use the original transactions' line items. But there are two separate issues here. First, CiviCRM API does an incomplete job with the bookkeeping of line items, so if you need detailed bookkeeping of line items in recurring contributions, you'll be disappointed. Separately, if the total amount of the recurring contribution has changed, then there's no machine way of reliably re-allocating it into the original line items, so in that case, they are not used at all. Though not always ideal, a workaround might be to do different transactions for different types of CiviCRM payments instead.
+Caution on the use of Pricesets in recurring contributions. This extension will try to use the original transactions' line items. But there are two separate issues here. First, CiviCRM API does an incomplete job with the bookkeeping of line items, so if you need detailed bookkeeping of line items in recurring contributions, you may be disappointed. Separately, if the total amount of the recurring contribution has changed, then there's no machine way of reliably re-allocating it into the original line items, so in that case, they are not used at all. Though not always ideal, a workaround might be to do different transactions for different types of CiviCRM payments instead.
 
 Please post an issue to the github repository if you have any questions.
