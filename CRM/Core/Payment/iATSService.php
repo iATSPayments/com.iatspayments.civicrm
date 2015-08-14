@@ -213,7 +213,7 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
 
     foreach ($convert as $r => $p) {
       if (isset($params[$p])) {
-        $request[$r] = $params[$p];
+        $request[$r] = str_replace('&', 'and', $params[$p]);
       }
     }
     $request['creditCardExpiry'] = sprintf('%02d/%02d', $params['month'], ($params['year'] % 100));
