@@ -116,7 +116,7 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
           (customer_code, ip, expiry, cid, email, recur_id) VALUES (%1, %2, %3, %4, %5, %6)", $query_params);
         $params['contribution_status_id'] = 1;
         // also set next_sched_contribution
-        $params['next_sched_contribution'] = strtotime('+'.$params['frequency_interval'].' '.$params['frequency_unit']);
+        $params['next_sched_contribution'] = strtotime('+' . $params['frequency_interval'] . ' ' . $params['frequency_unit']);
       }
       return $params;
     }
@@ -211,15 +211,15 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
       'cvv2' => 'cvv2',
     );
 
-    foreach($convert as $r => $p) {
+    foreach ($convert as $r => $p) {
       if (isset($params[$p])) {
-        $request[$r] = $params[$p];
+        $request[$r] = str_replace('&', 'and', $params[$p]);
       }
     }
     $request['creditCardExpiry'] = sprintf('%02d/%02d', $params['month'], ($params['year'] % 100));
     $request['total'] = sprintf('%01.2f', CRM_Utils_Rule::cleanMoney($params['amount']));
     // place for ugly hacks
-    switch($method) {
+    switch ($method) {
       case 'cc_create_customer_code':
         $request['ccNum'] = $request['creditCardNum'];
         unset($request['creditCardNum']);
