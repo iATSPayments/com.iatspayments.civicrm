@@ -495,14 +495,9 @@ function iats_civicrm_processors($processors, $subtype = '', $params = array()) 
 
 function iats_acheft_form_customize($form) {
   // $fname = 'iats_acheft_form_customize_'.$form->_values['currency'];
-  if (isset($form->_values['event']['currency'])) {
-    // This is an Event registration form
-    $fname = 'iats_acheft_form_customize_'.$form->_values['event']['currency'];
-  }
-  else {
-    // This is a Contribution form
-    $fname = 'iats_acheft_form_customize_'.$form->_values['currency'];
-  }
+  // currency is in a funny place for the Event registration form
+  $currency = isset($form->_values['event']['currency']) ? $form->_values['event']['currency'] : $form->_values['currency'];
+  $fname = 'iats_acheft_form_customize_'.$currency;
   /* we always want these three fields to be required, in all currencies */
   $form->addRule('account_holder', ts('%1 is a required field.', array(1 => ts('Name of Account Holder'))), 'required');
   $form->addRule('bank_account_number', ts('%1 is a required field.', array(1 => ts('Account Number'))), 'required');
@@ -541,8 +536,12 @@ function iats_acheft_form_customize_USD($form) {
 function iats_acheft_form_customize_CAD($form) {
   $form->addElement('text', 'cad_bank_number', ts('Bank Number'));
   $form->addRule('cad_bank_number', ts('%1 is a required field.', array(1 => ts('Bank Number'))), 'required');
+  $form->addRule('cad_bank_number', ts('%1 must contain only digits.', array(1 => ts('Bank Number'))), 'numeric');
+  $form->addRule('cad_bank_number', ts('%1 must be of length 3.', array(1 => ts('Bank Number'))), 'rangelength', array(3,3));
   $form->addElement('text', 'cad_transit_number', ts('Transit Number'));
   $form->addRule('cad_transit_number', ts('%1 is a required field.', array(1 => ts('Transit Number'))), 'required');
+  $form->addRule('cad_transit_number', ts('%1 must contain only digits.', array(1 => ts('Transit Number'))), 'numeric');
+  $form->addRule('cad_transit_number', ts('%1 must be of length 5.', array(1 => ts('Transit Number'))), 'rangelength', array(5,5));
   $form->addElement('select', 'bank_account_type', ts('Account type'), array('CHECKING' => 'Chequing', 'SAVING' => 'Savings'));
   $form->addRule('bank_account_type', ts('%1 is a required field.', array(1 => ts('Account type'))), 'required');
   /* minor customization of labels + make them required */
@@ -550,6 +549,7 @@ function iats_acheft_form_customize_CAD($form) {
   $element->setLabel(ts('Name of Account Holder'));
   $element = $form->getElement('bank_account_number');
   $element->setLabel(ts('Account Number'));
+  $form->addRule('bank_account_number', ts('%1 must contain only digits.', array(1 => ts('Bank Account Number'))), 'numeric');
   /* the bank_identification_number is hidden and then populated using jquery, in the custom template */
   $element = $form->getElement('bank_identification_number');
   $element->setLabel(ts('Bank Number + Transit Number'));
@@ -661,6 +661,8 @@ function iats_civicrm_buildForm_Contribution_Frontend(&$form) {
   // If a form allows ACH/EFT and enables recurring, set recurring to the default
   if (0 < count($acheft)) {
     CRM_Core_Resources::singleton()->addScriptFile('com.iatspayments.civicrm', 'js/dd_acheft.js',10,'html-header');
+    // country specific js needs to be loaded here so it's available later
+    CRM_Core_Resources::singleton()->addScriptFile('com.iatspayments.civicrm', 'js/dd_cad.js',10,'html-header');
     if (isset($form->_elementIndex['is_recur'])) {
       $form->setDefaults(array('is_recur' => 1)); // make recurring contrib default to true
     }

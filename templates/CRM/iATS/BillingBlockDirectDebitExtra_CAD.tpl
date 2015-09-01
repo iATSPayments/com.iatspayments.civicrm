@@ -5,6 +5,7 @@
       <div class="crm-section cad-instructions-section">
         <div class="label"><em>{ts domain='com.iatspayments.civicrm'}You can find your Transit number, Bank number and Account number by inspecting a cheque.{/ts}</em></div>
         <div class="content"><img width=500 height=303 src="{crmResURL ext=com.iatspayments.civicrm file=templates/CRM/iATS/CDN_cheque_500x.jpg}"></div>
+        <div class="description"><em>{ts domain='com.iatspayments.civicrm'}Please enter them below without any punctuation or spaces.{/ts}</em></div>
         <div class="clear"></div>
       </div>
       <div class="crm-section cad-transit-number-section">
@@ -26,4 +27,4 @@
       </div>
 
     </div>
-{literal}<script type="text/javascript">iatsACHEFTRefresh()</script>{/literal}
+{literal}<script type="text/javascript">iatsACHEFTRefresh();iatsACHEFTca();</script>{/literal}
