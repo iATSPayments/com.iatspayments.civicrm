@@ -546,11 +546,11 @@ function iats_acheft_form_customize_USD($form) {
  * Customization for CAD ACH-EFT billing block
  */
 function iats_acheft_form_customize_CAD($form) {
-  $form->addElement('text', 'cad_bank_number', ts('Bank Number'));
+  $form->addElement('text', 'cad_bank_number', ts('Bank Number<br />(3 digits)'));
   $form->addRule('cad_bank_number', ts('%1 is a required field.', array(1 => ts('Bank Number'))), 'required');
   $form->addRule('cad_bank_number', ts('%1 must contain only digits.', array(1 => ts('Bank Number'))), 'numeric');
   $form->addRule('cad_bank_number', ts('%1 must be of length 3.', array(1 => ts('Bank Number'))), 'rangelength', array(3,3));
-  $form->addElement('text', 'cad_transit_number', ts('Transit Number'));
+  $form->addElement('text', 'cad_transit_number', ts('Transit Number<br />(5 digits)'));
   $form->addRule('cad_transit_number', ts('%1 is a required field.', array(1 => ts('Transit Number'))), 'required');
   $form->addRule('cad_transit_number', ts('%1 must contain only digits.', array(1 => ts('Transit Number'))), 'numeric');
   $form->addRule('cad_transit_number', ts('%1 must be of length 5.', array(1 => ts('Transit Number'))), 'rangelength', array(5,5));
