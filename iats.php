@@ -241,26 +241,38 @@ function _iats_getMenuKeyMax($menuArray) {
   return max($max);
 }
 
-function iats_civicrm_navigationMenu(&$params) {
-  // get the maximum key of $params
-  $maxKey = 1 + _iats_getMenuKeyMax($params);
-  foreach ($params as $key => $value) {
-    if ('Contributions' == $value['attributes']['name']) {
-      $params[$key]['child'][$maxKey] = array(
-        'attributes' => array(
-          'label'      => 'iATS Payments Admin',
-          'name'       => 'iATS Payments Admin',
-          'url'        => 'civicrm/iATSAdmin',
-          'permission' => 'access CiviContribute,administer CiviCRM',
-          'operator'   => 'AND',
-          'separator'  => NULL,
-          'parentID'   => 28,
-          'navID'      => $maxKey,
-          'active'     => 1
-        )
-      );
-      // Just in case ...
-      $maxKey++;
+function iats_civicrm_navigationMenu(&$navMenu) {
+  $pages = array(
+    'admin_page' => array(
+      'label'      => 'iATS Payments Admin',
+      'name'       => 'iATS Payments Admin',
+      'url'        => 'civicrm/iATSAdmin',
+      'parent' => array('Contributions'),
+      'permission' => 'access CiviContribute,administer CiviCRM',
+      'operator'   => 'AND',
+      'separator'  => NULL,
+      'active'     => 1
+    ),
+    'settings_page' => array(
+      'label'      => 'iATS Payments Settings',
+      'name'       => 'iATS Payments Settings',
+      'url'        => 'civicrm/admin/contribute/iatssettings',
+      'parent'    => array('Administer','CiviContribute'),
+      'permission' => 'access CiviContribute,administer CiviCRM',
+      'operator'   => 'AND',
+      'separator'  => NULL,
+      'active'     => 1
+    ),
+  );
+  foreach($pages as $item) {
+    // Check that our item doesn't already exist
+    $menu_item_search = array('url' => $item['url']);
+    $menu_items = array();
+    CRM_Core_BAO_Navigation::retrieve($menu_item_search, $menu_items);
+    if (empty($menu_items)) {
+      $path = implode('/',$item['parent']);
+      unset($item['parent']);
+      _iats_civix_insert_navigation_menu($navMenu, $path, $item);
     }
   }
 }
