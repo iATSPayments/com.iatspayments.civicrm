@@ -148,6 +148,8 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
   $counter = 0;
   $error_count  = 0;
   $output  = array();
+  $settings = civicrm_api3('Setting', 'getvalue', array('name' => 'iats_settings'));
+  $receipt_recurring = empty($settings['receipt_recurring']) ? 0 : 1;
 
   while ($dao->fetch()) {
 
@@ -271,7 +273,7 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
         /* success, done */
         $trxn_id = trim($result['remote_id']) . ':' . time();
         $complete = array('version' => 3, 'id' => $contribution_id, 'trxn_id' => $trxn_id, 'receive_date' => $receive_date);
-        $complete['is_email_receipt'] = 0; /* do not send receipt by default. TODO: make it configurable */
+        $complete['is_email_receipt'] = $receipt_recurring; /* do not send receipt by default. TODO: make it configurable */
         try {
           $contributionResult = civicrm_api('contribution', 'completetransaction', $complete);
           // restore my source field that ipn irritatingly overwrites, and make sure that the trxn_id is set also
