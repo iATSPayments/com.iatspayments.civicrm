@@ -27,6 +27,7 @@ function iatsACHEFTca() {
         case '016': $('#bank_name').val('HSBC Canada'); break;
         case '030': $('#bank_name').val('Canadian Western Bank'); break;
         case '326': $('#bank_name').val('President\'s Choice Financial'); break;
+        default: $('#bank_name').val(''); break;
       }
     });
     $('#cad_transit_number').blur(function(eventObj) {
