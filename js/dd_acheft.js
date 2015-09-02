@@ -15,7 +15,6 @@ function iatsACHEFTRefresh() {
       /* hide the bank identiication number field */
       $('.bank_identification_number-section').hide();
       iatsSetBankIdenficationNumber();
-      $('#cad_transit_number, #cad_bank_number').blur(iatsSetBankIdenficationNumber);
     }
   });
 }

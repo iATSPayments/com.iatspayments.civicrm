@@ -29,12 +29,14 @@ function iatsACHEFTca() {
         case '326': $('#bank_name').val('President\'s Choice Financial'); break;
         default: $('#bank_name').val(''); break;
       }
+      iatsSetBankIdenficationNumber();
     });
     $('#cad_transit_number').blur(function(eventObj) {
       var myCount = onlyNumbers($(this));
       if (myCount != 5) {
         $(this).crmError(ts('Your Bank Transit Number requires exactly five digits')); 
       }
+      iatsSetBankIdenficationNumber();
     });
   });
 }
