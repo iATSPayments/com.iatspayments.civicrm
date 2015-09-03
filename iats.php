@@ -378,7 +378,11 @@ function iats_civicrm_pre($op, $objectName, $objectId, &$params) {
             && !empty($params['contribution_recur_id'])) {
             // only necessary for the first one
             $count = civicrm_api('Contribution', 'getcount', array('version' => 3, 'contribution_recur_id' => $params['contribution_recur_id']));
-            if (empty($count['result'])) { 
+            if (
+              (is_array($count) && empty($count['result']))
+              || empty($count)
+            ) { 
+              watchdog('iats_civicrm','hook_civicrm_pre updating status_id for objectName @id, count <pre>!count</pre>, params <pre>!params</pre>, ',array('@id' => $objectName, '!count' => print_r($count,TRUE),'!params' => print_r($params,TRUE)));
               $params['contribution_status_id'] = 1;
             }
           }
