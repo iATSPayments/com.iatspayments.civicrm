@@ -365,6 +365,7 @@ function iats_civicrm_pre($op, $objectName, $objectId, &$params) {
   if (('create' == $op) && ('Contribution' == $objectName || 'ContributionRecur' == $objectName) && !empty($params['contribution_status_id'])) {
     // watchdog('iats_civicrm','hook_civicrm_pre for Contribution <pre>@params</pre>',array('@params' => print_r($params));
     // figure out the payment processor id, not nice
+    $version = CRM_Utils_System::version();
     $payment_processor_id = ('ContributionRecur' == $objectName) ? $params['payment_processor_id'] :
                               (!empty($params['payment_processor']) ? $params['payment_processor'] :
                                 (!empty($params['contribution_recur_id']) ? _iats_civicrm_get_payment_processor_id($params['contribution_recur_id']) :
@@ -374,15 +375,18 @@ function iats_civicrm_pre($op, $objectName, $objectId, &$params) {
       switch ($type.$objectName) {
         case 'iATSServiceContribution': // cc contribution, test if it's been set to status 2 on a recurring contribution
         case 'iATSServiceSWIPEContribution':
+          // for civi version before 4.6.6, we had to force the status to 1
           if ((2 == $params['contribution_status_id'])
-            && !empty($params['contribution_recur_id'])) {
-            // only necessary for the first one
+            && !empty($params['contribution_recur_id'])
+            && (version_compare($version, '4.6.6') < 0)
+          ) {
+            // but only for the first one 
             $count = civicrm_api('Contribution', 'getcount', array('version' => 3, 'contribution_recur_id' => $params['contribution_recur_id']));
             if (
               (is_array($count) && empty($count['result']))
               || empty($count)
             ) { 
-              watchdog('iats_civicrm','hook_civicrm_pre updating status_id for objectName @id, count <pre>!count</pre>, params <pre>!params</pre>, ',array('@id' => $objectName, '!count' => print_r($count,TRUE),'!params' => print_r($params,TRUE)));
+              // watchdog('iats_civicrm','hook_civicrm_pre updating status_id for objectName @id, count <pre>!count</pre>, params <pre>!params</pre>, ',array('@id' => $objectName, '!count' => print_r($count,TRUE),'!params' => print_r($params,TRUE)));
               $params['contribution_status_id'] = 1;
             }
           }
