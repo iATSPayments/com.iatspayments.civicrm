@@ -9,6 +9,14 @@ function iatsACHEFTca() {
       jq.val(myVal.replace(/\D/g,''));
       return jq.val().length;
     }
+    function iatsSetBankIdenficationNumber() {
+      var bin = $('#cad_bank_number').val() + $('#cad_transit_number').val();
+      // console.log('bin: '+bin);
+      $('#bank_identification_number').val(bin);
+    }
+    /* hide the bank identiication number field */
+    $('.bank_identification_number-section').hide();
+    iatsSetBankIdenficationNumber();
     $('#bank_account_number').blur(function(eventObj) {
       onlyNumbers($(this));
     });
