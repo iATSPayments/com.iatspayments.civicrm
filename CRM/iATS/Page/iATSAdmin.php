@@ -15,7 +15,7 @@ class CRM_iATS_Page_iATSAdmin extends CRM_Core_Page {
     $result = civicrm_api('ContributionRecur','getcount', $params);
     if (!empty($result)) {
       $this->assign('jobLastRunWarning', '1');
-      $params['api_action'] = 'IatsRecurringContributions';
+      $params['api_action'] = 'Iatsrecurringcontributions';
       $job = civicrm_api('Job','getSingle',$params);
       $last_run = isset($job['last_run']) ? strtotime($job['last_run']) : '';
       $this->assign('jobLastRun', $job['last_run']);
