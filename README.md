@@ -8,7 +8,7 @@ This README.md contains information specific to system administrators/developers
 Requirements
 ------------
 
-1. CiviCRM 4.4.x, 4.5.x, or 4.6.x
+1. CiviCRM latest 4.4.x, 4.5.x, or 4.6.x
 
 2. Your PHP needs to include the SOAP extension (php.net/manual/en/soap.setup.php).
 
