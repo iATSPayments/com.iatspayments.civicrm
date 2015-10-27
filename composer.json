@@ -1,4 +1,5 @@
 {
     "name": "iats-payments/civicrm",
-    "description": "CiviCRM extension for iATS Payments"
+    "description": "CiviCRM extension for iATS Payments",
+    "license": "AGPL"
 }
