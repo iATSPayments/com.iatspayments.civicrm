@@ -143,7 +143,8 @@ Class iATS_Service_Request {
       /* build the request manually as per the iATS docs */
       $xml = '<'.$message.' xmlns="'.$this->_wsdl_url_ns.'">';
       $request = array_merge($this->request,(array) $credentials, (array) $payment);
-      $request['comment'] = 'CiviCRM';
+      // Pass CiviCRM tag + version to iATS
+      $request['comment'] = 'CiviCRM' . CRM_Utils_System::version();
       $tags = (!empty($this->_tag_order)) ? $this->_tag_order : array_keys($request);
       foreach($tags as $k) {
         if (isset($request[$k])) {
