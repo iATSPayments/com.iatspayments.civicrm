@@ -38,7 +38,6 @@ class CRM_iATS_Upgrader extends CRM_iATS_Upgrader_Base {
   /**
    * Example: Run a simple query when a module is disabled
    *
-    CRM_Core_BAO_Setting::setItem(NULL, 'iATS Payments Extension', 'iats_extension_version');
   public function disable() {
     CRM_Core_DAO::executeQuery('UPDATE foo SET is_active = 0 WHERE bar = "whiz"');
   }
