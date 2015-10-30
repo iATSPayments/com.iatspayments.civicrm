@@ -144,11 +144,7 @@ Class iATS_Service_Request {
       $xml = '<'.$message.' xmlns="'.$this->_wsdl_url_ns.'">';
       $request = array_merge($this->request,(array) $credentials, (array) $payment);
       // Pass CiviCRM tag + version to iATS
-      $iats_extension_version = CRM_Core_BAO_Setting::getItem('iATS Payments Extension', 'iats_extension_version');
-      if (!isset($iats_extension_version)) {
-        $iats_extension_version = $this->set_iatsversion();
-      };
-      $request['comment'] = 'CiviCRM: ' . CRM_Utils_System::version() . ' + ' . 'iATS Extension: ' . $iats_extension_version;
+      $request['comment'] = 'CiviCRM: ' . CRM_Utils_System::version() . ' + ' . 'iATS Extension: ' . $this->iats_extension_version();
       $tags = (!empty($this->_tag_order)) ? $this->_tag_order : array_keys($request);
       foreach($tags as $k) {
         if (isset($request[$k])) {
@@ -672,12 +668,15 @@ Class iATS_Service_Request {
     return 'https://' . $iats_domain . self::iATS_URL_DPMPROCESS; 
   }
 
-  public static function set_iatsversion() {
-    $xmlfile = CRM_Core_Resources::singleton()->getUrl('com.iatspayments.civicrm','info.xml');
-    $myxml = simplexml_load_file($xmlfile);
-    $iats_extension_version = (string)$myxml->version;
-    CRM_Core_BAO_Setting::setItem($iats_extension_version, 'iATS Payments Extension', 'iats_extension_version');
-    return $iats_extension_version;
+  public static function iats_extension_version() {
+    $version = CRM_Core_BAO_Setting::getItem('iATS Payments Extension', 'iats_extension_version');
+    if (empty($version)) {
+      $xmlfile = CRM_Core_Resources::singleton()->getUrl('com.iatspayments.civicrm','info.xml');
+      $myxml = simplexml_load_file($xmlfile);
+      $version = (string)$myxml->version;
+      CRM_Core_BAO_Setting::setItem($version, 'iATS Payments Extension', 'iats_extension_version');
+    }
+    return $version;
   }
 
 }
