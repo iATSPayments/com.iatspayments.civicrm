@@ -62,7 +62,7 @@ class CRM_iATS_Upgrader extends CRM_iATS_Upgrader_Base {
 
   public function upgrade_1_4_001() {
     // reset iATS Extension Version in the civicrm_setting table
-    CRM_Core_BAO_Setting::setItem($iats_extension_version, 'iATS Payments Extension', NULL);
+    CRM_Core_BAO_Setting::setItem(NULL, 'iATS Payments Extension', 'iats_extension_version');
     return TRUE;
   }
 
