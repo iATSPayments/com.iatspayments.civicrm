@@ -16,7 +16,6 @@ class CRM_iATS_Form_IatsSettings extends CRM_Core_Form {
       'receipt_recurring', // field name
       ts('Enable email receipting for each recurring contribution.')
     );
-    //$result = civicrm_api3('Setting', 'getvalue', array('name' => 'iats_settings'));
     $result = CRM_Core_BAO_Setting::getItem('iATS Payments Extension', 'iats_settings');
     $defaults = (empty($result)) ? array() : $result;
     $this->setDefaults($defaults);
@@ -40,7 +39,6 @@ class CRM_iATS_Form_IatsSettings extends CRM_Core_Form {
         unset($values[$key]);
       }
     }
-    //civicrm_api3('Setting', 'create', array('domain_id' => 'current_domain', 'iats_settings' => $values));
     CRM_Core_BAO_Setting::setItem($values, 'iATS Payments Extension', 'iats_settings');
     parent::postProcess();
   }
