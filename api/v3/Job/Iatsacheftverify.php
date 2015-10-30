@@ -30,6 +30,8 @@ function _civicrm_api3_job_iatsacheftverify_spec(&$spec) {
  */
 function civicrm_api3_job_iatsacheftverify($iats_service_params) {
 
+  $settings = CRM_Core_BAO_Setting::getItem('iATS Payments Extension', 'iats_settings');
+  $receipt_recurring = empty($settings['receipt_recurring']) ? 0 : 1;
   define('IATS_VERIFY_DAYS',30);
   // I've added an extra 2 days when getting candidates from CiviCRM to be sure i've got them all.
   $civicrm_verify_days = IATS_VERIFY_DAYS + 2;
@@ -190,7 +192,9 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
             // should I update the receive date to when it was actually received? Would that confuse membership dates?
             $trxn_id = $transaction_id.':'.time();
             $complete = array('version' => 3, 'id' => $contribution['id'], 'trxn_id' => $transaction_id.':'.time(), 'receive_date' => $contribution['receive_date']);
-            $complete['is_email_receipt'] = 0; /* do not send receipt by default. TODO: make it configurable */ 
+            if ($is_recur) {
+              $complete['is_email_receipt'] = $receipt_recurring; /* use my saved setting for recurring completions */
+            }
             try {
               $contributionResult = civicrm_api('contribution', 'completetransaction', $complete);
               // restore my source field that ipn irritatingly overwrites, and make sure that the trxn_id is set also
@@ -302,7 +306,7 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
               $contribution['contribution_status_id'] = 2;
               $result = civicrm_api('contribution', 'create', $contribution);
               $complete = array('version' => 3, 'id' => $result['id'], 'trxn_id' => $trxn_id, 'receive_date' => $contribution['receive_date']);
-              $complete['is_email_receipt'] = 0; /* do not send receipt by default. TODO: make it configurable */ 
+              $complete['is_email_receipt'] = $receipt_recurring; /* send according to my configuration */
               try {
                 $contributionResult = civicrm_api('contribution', 'completetransaction', $complete);
                 // restore my source field that ipn irritatingly overwrites, and make sure that the trxn_id is set also
