@@ -121,9 +121,6 @@ Class iATS_Service_Request {
       // dpm($logged_request);
       $cc = isset($logged_request['creditCardNum']) ? $logged_request['creditCardNum'] :  (isset($logged_request['ccNum']) ? $logged_request['ccNum'] : '');
       $ip = $logged_request['customerIPAddress'];
-      if (!$this->is_ipv4($ip)) {
-        $ip = '';
-      }
       $query_params = array(
         1 => array($logged_request['invoiceNum'], 'String'),
         2 => array($ip, 'String'),
@@ -133,6 +130,9 @@ Class iATS_Service_Request {
       );
       CRM_Core_DAO::executeQuery("INSERT INTO civicrm_iats_request_log
         (invoice_num, ip, cc, customer_code, total, request_datetime) VALUES (%1, %2, %3, %4, %5, NOW())", $query_params);
+      if (!$this->is_ipv4($ip)) {
+        $payment['customerIPAddress'] = substr($ip,0,30);
+      }
       // save the invoiceNum so I can log it for the response
       $this->invoiceNum = $logged_request['invoiceNum'];
     }
@@ -143,8 +143,19 @@ Class iATS_Service_Request {
       /* build the request manually as per the iATS docs */
       $xml = '<'.$message.' xmlns="'.$this->_wsdl_url_ns.'">';
       $request = array_merge($this->request,(array) $credentials, (array) $payment);
+<<<<<<< HEAD
       // Pass CiviCRM tag + version to iATS
       $request['comment'] = 'CiviCRM' . CRM_Utils_System::version();
+=======
+
+      // Pass CiviCRM tag + Version to iATS
+      $iats_extension_version = CRM_Core_BAO_Setting::getItem('iATS Payments Extension', 'iats_extension_version');
+      if (!isset($iats_extension_version)) {
+        $iats_extension_version = $this->set_iatsversion();
+      };
+      $request['comment'] = 'CiviCRM: ' . CRM_Utils_System::version() . ' + ' . 'iATS Extension: ' . $iats_extension_version;
+
+>>>>>>> 4da95b973675507462e770acc15f883626fbbc19
       $tags = (!empty($this->_tag_order)) ? $this->_tag_order : array_keys($request);
       foreach($tags as $k) {
         if (isset($request[$k])) {
@@ -667,4 +678,13 @@ Class iATS_Service_Request {
   public static function dpm_url($iats_domain) {
     return 'https://' . $iats_domain . self::iATS_URL_DPMPROCESS; 
   }
+
+  public static function set_iatsversion() {
+    $xmlfile = CRM_Core_Resources::singleton()->getUrl('com.iatspayments.civicrm','info.xml');
+    $myxml = simplexml_load_file($xmlfile);
+    $iats_extension_version = (string)$myxml->version;
+    CRM_Core_BAO_Setting::setItem($iats_extension_version, 'iATS Payments Extension', 'iats_extension_version');
+    return $iats_extension_version;
+  }
+
 }

@@ -153,7 +153,8 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
   $counter = 0;
   $error_count  = 0;
   $output  = array();
-  $settings = civicrm_api3('Setting', 'getvalue', array('name' => 'iats_settings'));
+  //$settings = civicrm_api3('Setting', 'getvalue', array('name' => 'iats_settings'));
+  $settings = CRM_Core_BAO_Setting::getItem('iATS Payments Extension', 'iats_settings');
   $receipt_recurring = empty($settings['receipt_recurring']) ? 0 : 1;
 
   while ($dao->fetch()) {
