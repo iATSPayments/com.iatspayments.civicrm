@@ -143,19 +143,12 @@ Class iATS_Service_Request {
       /* build the request manually as per the iATS docs */
       $xml = '<'.$message.' xmlns="'.$this->_wsdl_url_ns.'">';
       $request = array_merge($this->request,(array) $credentials, (array) $payment);
-<<<<<<< HEAD
       // Pass CiviCRM tag + version to iATS
-      $request['comment'] = 'CiviCRM' . CRM_Utils_System::version();
-=======
-
-      // Pass CiviCRM tag + Version to iATS
       $iats_extension_version = CRM_Core_BAO_Setting::getItem('iATS Payments Extension', 'iats_extension_version');
       if (!isset($iats_extension_version)) {
         $iats_extension_version = $this->set_iatsversion();
       };
       $request['comment'] = 'CiviCRM: ' . CRM_Utils_System::version() . ' + ' . 'iATS Extension: ' . $iats_extension_version;
-
->>>>>>> 4da95b973675507462e770acc15f883626fbbc19
       $tags = (!empty($this->_tag_order)) ? $this->_tag_order : array_keys($request);
       foreach($tags as $k) {
         if (isset($request[$k])) {
