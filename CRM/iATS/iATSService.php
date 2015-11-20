@@ -30,9 +30,10 @@ Class iATS_Service_Request {
   CONST iATS_TXN_TRACE = TRUE;
   CONST iATS_TXN_SUCCESS = 'Success';
   CONST iATS_TXN_OK = 'OK';
-  CONST iATS_URL_PROCESSLINK = '/NetGate/ProcessLink.asmx?WSDL';
-  CONST iATS_URL_REPORTLINK = '/NetGate/ReportLink.asmx?WSDL';
-  CONST iATS_URL_CUSTOMERLINK = '/NetGate/CustomerLink.asmx?WSDL';
+  CONST iATS_URL_PROCESSLINK = '/NetGate/ProcessLinkv2.asmx?WSDL';
+  CONST iATS_URL_REPORTLINK = '/NetGate/ReportLinkv2.asmx?WSDL';
+  CONST iATS_URL_CUSTOMERLINK = '/NetGate/CustomerLinkv2.asmx?WSDL';
+  // TODO: confirm with Stephen if this needs a v2 as well:
   CONST iATS_URL_DPMPROCESS = '/NetGate/IATSDPMProcess.aspx';
   CONST iATS_USE_DPMPROCESS = FALSE;
 
@@ -244,15 +245,15 @@ Class iATS_Service_Request {
         }
         // If the payment failed, display an error and rebuild the form.
         if (empty($result['status'])) {
-          $result['reasonMessage'] = isset($result['BANKERROR']) ? $result['BANKERROR'] : 
-             (isset($result['AUTHORIZATIONRESULT']) ? $result['AUTHORIZATIONRESULT'] : 
-               (isset($result['ERRORS']) ? $result['ERRORS'] : 
+          $result['reasonMessage'] = isset($result['BANKERROR']) ? $result['BANKERROR'] :
+             (isset($result['AUTHORIZATIONRESULT']) ? $result['AUTHORIZATIONRESULT'] :
+               (isset($result['ERRORS']) ? $result['ERRORS'] :
                  'Unexpected error'
                )
              );
         }
         break;
-    }       
+    }
     if ($log && !empty($this->invoiceNum)) {
       $query_params = array(
         1 => array($this->invoiceNum, 'String'),
@@ -661,11 +662,11 @@ Class iATS_Service_Request {
   }
 
   public static function isDPM($pp) {
-    return self::iATS_USE_DPMPROCESS; 
+    return self::iATS_USE_DPMPROCESS;
   }
 
   public static function dpm_url($iats_domain) {
-    return 'https://' . $iats_domain . self::iATS_URL_DPMPROCESS; 
+    return 'https://' . $iats_domain . self::iATS_URL_DPMPROCESS;
   }
 
   public static function iats_extension_version() {

@@ -105,10 +105,10 @@ function iats_civicrm_managed(&$entities) {
       'billing_mode' => 'form',
       'user_name_label' => 'Agent Code',
       'password_label' => 'Password',
-      'url_site_default' => 'https://www.iatspayments.com/NetGate/ProcessLink.asmx?WSDL',
-      'url_recur_default' => 'https://www.iatspayments.com/NetGate/ProcessLink.asmx?WSDL',
-      'url_site_test_default' => 'https://www.iatspayments.com/NetGate/ProcessLink.asmx?WSDL',
-      'url_recur_test_default' => 'https://www.iatspayments.com/NetGate/ProcessLink.asmx?WSDL',
+      'url_site_default' => 'https://www.iatspayments.com/NetGate/ProcessLinkv2.asmx?WSDL',
+      'url_recur_default' => 'https://www.iatspayments.com/NetGate/ProcessLinkv2.asmx?WSDL',
+      'url_site_test_default' => 'https://www.iatspayments.com/NetGate/ProcessLinkv2.asmx?WSDL',
+      'url_recur_test_default' => 'https://www.iatspayments.com/NetGate/ProcessLinkv2.asmx?WSDL',
       'is_recur' => 1,
       'payment_type' => 1,
     ),
@@ -126,10 +126,10 @@ function iats_civicrm_managed(&$entities) {
       'billing_mode' => 'form',
       'user_name_label' => 'Agent Code',
       'password_label' => 'Password',
-      'url_site_default' => 'https://www.iatspayments.com/NetGate/ProcessLink.asmx?WSDL',
-      'url_recur_default' => 'https://www.iatspayments.com/NetGate/ProcessLink.asmx?WSDL',
-      'url_site_test_default' => 'https://www.iatspayments.com/NetGate/ProcessLink.asmx?WSDL',
-      'url_recur_test_default' => 'https://www.iatspayments.com/NetGate/ProcessLink.asmx?WSDL',
+      'url_site_default' => 'https://www.iatspayments.com/NetGate/ProcessLinkv2.asmx?WSDL',
+      'url_recur_default' => 'https://www.iatspayments.com/NetGate/ProcessLinkv2.asmx?WSDL',
+      'url_site_test_default' => 'https://www.iatspayments.com/NetGate/ProcessLinkv2.asmx?WSDL',
+      'url_recur_test_default' => 'https://www.iatspayments.com/NetGate/ProcessLinkv2.asmx?WSDL',
       'is_recur' => 1,
       'payment_type' => 2,
     ),
@@ -147,14 +147,15 @@ function iats_civicrm_managed(&$entities) {
       'billing_mode' => 'form',
       'user_name_label' => 'Agent Code',
       'password_label' => 'Password',
-      'url_site_default' => 'https://www.iatspayments.com/NetGate/ProcessLink.asmx?WSDL',
-      'url_recur_default' => 'https://www.iatspayments.com/NetGate/ProcessLink.asmx?WSDL',
-      'url_site_test_default' => 'https://www.iatspayments.com/NetGate/ProcessLink.asmx?WSDL',
-      'url_recur_test_default' => 'https://www.iatspayments.com/NetGate/ProcessLink.asmx?WSDL',
+      'url_site_default' => 'https://www.iatspayments.com/NetGate/ProcessLinkv2.asmx?WSDL',
+      'url_recur_default' => 'https://www.iatspayments.com/NetGate/ProcessLinkv2.asmx?WSDL',
+      'url_site_test_default' => 'https://www.iatspayments.com/NetGate/ProcessLinkv2.asmx?WSDL',
+      'url_recur_test_default' => 'https://www.iatspayments.com/NetGate/ProcessLinkv2.asmx?WSDL',
       'is_recur' => 1,
       'payment_type' => 1,
     ),
   );
+  // TODO: Confirm with Stephen if UK endpoints have also been updated - if they also require a v2:
   $entities[] = array(
     'module' => 'com.iatspayments.civicrm',
     'name' => 'iATS Payments UK Direct Debit',
@@ -380,12 +381,12 @@ function iats_civicrm_pre($op, $objectName, $objectId, &$params) {
             && !empty($params['contribution_recur_id'])
             && (version_compare($version, '4.6.6') < 0)
           ) {
-            // but only for the first one 
+            // but only for the first one
             $count = civicrm_api('Contribution', 'getcount', array('version' => 3, 'contribution_recur_id' => $params['contribution_recur_id']));
             if (
               (is_array($count) && empty($count['result']))
               || empty($count)
-            ) { 
+            ) {
               // watchdog('iats_civicrm','hook_civicrm_pre updating status_id for objectName @id, count <pre>!count</pre>, params <pre>!params</pre>, ',array('@id' => $objectName, '!count' => print_r($count,TRUE),'!params' => print_r($params,TRUE)));
               $params['contribution_status_id'] = 1;
             }
@@ -408,10 +409,10 @@ function iats_civicrm_pre($op, $objectName, $objectId, &$params) {
           }
           if ($type == 'iATSServiceACHEFT') { // fix the payment type for ACH/EFT
             $params['payment_instrument_id'] = 2;
-          } 
+          }
           break;
-        case 'iATSServiceACHEFTContribution': 
-          // ach/eft contribution: update the payment instrument 
+        case 'iATSServiceACHEFTContribution':
+          // ach/eft contribution: update the payment instrument
           $params['payment_instrument_id'] = 2;
           // and push the status to 2 if civicrm thinks it's 1, i.e. for one-time contributions
           // in other words, never create ach/eft contributions as complete, always push back to pending and verify
