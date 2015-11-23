@@ -357,7 +357,8 @@ function iats_civicrm_pageRun_CRM_Contribute_Page_ContributionRecur($page) {
       $customer_code = $dao->customer_code;
       $extra['customerLinkView'] = CRM_Utils_System::url('civicrm/contact/view/iatscustomerlink',
         'reset=1&cid='.$recur['contact_id'].'&customerCode='.$customer_code.'&paymentProcessorId='.$recur['payment_processor_id'].'&is_test='.$recur['is_test']);
-      $extra['customerLinkEdit'] = CRM_Utils_System::url('civicrm/contact/edit/iatscustomerlink','reset=1&cid='.$recur['contact_id'].'&customerCode='.$customer_code);
+      $extra['customerLinkEdit'] = CRM_Utils_System::url('civicrm/contact/edit/iatscustomerlink',
+        'reset=1&cid='.$recur['contact_id'].'&customerCode='.$customer_code.'&paymentProcessorId='.$recur['payment_processor_id'].'&is_test='.$recur['is_test']);
       $extra['iATS Customer Code'] = $customer_code;
       $expiry = str_split($dao->expiry,2);
       $extra['expiry'] = '20'.implode('-',$expiry);
