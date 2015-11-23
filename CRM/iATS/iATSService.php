@@ -242,6 +242,16 @@ Class iATS_Service_Request {
             $result = get_object_vars($response->PROCESSRESULT);
             $result['status'] = (substr($result['AUTHORIZATIONRESULT'],0,2) == self::iATS_TXN_OK) ? 1 : 0;
           }
+          elseif (!empty($response->CUSTOMERS->CST)) {
+            $customer = get_object_vars($response->CUSTOMERS->CST);
+            foreach($customer as $key => $value) {
+              if (is_string($value)) {
+                $result[$key] = $value;
+              }
+            }
+            $result['ac1'] = $customer['AC1'];
+            $result['status'] = 1;
+          }
         }
         // If the payment failed, display an error and rebuild the form.
         if (empty($result['status'])) {
@@ -626,13 +636,14 @@ Class iATS_Service_Request {
     }
   }
 
-  /* when I'm invoking a payment from the recurring job, I need to look up the credentials, unlike the doDirect payment interface
+  /* when I'm using this object outside of the doDirect payment interface (e.g. a payment from the recurring job), I need to look up the credentials
    * I need to pay attention to whether I should use the test credentials, which is the 'mode' in doDirect payment
+   * I also return the url_site value in case I need that
    */
   public static function credentials($payment_processor_id, $is_test = 0) {
     static $credentials = array();
     if (empty($credentials[$payment_processor_id])) {
-      $select = 'SELECT user_name, password FROM civicrm_payment_processor WHERE id = %1 AND is_test = %2';
+      $select = 'SELECT user_name, password, url_site FROM civicrm_payment_processor WHERE id = %1 AND is_test = %2';
       $args = array(
         1 => array($payment_processor_id, 'Int'),
         2 => array($is_test, 'Int'),
@@ -642,6 +653,7 @@ Class iATS_Service_Request {
         $cred = array(
           'agentCode' => $dao->user_name,
           'password' => $dao->password,
+          'domain' => parse_url($dao->url_site,PHP_URL_HOST),
         );
         $credentials[$payment_processor_id] = $cred;
         return $cred;
