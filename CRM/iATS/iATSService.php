@@ -463,6 +463,20 @@ Class iATS_Service_Request {
             'message' => 'GetCustomerCodeDetail',
             'response' => 'GetCustomerCodeDetailResult',
           ),
+          'create_credit_card_customer' => array(
+            'title' => 'Create CustomerCode Credit Card',
+            'description'=> $desc. 'CreateCreditCardCustomerCode',
+            'method' => 'CreateCreditCardCustomerCode',
+            'message' => 'CreateCreditCardCustomerCode',
+            'response' => 'CreateCreditCardCustomerCodeResult',
+          ),
+          'update_credit_card_customer' => array(
+            'title' => 'Update CustomerCode Credit Card',
+            'description'=> $desc. 'UpdateCreditCardCustomerCode',
+            'method' => 'UpdateCreditCardCustomerCode',
+            'message' => 'UpdateCreditCardCustomerCode',
+            'response' => 'UpdateCreditCardCustomerCodeResult',
+          ),
           'direct_debit_acheft_payer_validate' => array(
             'title' => 'Direct Debit ACHEFT Payer Validate',
             'description'=> $desc. 'DirectDebitACHEFTPayerValidate',
