@@ -333,6 +333,57 @@ function iats_civicrm_pageRun_CRM_Contact_Page_View_Summary(&$page) {
   }
 }
 
+/*
+ * Modify the recurring contribution (subscription) page.
+ * Display extra information about recurring contributions using iATS, and
+ * link to iATS CustomerLink display and editing pages.
+ */
+function iats_civicrm_pageRun_CRM_Contribute_Page_ContributionRecur($page) {
+  // get the corresponding (most recently created) iATS customer code record referenced from the customer_codes table via the recur_id ('crid')
+  // we'll also get the expiry date and last four digits (at least, our best information about that).
+  $extra = array();
+  $crid = CRM_Utils_Request::retrieve('id', 'Integer', $page, FALSE);
+  try {
+    $recur = civicrm_api3('ContributionRecur', 'getsingle', array('id' => $crid));
+  } 
+  catch (CiviCRM_API3_Exception $e) {
+    return;
+  }
+  try {
+    $params = array(1 => array($crid,'Integer'));
+    $dao = CRM_Core_DAO::executeQuery("SELECT customer_code,expiry FROM civicrm_iats_customer_codes WHERE recur_id = %1 ORDER BY id DESC LIMIT 1", $params);
+    if ($dao->fetch()) {
+      $customer_code = $dao->customer_code;
+      $extra['customerLinkView'] = CRM_Utils_System::url('civicrm/contact/view/iatscustomerlink','reset=1&cid='.$recur['contact_id'].'&customerCode='.$customer_code);
+      $extra['customerLinkEdit'] = CRM_Utils_System::url('civicrm/contact/edit/iatscustomerlink','reset=1&cid='.$recur['contact_id'].'&customerCode='.$customer_code);
+      $expiry = str_split($dao->expiry,2);
+      $extra['expiry'] = '20'.implode('-',$expiry);
+    }
+    if (!empty($recur['invoice_id'])) { 
+      // we may have the last 4 digits via the original request log, though they may no longer be accurate, but let's get it anyway if we can
+      $params = array(1 => array($recur['invoice_id'],'String'));
+      $dao = CRM_Core_DAO::executeQuery("SELECT cc FROM civicrm_iats_request_log WHERE invoice_num = %1", $params);
+      if ($dao->fetch()) {
+        $extra['cc'] = $dao->cc;
+      }
+    }
+  }
+  catch (CiviCRM_API3_Exception $e) {
+    return;
+  }
+  if (!count($extra)) {
+    return;
+  }
+  $template = CRM_Core_Smarty::singleton();
+  foreach($extra as $key => $value) {
+    $template->assign($key, $value);
+  }   
+  CRM_Core_Region::instance('page-body')->add(array(
+    'template' => 'CRM/iATS/ContributionRecur.tpl',
+  ));
+  CRM_Core_Resources::singleton()->addScriptFile('com.iatspayments.civicrm', 'js/subscription_view.js');
+}
+
 /**
  * hook_civicrm_merge
  * Deal with contact merges - our custom iats customer code table contains contact id's as a check, it might need to be updated

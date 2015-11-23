@@ -17,4 +17,10 @@
     <title>iATS Payments Settings</title>
     <access_arguments>access CiviCRM</access_arguments>
   </item>
+  <item>
+    <path>civicrm/contact/view/iatscustomerlink</path>
+    <page_callback>CRM_iATS_Page_IATSCustomerLink</page_callback>
+    <title>IATSCustomerLink</title>
+    <access_arguments>access CiviCRM</access_arguments>
+  </item>
 </menu>
