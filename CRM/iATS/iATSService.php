@@ -17,7 +17,7 @@
  *   type: 'report', 'customer', 'process'
  *   method: 'cc', etc. as appropriate for that type
  *   iats_domain: the domain for the api (us or uk currently)
- * $response = $iats->request($credentials,$payment)
+ * $response = $iats->request($credentials, $request_params)
  * the request method encapsulates the soap inteface and requires iATS client details + payment info (cc + amount + billing info)
  * $result = $iats->response($response)
  * the 'response' method converts the soap response into a nicer format
@@ -96,14 +96,17 @@ Class iATS_Service_Request {
   /**
    * Submits an API request through the iATS SOAP API Toolkit.
    *
-   * @param $request
+   * @param $credentials
+   *   The request object or array containing the merchant credentials
+   *
+   * @param $request_params
    *   The request object or array containing the parameters of the requested services.
    *
    * @return
    *   The response object from the API with properties pertinent to the requested
    *     services.
    */
-  function request($credentials, $payment) {
+  function request($credentials, $request_params) {
     // Attempt the SOAP request and log the exception on failure.
     $method = $this->method['method'];
     if (empty($method)) {
@@ -114,8 +117,8 @@ Class iATS_Service_Request {
     $response = $this->method['response'];
     // always log requests to my own table, start by making a copy of the original request
     // note: this is different from the drupal watchdog logging that only happens if userframework logging and debug are enabled
-    if (!empty($payment['invoiceNum'])) {
-      $logged_request = $payment;
+    if (!empty($request_params['invoiceNum'])) {
+      $logged_request = $request_params;
       // mask the cc numbers
       $this->mask($logged_request);
       // log: ip, invoiceNum, , cc, total, date
@@ -132,7 +135,7 @@ Class iATS_Service_Request {
       CRM_Core_DAO::executeQuery("INSERT INTO civicrm_iats_request_log
         (invoice_num, ip, cc, customer_code, total, request_datetime) VALUES (%1, %2, %3, %4, %5, NOW())", $query_params);
       if (!$this->is_ipv4($ip)) {
-        $payment['customerIPAddress'] = substr($ip,0,30);
+        $request_params['customerIPAddress'] = substr($ip,0,30);
       }
       // save the invoiceNum so I can log it for the response
       $this->invoiceNum = $logged_request['invoiceNum'];
@@ -143,7 +146,7 @@ Class iATS_Service_Request {
       $soapClient = new SoapClient($this->_wsdl_url, array('trace' => 1,'soap_version' => SOAP_1_2));
       /* build the request manually as per the iATS docs */
       $xml = '<'.$message.' xmlns="'.$this->_wsdl_url_ns.'">';
-      $request = array_merge($this->request,(array) $credentials, (array) $payment);
+      $request = array_merge($this->request,(array) $credentials, (array) $request_params);
       // Pass CiviCRM tag + version to iATS
       $request['comment'] = 'CiviCRM: ' . CRM_Utils_System::version() . ' + ' . 'iATS Extension: ' . $this->iats_extension_version();
       $tags = (!empty($this->_tag_order)) ? $this->_tag_order : array_keys($request);
