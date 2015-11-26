@@ -117,11 +117,11 @@ Class iATS_Service_Request {
     switch($method) {
       case 'CreateCreditCardCustomerCode':
       case 'UpdateCreditCardCustomerCode':
-        $dummy_date = date('c',time()); // now
-        foreach(array('beginDate','endDate') as $key) {
-          if (empty($request_params[$key])) {
-            $request_params[$key] = $dummy_date;
-          }
+        if (empty($request_params['beginDate'])) {
+          $request_params['beginDate'] = date('c',time());
+        }
+        if (empty($request_params['endDate'])) {
+          $request_params['endDate'] = date('c',strtotime('+5 years'));
         }
         if (empty($request_params['recurring'])) {
           $request_params['recurring'] = '0';
