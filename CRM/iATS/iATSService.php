@@ -123,6 +123,9 @@ Class iATS_Service_Request {
             $request_params[$key] = $dummy_date;
           }
         }
+        if (empty($request_params['recurring'])) {
+          $request_params['recurring'] = '0';
+        }
         break;
     }
     $message = $this->method['message'];
