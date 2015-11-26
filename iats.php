@@ -406,7 +406,7 @@ function iats_civicrm_merge($type, &$data, $mainId = NULL, $otherId = NULL, $tab
  * Handle special cases of creating contribution (regular and recurring) records when using IATS Payments
  *
  * 1. CiviCRM assumes all recurring contributions need to be confirmed using the IPN mechanism. This is not true for iATS recurring contributions.
- * So when creating a contribution that is part of a recurring series, test for status = 2, and set to status = 1 instead.
+ * So when creating a contribution that is part of a recurring series, test for status = 2, and set to status = 1 instead, unless we're using the fixed day feature
  * Do this only for the initial contribution record.
  * The (subsequent) recurring contributions' status id is set explicitly in the job that creates it, this modification breaks that process.
  *
@@ -428,12 +428,15 @@ function iats_civicrm_pre($op, $objectName, $objectId, &$params) {
                                  0)
                               );
     if ($type = _iats_civicrm_is_iats($payment_processor_id)) {
+      $settings = CRM_Core_BAO_Setting::getItem('iATS Payments Extension', 'iats_settings');
+      $allow_days = empty($settings['days']) ? array('-1') : $settings['days'];
       switch ($type.$objectName) {
         case 'iATSServiceContribution': // cc contribution, test if it's been set to status 2 on a recurring contribution
         case 'iATSServiceSWIPEContribution':
           // for civi version before 4.6.6, we had to force the status to 1
           if ((2 == $params['contribution_status_id'])
             && !empty($params['contribution_recur_id'])
+            && (max($allow_days) <= 0)
             && (version_compare($version, '4.6.6') < 0)
           ) {
             // but only for the first one
@@ -458,7 +461,7 @@ function iats_civicrm_pre($op, $objectName, $objectId, &$params) {
           // this condition helps avoid mangling records being imported from a csv file
           if (5 != $params['contribution_status_id'] && empty($params[$field_name])) {
             $params['contribution_status_id'] = 5;
-            $params['trxn_id'] = NULL;
+            $params['trxn_id'] = NULL; // civi wants to put the returned trxn_id in here
             $next = strtotime('+'.$params['frequency_interval'].' '.$params['frequency_unit']);
             $params[$field_name] = date('YmdHis',$next);
           }
@@ -488,8 +491,34 @@ function iats_civicrm_pre($op, $objectName, $objectId, &$params) {
           }
           break;
       }
+      if ($type != 'iATSServiceUKDD' && $objectName == 'Contribution') { 
+        // new, non-UKDD contribution records in a schedule are forced to comply with any restrictions
+        if (0 < max($allow_days)) {
+          $from_time = _contributionrecur_next(strtotime($params['receive_date']),$allow_days);
+          $params['receive_date'] = date('Ymd', $from_time).'030000';
+        }
+      } 
     }
     // watchdog('iats_civicrm','ignoring hook_civicrm_pre for objectName @id',array('@id' => $objectName));
+  }
+  // if I've set fixed monthly recurring dates, force any iats (non uk dd) recurring contribution schedule records to comply
+  // it's a bit draconian, and you likely want to give administrators the ability to modify these schedules
+  // this is separate from the above because I want to deal with both create and edit possibilities
+  if (('ContributionRecur' == $objectName) && ('create' == $op || 'edit' == $op))  {
+    if ($type = _iats_civicrm_is_iats($params['payment_processor_id'])) {
+      if ($type != 'iATSServiceUKDD' && !empty($params['next_sched_contribution_date'])) {
+        $settings = CRM_Core_BAO_Setting::getItem('iATS Payments Extension', 'iats_settings');
+        $allow_days = empty($settings['days']) ? array('-1') : $settings['days'];
+        if (0 < max($allow_days)) {
+          $init_time = ('create' == $op) ? time() : strtotime($params['next_sched_contribution_date']);
+          $from_time = _iats_contributionrecur_next($init_time,$allow_days);
+          $params['next_sched_contribution_date'] = date('YmdHis', $from_time);
+        }
+      }
+      if (empty($params['installments'])) { // fix a civi bug while I'm here
+        $params['installments'] = '0';
+      }
+    }
   }
 }
 
@@ -963,3 +992,23 @@ function _iats_civicrm_getContributionTemplate($contribution) {
   }
   return $template;
 }
+
+/*
+ * function _iats_contributionrecur_next
+ *
+ * @param $from_time: a unix time stamp, the function returns values greater than this
+ * @param $days: an array of allowable days of the month
+ *
+ * A utility function to calculate the next available allowable day, starting from $from_time.
+ * Strategy: increment the from_time by one day until the day of the month matches one of my available days of the month.
+ */
+function _iats_contributionrecur_next($from_time, $allow_mdays) {
+  $dp = getdate($from_time);
+  $i = 0;  // so I don't get into an infinite loop somehow
+  while(($i++ < 60) && !in_array($dp['mday'],$allow_mdays)) {
+    $from_time += (24 * 60 * 60);
+    $dp = getdate($from_time);
+  }
+  return $from_time;
+}
+
