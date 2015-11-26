@@ -78,7 +78,7 @@ class CRM_iATS_Form_IATSCustomerLink extends CRM_Core_Form {
     $iats_service_params = array('type' => 'customer', 'iats_domain' => $credentials['domain'], 'method' => 'update_credit_card_customer');
     $iats = new iATS_Service_Request($iats_service_params);
     // print_r($iats); die();
-    $params['updateCreditCardNum'] = (0 < strlen($params['creditCardNum']) && 0 === strpos($params['creditCardNum'],'*')) ? 1 : 0;
+    $params['updateCreditCardNum'] = (0 < strlen($params['creditCardNum']) && (FALSE === strpos($params['creditCardNum'],'*'))) ? 1 : 0;
     if (empty($params['updateCreditCardNum'])) {
       unset($params['creditCardNum']);
       unset($params['updateCreditCardNum']);
