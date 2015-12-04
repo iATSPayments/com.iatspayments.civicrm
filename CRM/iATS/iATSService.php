@@ -110,6 +110,18 @@ Class iATS_Service_Request {
       dsm($this->method);
       return FALSE;
     }
+    // do some massaging of parameters for badly behaving iATS methods ($method is now the iATS method, not our internal key)
+    switch($method) {
+      case 'CreateCreditCardCustomerCode':
+      case 'UpdateCreditCardCustomerCode':
+        $dummy_date = date('c',time()); // now
+        foreach(array('beginDate','endDate') as $key) {
+          if (empty($request_params[$key])) {
+            $request_params[$key] = $dummy_date;
+          }
+        }
+        break;
+    }
     $message = $this->method['message'];
     $response = $this->method['response'];
     // always log requests to my own table, start by making a copy of the original request
