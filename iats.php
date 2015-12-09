@@ -452,17 +452,27 @@ function iats_civicrm_pre($op, $objectName, $objectId, &$params) {
         case 'iATSServiceACHEFTContributionRecur':
           // the next scheduled contribution date field name is civicrm version dependent
           $field_name = _iats_civicrm_nscd_fid();
+        if (5 != $params['contribution_status_id'] && empty($params[$field_name])) {
+          $params['trxn_id'] = NULL;
+        }
           // when creating a recurring contribution record via a civicrm contribution form
           // we've already taken the first payment, so calculate the next one (core assumes the intial contribution is pending)
           // we set this to 'in-progress' even for ACH/EFT if the first one hasn't been verified, because we still want to be attempting later ones
           // this condition helps avoid mangling records being imported from a csv file
-          if (5 != $params['contribution_status_id'] && empty($params[$field_name])) {
-            $params['contribution_status_id'] = 5;
-            $params['trxn_id'] = NULL;
-            $next = strtotime('+'.$params['frequency_interval'].' '.$params['frequency_unit']);
-            $params[$field_name] = date('YmdHis',$next);
+
+          // Once the patch for CRM-17655 is implemented core will manage the contribution status and next payment date.
+          // Note that if we override the core one here we wind up setting the next payment date and status to
+          // in progress - even when the initial payment has failed.
+          if (!isCRM17655Applied() || ($type.$objectName != 'iATSServiceContributionRecur')) {
+            if (5 != $params['contribution_status_id'] && empty($params[$field_name])) {
+              $params['contribution_status_id'] = 5;
+              $next = strtotime('+' . $params['frequency_interval'] . ' ' . $params['frequency_unit']);
+              $params[$field_name] = date('YmdHis', $next);
+            }
           }
           if ($type == 'iATSServiceACHEFT') { // fix the payment type for ACH/EFT
+            // In 4.7 this should be picked up from the value saved in the payment_processor table (providing it is
+            // set correctly).
             $params['payment_instrument_id'] = 2;
           }
           break;
@@ -493,6 +503,19 @@ function iats_civicrm_pre($op, $objectName, $objectId, &$params) {
   }
 }
 
+/**
+ * Has the patch for CRM-17655 been applied.
+ *
+ * If so the function CRM_Contribute_BAO_ContributionRecur::updateOnNewPayment will exist.
+ *
+ * @return bool
+ */
+function isCRM17655Applied() {
+ if (method_exists('CRM_Contribute_BAO_ContributionRecur', 'updateOnNewPayment')) {
+   return TRUE;
+ }
+  return FALSE;
+}
 /**
  * The contribution itself doesn't tell you which payment processor it came from
  * So we have to dig back via the contribution_recur_id that it is associated with.
