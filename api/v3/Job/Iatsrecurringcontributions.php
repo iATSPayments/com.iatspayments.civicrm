@@ -18,6 +18,10 @@ function _civicrm_api3_job_iatsrecurringcontributions_spec(&$spec) {
     'title' => 'Only scheduled contributions.',
     'type' => 1,
   );
+  $spec['catchup'] = array(
+    'title' => 'Process as if in the past to catch up.',
+    'api.required' => 0,
+  );
 }
 
 /**
@@ -36,6 +40,8 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
   if (! $lock->acquire()) {
     return civicrm_api3_create_success(ts('Failed to acquire lock. No contribution records were processed.'));
   }
+  $catchup = !empty($params['catchup']);
+  unset($params['catchup']);
 
   // TODO: what kind of extra security do we want or need here to prevent it from being triggered inappropriately? Or does it matter?
 
@@ -168,7 +174,8 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
     $contribution_recur_id    = $dao->id;
     $subtype = substr($dao->pp_class_name,19);
     $source = "iATS Payments $subtype Recurring Contribution (id=$contribution_recur_id)"; 
-    $receive_date = date("YmdHis"); // i.e. now
+    $receive_ts = $catchup ? strtotime($dao->next_sched_contribution_date) : time();
+    $receive_date = date("YmdHis",$receive_ts); // i.e. now or whenever it was supposed to run if in catchup mode
     // check if we already have an error
     $errors = array();
     if (empty($dao->customer_code)) {
@@ -271,7 +278,8 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
       $result = $iats->result($response);
       if (empty($result['status'])) {
         /* update the contribution record in civicrm with the failed status and include the reason in the source field */
-        $contribution = array('version' => 3, 'id' => $contribution_id, 'source' => $contribution['source'].' '.$result['reasonMessage'], 'contribution_status_id' => 4);
+        $contribution_status_id = 4;
+        $contribution = array('version' => 3, 'id' => $contribution_id, 'source' => $contribution['source'].' '.$result['reasonMessage'], 'contribution_status_id' => $contribution_status_id);
         $contributionResult = civicrm_api('contribution', 'create', $contribution);
         $output[] = ts('Failed to process recurring contribution id %1: ', array(1 => $contribution_recur_id)).$result['reasonMessage'];
       } 
@@ -301,20 +309,32 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
     //$mem_end_date = $member_dao->end_date;
     // $temp_date = strtotime($dao->next_sched_contribution);
     /* calculate the next collection date. You could use the previous line instead if you wanted to catch up with missing contributions instead of just moving forward from the present */
-    $temp_date = time();
-    $next_collectionDate = strtotime ("+$dao->frequency_interval $dao->frequency_unit", $temp_date);
-    $next_collectionDate = date('YmdHis', $next_collectionDate);
-
-    CRM_Core_DAO::executeQuery("
-      UPDATE civicrm_contribution_recur 
-         SET ".IATS_CIVICRM_NSCD_FID." = %1 
-       WHERE id = %2
-    ", array(
-         1 => array($next_collectionDate, 'String'),
-         2 => array($dao->id, 'Int')
-       )
-    );
-
+    /* only move the next sched contribution date forward if the contribution is pending (e.g. ach/eft) or complete */
+    if ($contribution_status_id < 3) {
+      $temp_date = time();
+      $next_collectionDate = strtotime ("+$dao->frequency_interval $dao->frequency_unit", $temp_date);
+      $next_collectionDate = date('YmdHis', $next_collectionDate);
+  
+      CRM_Core_DAO::executeQuery("
+        UPDATE civicrm_contribution_recur 
+           SET ".IATS_CIVICRM_NSCD_FID." = %1,
+           failure_count = 0
+         WHERE id = %2
+      ", array(
+           1 => array($next_collectionDate, 'String'),
+           2 => array($dao->id, 'Int')
+         )
+      );
+    } 
+    elseif (4 == $contribution_status_id) {
+      CRM_Core_DAO::executeQuery("
+        UPDATE civicrm_contribution_recur 
+           SET failure_count = failure_count + 1
+         WHERE id = %1
+      ", array(
+           1 => array($dao->id, 'Int')
+         )
+    }
     $result = civicrm_api('activity', 'create',
       array(
         'version'       => 3,
