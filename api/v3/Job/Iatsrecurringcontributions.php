@@ -11,11 +11,13 @@ function _civicrm_api3_job_iatsrecurringcontributions_spec(&$spec) {
   $spec['recur_id'] = array(
     'name' => 'recur_id',
     'title' => 'Recurring payment id',
+    'api.required' => 0,
     'type' => 1,
   );
-  $spec['scheduled'] = array(
-    'name' => 'scheduled',
-    'title' => 'Only scheduled contributions.',
+  $spec['cycle_day'] = array(
+    'name' => 'cycle_day',
+    'title' => 'Only contributions that match a specific cycle day.',
+    'api.required' => 0,
     'type' => 1,
   );
   $spec['catchup'] = array(
@@ -155,6 +157,10 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
     $args[4] = array($dtCurrentDayEnd, 'String');
     // ' AND cr.next_sched_contribution >= %2 
     // $args[2] = array($dtCurrentDayStart, 'String');
+    if (!empty($params['cycle_day'])) {  // also filter by cycle day
+      $select .= ' AND cr.cycle_day = %5';
+      $args[5] = array($params['cycle_day'], 'Int');
+    }
   }
   $dao = CRM_Core_DAO::executeQuery($select,$args);
   $counter = 0;
