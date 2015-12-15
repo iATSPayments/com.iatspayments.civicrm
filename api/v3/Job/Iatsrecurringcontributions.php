@@ -24,6 +24,10 @@ function _civicrm_api3_job_iatsrecurringcontributions_spec(&$spec) {
     'title' => 'Process as if in the past to catch up.',
     'api.required' => 0,
   );
+  $spec['ignoremembership'] = array(
+    'title' => 'Ignore memberships',
+    'api.required' => 0,
+  );
 }
 
 /**
@@ -44,6 +48,8 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
   }
   $catchup = !empty($params['catchup']);
   unset($params['catchup']);
+  $domemberships = empty($params['ignoremembership']);
+  unset($params['ignoremembership']);
 
   // TODO: what kind of extra security do we want or need here to prevent it from being triggered inappropriately? Or does it matter?
 
@@ -244,7 +250,7 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
       $contributionResult = civicrm_api('contribution','create', $contribution);
       $contribution_id = CRM_Utils_Array::value('id', $contributionResult);
       // if our template contribution has a membership payment, make this one also
-      if (!empty($contribution_template['contribution_id'])) {
+      if ($domemberships && !empty($contribution_template['contribution_id'])) {
         try {
           $membership_payment = civicrm_api('MembershipPayment','getsingle', array('version' => 3, 'contribution_id' => $contribution_template['contribution_id']));
           if (!empty($membership_payment['membership_id'])) {
