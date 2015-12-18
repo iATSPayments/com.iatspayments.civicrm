@@ -20,6 +20,12 @@ function _civicrm_api3_job_iatsrecurringcontributions_spec(&$spec) {
     'api.required' => 0,
     'type' => 1,
   );
+  $spec['failure_count'] = array(
+    'name' => 'failure_count',
+    'title' => 'Filter by number of failure counts',
+    'api.required' => 0,
+    'type' => 1,
+  );
   $spec['catchup'] = array(
     'title' => 'Process as if in the past to catch up.',
     'api.required' => 0,
@@ -167,6 +173,10 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
       $select .= ' AND cr.cycle_day = %5';
       $args[5] = array($params['cycle_day'], 'Int');
     }
+    if (isset($params['failure_count'])) {  // also filter by cycle day
+      $select .= ' AND cr.failure_count = %6';
+      $args[6] = array($params['failure_count'], 'Int');
+    }
   }
   $dao = CRM_Core_DAO::executeQuery($select,$args);
   $counter = 0;
@@ -174,7 +184,13 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
   $output  = array();
   $settings = CRM_Core_BAO_Setting::getItem('iATS Payments Extension', 'iats_settings');
   $receipt_recurring = empty($settings['receipt_recurring']) ? 0 : 1;
-
+  /* while ($dao->fetch()) {
+    foreach($dao as $key => $value) {
+      echo "$value,";
+    }
+    echo "\n";
+  }
+  die();  */
   while ($dao->fetch()) {
 
     // Strategy: create the contribution record with status = 2 (= pending), try the payment, and update the status to 1 if successful
@@ -198,7 +214,7 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
         $errors[] = ts('Recur id %1 is has a mismatched contact id for the customer code.', array(1 => $contribution_recur_id));
       }
       if (($dao->icc_expiry != '0000') && ($dao->icc_expiry < $expiry_limit)) {
-        $errors[] = ts('Recur id %1 is has an expired cc for the customer code.', array(1 => $contribution_recur_id));
+        // $errors[] = ts('Recur id %1 is has an expired cc for the customer code.', array(1 => $contribution_recur_id));
       }
     }
     if (count($errors)) {
@@ -346,6 +362,7 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
       ", array(
            1 => array($dao->id, 'Int')
          )
+      );
     }
     $result = civicrm_api('activity', 'create',
       array(
