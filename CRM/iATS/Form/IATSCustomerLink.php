@@ -98,28 +98,25 @@ class CRM_iATS_Form_IATSCustomerLink extends CRM_Core_Form {
   function buildQuickForm() {
 
     list($civicrm_fields, $iats_fields, $labels) = $this->getFields();
+    // I don't need cid, but it allows the back button to work
+    $this->add('hidden','cid');
+    $cid = CRM_Utils_Request::retrieve('cid', 'Integer');
     foreach($labels as $name => $label) {
       $this->add('text', $name, $label);
     }
     $this->add('hidden','customerCode');
     $this->add('hidden','paymentProcessorId');
     $this->add('hidden','is_test');
-    $this->addButtons(array(
-      array(
-        'type' => 'submit',
-        'name' => ts('Submit'),
-        'isDefault' => TRUE,
-      ),
-    ));
     $customerCode = CRM_Utils_Request::retrieve('customerCode', 'String');
     $paymentProcessorId = CRM_Utils_Request::retrieve('paymentProcessorId', 'Positive');
     $is_test = CRM_Utils_Request::retrieve('is_test', 'Integer');
     $defaults = array(
+      'cid' => $cid,
       'customerCode' => $customerCode,
       'paymentProcessorId' => $paymentProcessorId,
       'is_test' => $is_test,
     );
-    if (empty($_POST)) {
+    if (empty($_POST)) { // get my current values from iATS as defaults
       $customer = $this->getCustomerCodeDetail($defaults);
       foreach(array_keys($labels) as $name) {
         $iats_field = $iats_fields[$name];
@@ -129,6 +126,17 @@ class CRM_iATS_Form_IATSCustomerLink extends CRM_Core_Form {
       }
     } 
     $this->setDefaults($defaults);
+    $this->addButtons(array(
+      array(
+        'type' => 'submit',
+        'name' => ts('Submit'),
+        'isDefault' => TRUE,
+      ),
+      array(
+        'type' => 'cancel',
+        'name' => ts('Back')
+      )
+    ));
     // export form elements
     $this->assign('elementNames', $this->getRenderableElementNames());
     parent::buildQuickForm();
