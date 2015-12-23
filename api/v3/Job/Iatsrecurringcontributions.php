@@ -267,7 +267,6 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
         'is_email_receipt' => $receipt_recurring, 
         'customer_code' => $dao->customer_code, 
         'subtype' => $subtype, 
-        'iats_domain' => parse_url($dao->url_site, PHP_URL_HOST)
       );
       // if our template contribution is a membership payment, make this one also
       if ($domemberships && !empty($contribution_template['contribution_id'])) {
