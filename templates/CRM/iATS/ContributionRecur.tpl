@@ -4,7 +4,7 @@
         <td class="content">{$expiry}</td></tr>
 <tr><td class="label">Last 4 digits (of original card)</td>
         <td class="content">{$cc}</td></tr>
-<tr><td class="label">More</td>
-        <td class="content"><a href="{$customerLinkView}">View</a> | <a href="{$customerLinkEdit}">Edit</a></td>
+<tr><td class="label">{ts}Card on File{/ts}</td>
+        <td class="content"><a href="{$customerLinkView}">View</a> | <a href="{$customerLinkEdit}">Edit</a> | <a href="{$processLink}">Process</a></td>
 </tr>
 </table>
