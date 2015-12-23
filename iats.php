@@ -1048,7 +1048,8 @@ function _iats_process_contribution_payment($contribution, $options) {
       $contribution_status_id = 1;
       break;
   }
-  $iats_service_params = array('method' => $method, 'type' => 'process', 'iats_domain' => $options['iats_domain']);
+  $credentials = iATS_Service_Request::credentials($contribution['payment_processor'], $contribution['is_test']);
+  $iats_service_params = array('method' => $method, 'type' => 'process', 'iats_domain' => $credentials['domain']);
   $iats = new iATS_Service_Request($iats_service_params);
   // build the request array
   $request = array(
@@ -1058,7 +1059,6 @@ function _iats_process_contribution_payment($contribution, $options) {
   );
   $request['customerIPAddress'] = (function_exists('ip_address') ? ip_address() : $_SERVER['REMOTE_ADDR']);
 
-  $credentials = iATS_Service_Request::credentials($contribution['payment_processor'], $contribution['is_test']);
   // make the soap request
   $response = $iats->request($credentials,$request);
   // process the soap response into a readable result
