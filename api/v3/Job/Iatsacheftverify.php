@@ -196,18 +196,19 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
               $complete['is_email_receipt'] = $receipt_recurring; /* use my saved setting for recurring completions */
             }
             try {
-              $contributionResult = civicrm_api('contribution', 'completetransaction', $complete);
-              // restore my source field that ipn irritatingly overwrites, and make sure that the trxn_id is set also
-              civicrm_api('contribution','setvalue', array('version' => 3, 'id' => $contribution['id'], 'value' => $contribution['source'], 'field' => 'source'));
-              civicrm_api('contribution','setvalue', array('version' => 3, 'id' => $contribution['id'], 'value' => $trxn_id, 'field' => 'trxn_id'));
+              $contributionResult = civicrm_api3('contribution', 'completetransaction', $complete);
             }
             catch (Exception $e) {
               throw new API_Exception('Failed to complete transaction: ' . $e->getMessage() . "\n" . $e->getTraceAsString()); 
             }
+
+            // restore my source field that ipn irritatingly overwrites, and make sure that the trxn_id is set also
+            civicrm_api3('contribution','setvalue', array('version' => 3, 'id' => $contribution['id'], 'value' => $contribution['source'], 'field' => 'source'));
+            civicrm_api3('contribution','setvalue', array('version' => 3, 'id' => $contribution['id'], 'value' => $trxn_id, 'field' => 'trxn_id'));
           }
           else {
             $params = array('version' => 3, 'sequential' => 1, 'contribution_status_id' => $contribution_status_id, 'id' => $contribution['id']);
-            $result = civicrm_api('Contribution', 'create', $params); // update the contribution
+            $result = civicrm_api3('Contribution', 'create', $params); // update the contribution
           }
           // always log these requests in my cutom civicrm table for auditing type purposes
           // watchdog('civicrm_iatspayments_com', 'contribution: <pre>!contribution</pre>', array('!contribution' => print_r($query_params,TRUE)), WATCHDOG_NOTICE);
