@@ -281,19 +281,21 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
         $complete = array('version' => 3, 'id' => $contribution_id, 'trxn_id' => $trxn_id, 'receive_date' => $receive_date);
         $complete['is_email_receipt'] = $receipt_recurring; /* do not send receipt by default. TODO: make it configurable */
         try {
-          $contributionResult = civicrm_api('contribution', 'completetransaction', $complete);
-          // restore my source field that ipn irritatingly overwrites, and make sure that the trxn_id is set also
-          civicrm_api('contribution','setvalue', array('version' => 3, 'id' => $contribution_id, 'value' => $source, 'field' => 'source'));
-          civicrm_api('contribution','setvalue', array('version' => 3, 'id' => $contribution_id, 'value' => $trxn_id, 'field' => 'trxn_id'));
+          $contributionResult = civicrm_api3('contribution', 'completetransaction', $complete);
         }
         catch (Exception $e) {
           throw new API_Exception('Failed to complete transaction: ' . $e->getMessage() . "\n" . $e->getTraceAsString()); 
         }
+
+        // restore my source field that ipn irritatingly overwrites, and make sure that the trxn_id is set also
+        civicrm_api3('contribution','setvalue', array('version' => 3, 'id' => $contribution_id, 'value' => $source, 'field' => 'source'));
+        civicrm_api3('contribution','setvalue', array('version' => 3, 'id' => $contribution_id, 'value' => $trxn_id, 'field' => 'trxn_id'));
+
         $output[] = ts('Successfully processed recurring contribution id %1: ', array(1 => $contribution_recur_id)).$result['auth_result'];
       }
       else { // success, but just update the transaction id, wait for completion
         $contribution = array('version' => 3, 'id' => $contribution_id, 'trxn_id' => trim($result['remote_id']) . ':' . time());
-        $contributionResult = civicrm_api('contribution', 'create', $contribution);
+        $contributionResult = civicrm_api3('contribution', 'create', $contribution);
         $output[] = ts('Successfully processed pending recurring contribution id %1: ', array(1 => $contribution_recur_id)).$result['auth_result'];
       }
     }
