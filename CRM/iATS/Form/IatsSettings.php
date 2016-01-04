@@ -16,6 +16,33 @@ class CRM_iATS_Form_IatsSettings extends CRM_Core_Form {
       'receipt_recurring', // field name
       ts('Enable email receipting for each recurring contribution.')
     );
+
+    $days = array('-1' => 'disabled');
+    for ($i = 1; $i <= 28; $i++) {
+      $days["$i"] = "$i";
+    }
+    $attr =  array('size' => 29,
+         'style' => 'width:150px',
+         'required' => FALSE);
+    $day_select = $this->add(
+      'select', // field type
+      'days', // field name
+      ts('Restrict allowable days of the month for recurring contributions.'),
+      $days,
+      FALSE,
+      $attr
+    );
+
+    $day_select->setMultiple(TRUE);
+    $day_select->setSize(29);
+    $this->addButtons(array(
+      array(
+        'type' => 'submit',
+        'name' => ts('Submit'),
+        'isDefault' => TRUE,
+      ),
+    ));
+
     $result = CRM_Core_BAO_Setting::getItem('iATS Payments Extension', 'iats_settings');
     $defaults = (empty($result)) ? array() : $result;
     $this->setDefaults($defaults);

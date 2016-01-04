@@ -11,12 +11,28 @@ function _civicrm_api3_job_iatsrecurringcontributions_spec(&$spec) {
   $spec['recur_id'] = array(
     'name' => 'recur_id',
     'title' => 'Recurring payment id',
+    'api.required' => 0,
     'type' => 1,
   );
-  $spec['scheduled'] = array(
-    'name' => 'scheduled',
-    'title' => 'Only scheduled contributions.',
+  $spec['cycle_day'] = array(
+    'name' => 'cycle_day',
+    'title' => 'Only contributions that match a specific cycle day.',
+    'api.required' => 0,
     'type' => 1,
+  );
+  $spec['failure_count'] = array(
+    'name' => 'failure_count',
+    'title' => 'Filter by number of failure counts',
+    'api.required' => 0,
+    'type' => 1,
+  );
+  $spec['catchup'] = array(
+    'title' => 'Process as if in the past to catch up.',
+    'api.required' => 0,
+  );
+  $spec['ignoremembership'] = array(
+    'title' => 'Ignore memberships',
+    'api.required' => 0,
   );
 }
 
@@ -36,6 +52,10 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
   if (! $lock->acquire()) {
     return civicrm_api3_create_success(ts('Failed to acquire lock. No contribution records were processed.'));
   }
+  $catchup = !empty($params['catchup']);
+  unset($params['catchup']);
+  $domemberships = empty($params['ignoremembership']);
+  unset($params['ignoremembership']);
 
   // TODO: what kind of extra security do we want or need here to prevent it from being triggered inappropriately? Or does it matter?
 
@@ -68,7 +88,8 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
       WHERE 
         (pp.class_name = %1 OR pp.class_name = %2 OR pp.class_name = %3) 
         AND (cr.installments > 0) 
-        AND (cr.contribution_status_id IN (1,5)) 
+        AND (cr.contribution_status_id IN (1,5))
+        AND (c.contribution_status_id IN (1,2))
       GROUP BY c.contribution_recur_id';
   $dao = CRM_Core_DAO::executeQuery($select,$args);
   while ($dao->fetch()) {
@@ -148,6 +169,14 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
     $args[4] = array($dtCurrentDayEnd, 'String');
     // ' AND cr.next_sched_contribution >= %2 
     // $args[2] = array($dtCurrentDayStart, 'String');
+    if (!empty($params['cycle_day'])) {  // also filter by cycle day
+      $select .= ' AND cr.cycle_day = %5';
+      $args[5] = array($params['cycle_day'], 'Int');
+    }
+    if (isset($params['failure_count'])) {  // also filter by cycle day
+      $select .= ' AND cr.failure_count = %6';
+      $args[6] = array($params['failure_count'], 'Int');
+    }
   }
   $dao = CRM_Core_DAO::executeQuery($select,$args);
   $counter = 0;
@@ -155,7 +184,13 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
   $output  = array();
   $settings = CRM_Core_BAO_Setting::getItem('iATS Payments Extension', 'iats_settings');
   $receipt_recurring = empty($settings['receipt_recurring']) ? 0 : 1;
-
+  /* while ($dao->fetch()) {
+    foreach($dao as $key => $value) {
+      echo "$value,";
+    }
+    echo "\n";
+  }
+  die();  */
   while ($dao->fetch()) {
 
     // Strategy: create the contribution record with status = 2 (= pending), try the payment, and update the status to 1 if successful
@@ -167,7 +202,8 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
     $contribution_recur_id    = $dao->id;
     $subtype = substr($dao->pp_class_name,19);
     $source = "iATS Payments $subtype Recurring Contribution (id=$contribution_recur_id)"; 
-    $receive_date = date("YmdHis"); // i.e. now
+    $receive_ts = $catchup ? strtotime($dao->next_sched_contribution_date) : time();
+    $receive_date = date("YmdHis",$receive_ts); // i.e. now or whenever it was supposed to run if in catchup mode
     // check if we already have an error
     $errors = array();
     if (empty($dao->customer_code)) {
@@ -178,7 +214,7 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
         $errors[] = ts('Recur id %1 is has a mismatched contact id for the customer code.', array(1 => $contribution_recur_id));
       }
       if (($dao->icc_expiry != '0000') && ($dao->icc_expiry < $expiry_limit)) {
-        $errors[] = ts('Recur id %1 is has an expired cc for the customer code.', array(1 => $contribution_recur_id));
+        // $errors[] = ts('Recur id %1 is has an expired cc for the customer code.', array(1 => $contribution_recur_id));
       }
     }
     if (count($errors)) {
@@ -226,94 +262,56 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
       continue;
     }
     else { 
-      // so far so, good ... create the pending contribution, and save its id
-      $contributionResult = civicrm_api('contribution','create', $contribution);
-      $contribution_id = CRM_Utils_Array::value('id', $contributionResult);
-      // if our template contribution has a membership payment, make this one also
-      if (!empty($contribution_template['contribution_id'])) {
+      // assign basic options
+      $options = array(
+        'is_email_receipt' => $receipt_recurring, 
+        'customer_code' => $dao->customer_code, 
+        'subtype' => $subtype, 
+      );
+      // if our template contribution is a membership payment, make this one also
+      if ($domemberships && !empty($contribution_template['contribution_id'])) {
         try {
           $membership_payment = civicrm_api('MembershipPayment','getsingle', array('version' => 3, 'contribution_id' => $contribution_template['contribution_id']));
           if (!empty($membership_payment['membership_id'])) {
-            civicrm_api('MembershipPayment','create', array('version' => 3, 'contribution_id' => $contribution_id, 'membership_id' => $membership_payment['membership_id']));
+            $options['membership_id'] = $membership_payment['membership_id'];
           }
         }
         catch (Exception $e) {
           // ignore, if will fail correctly if there is no membership payment
         }
       } 
-      // now try to get the money, and then do one of: update the contribution to failed, complete the transaction, or update a pending ach/eft with it's transaction id
-      require_once("CRM/iATS/iATSService.php");
-      switch($subtype) {
-        case 'ACHEFT':
-          $method = 'acheft_with_customer_code';
-          $contribution_status_id = 2; // will not complete
-          break;
-        default:
-          $method = 'cc_with_customer_code';
-          $contribution_status_id = 1;
-          break;
-      }
-      $iats_service_params = array('method' => $method, 'type' => 'process', 'iats_domain' => parse_url($dao->url_site, PHP_URL_HOST));
-      $iats = new iATS_Service_Request($iats_service_params);
-      // build the request array
-      $request = array(
-        'customerCode' => $dao->customer_code,
-        'invoiceNum' => $hash,
-        'total' => $total_amount,
-      );
-      $request['customerIPAddress'] = (function_exists('ip_address') ? ip_address() : $_SERVER['REMOTE_ADDR']);
-
-      $credentials = iATS_Service_Request::credentials($dao->payment_processor_id, $contribution['is_test']);
-      // make the soap request
-      $response = $iats->request($credentials,$request);
-      // process the soap response into a readable result
-      $result = $iats->result($response);
-      if (empty($result['status'])) {
-        /* update the contribution record in civicrm with the failed status and include the reason in the source field */
-        $contribution = array('version' => 3, 'id' => $contribution_id, 'source' => $contribution['source'].' '.$result['reasonMessage'], 'contribution_status_id' => 4);
-        $contributionResult = civicrm_api('contribution', 'create', $contribution);
-        $output[] = ts('Failed to process recurring contribution id %1: ', array(1 => $contribution_recur_id)).$result['reasonMessage'];
-      } 
-      elseif ($contribution_status_id == 1) {
-        /* success, done */
-        $trxn_id = trim($result['remote_id']) . ':' . time();
-        $complete = array('version' => 3, 'id' => $contribution_id, 'trxn_id' => $trxn_id, 'receive_date' => $receive_date);
-        $complete['is_email_receipt'] = $receipt_recurring; /* do not send receipt by default. TODO: make it configurable */
-        try {
-          $contributionResult = civicrm_api('contribution', 'completetransaction', $complete);
-          // restore my source field that ipn irritatingly overwrites, and make sure that the trxn_id is set also
-          civicrm_api('contribution','setvalue', array('version' => 3, 'id' => $contribution_id, 'value' => $source, 'field' => 'source'));
-          civicrm_api('contribution','setvalue', array('version' => 3, 'id' => $contribution_id, 'value' => $trxn_id, 'field' => 'trxn_id'));
-        }
-        catch (Exception $e) {
-          throw new API_Exception('Failed to complete transaction: ' . $e->getMessage() . "\n" . $e->getTraceAsString()); 
-        }
-        $output[] = ts('Successfully processed recurring contribution id %1: ', array(1 => $contribution_recur_id)).$result['auth_result'];
-      }
-      else { // success, but just update the transaction id, wait for completion
-        $contribution = array('version' => 3, 'id' => $contribution_id, 'trxn_id' => trim($result['remote_id']) . ':' . time());
-        $contributionResult = civicrm_api('contribution', 'create', $contribution);
-        $output[] = ts('Successfully processed pending recurring contribution id %1: ', array(1 => $contribution_recur_id)).$result['auth_result'];
-      }
+      // so far so, good ... now create the pending contribution, and save its id
+      // and then try to get the money, and do one of: update the contribution to failed, complete the transaction, or update a pending ach/eft with it's transaction id
+      $output[] = _iats_process_contribution_payment($contribution,$options);
     }
-
-    //$mem_end_date = $member_dao->end_date;
-    // $temp_date = strtotime($dao->next_sched_contribution);
     /* calculate the next collection date. You could use the previous line instead if you wanted to catch up with missing contributions instead of just moving forward from the present */
-    $temp_date = time();
-    $next_collectionDate = strtotime ("+$dao->frequency_interval $dao->frequency_unit", $temp_date);
-    $next_collectionDate = date('YmdHis', $next_collectionDate);
-
-    CRM_Core_DAO::executeQuery("
-      UPDATE civicrm_contribution_recur 
-         SET ".IATS_CIVICRM_NSCD_FID." = %1 
-       WHERE id = %2
-    ", array(
-         1 => array($next_collectionDate, 'String'),
-         2 => array($dao->id, 'Int')
-       )
-    );
-
+    /* only move the next sched contribution date forward if the contribution is pending (e.g. ach/eft) or complete */
+    if ($contribution_status_id < 3) {
+      $temp_date = time();
+      $next_collectionDate = strtotime ("+$dao->frequency_interval $dao->frequency_unit", $temp_date);
+      $next_collectionDate = date('YmdHis', $next_collectionDate);
+  
+      CRM_Core_DAO::executeQuery("
+        UPDATE civicrm_contribution_recur 
+           SET ".IATS_CIVICRM_NSCD_FID." = %1,
+           failure_count = 0
+         WHERE id = %2
+      ", array(
+           1 => array($next_collectionDate, 'String'),
+           2 => array($dao->id, 'Int')
+         )
+      );
+    } 
+    elseif (4 == $contribution_status_id) {
+      CRM_Core_DAO::executeQuery("
+        UPDATE civicrm_contribution_recur 
+           SET failure_count = failure_count + 1
+         WHERE id = %1
+      ", array(
+           1 => array($dao->id, 'Int')
+         )
+      );
+    }
     $result = civicrm_api('activity', 'create',
       array(
         'version'       => 3,
@@ -388,5 +386,4 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
   }
   // No records processed
   return civicrm_api3_create_success(ts('No contribution records were processed.'));
-
 }

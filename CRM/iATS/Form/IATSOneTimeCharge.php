@@ -6,15 +6,10 @@ require_once 'CRM/Core/Form.php';
  * Form controller class
  *
  * @see http://wiki.civicrm.org/confluence/display/CRMDOC43/QuickForm+Reference
+ * A form to generate new one-time charges on an existing recurring schedule.
  */
-class CRM_iATS_Form_IATSCustomerLink extends CRM_Core_Form {
+class CRM_iATS_Form_IATSOneTimeCharge extends CRM_Core_Form {
 
-  /**
-   * Get the field names and labels expected by iATS CustomerLink,
-   * and the corresponding fields in CiviCRM
-   *
-   * @return array
-   */
   public function getFields() {
     $civicrm_fields = array(
       'firstName' => 'billing_first_name',
@@ -69,67 +64,84 @@ class CRM_iATS_Form_IATSCustomerLink extends CRM_Core_Form {
     return $customer + $card;
   }
 
-  protected function updateCreditCardCustomer($params) {
-    require_once("CRM/iATS/iATSService.php");
-    $credentials = iATS_Service_Request::credentials($params['paymentProcessorId'], $params['is_test']);
-    unset($params['paymentProcessorId']);
-    unset($params['is_test']);
-    unset($params['domain']);
-    $iats_service_params = array('type' => 'customer', 'iats_domain' => $credentials['domain'], 'method' => 'update_credit_card_customer');
-    $iats = new iATS_Service_Request($iats_service_params);
-    // print_r($iats); die();
-    $params['updateCreditCardNum'] = (0 < strlen($params['creditCardNum']) && (FALSE === strpos($params['creditCardNum'],'*'))) ? 1 : 0;
-    if (empty($params['updateCreditCardNum'])) {
-      unset($params['creditCardNum']);
-      unset($params['updateCreditCardNum']);
+  protected function processCreditCardCustomer($values) {
+    // generate another recurring contribution, matching our recurring template with submitted value
+    $total_amount = $values['amount'];
+    $contribution_template = _iats_civicrm_getContributionTemplate(array('contribution_recur_id' => $values['crid']));
+    $contact_id = $values['cid'];
+    $hash = md5(uniqid(rand(), true));
+    $contribution_recur_id    = $values['crid'];
+    $payment_processor_id = $values['paymentProcessorId'];
+    $type = _iats_civicrm_is_iats($payment_processor_id);
+    $subtype = substr($type,11);
+    $source = "iATS Payments $subtype Recurring Contribution (id=$contribution_recur_id)";
+    $receive_date = date("YmdHis",time()); // i.e. now 
+    $contribution = array(
+      'version'        => 3,
+      'contact_id'       => $contact_id,
+      'receive_date'       => $receive_date,
+      'total_amount'       => $total_amount,
+      'contribution_recur_id'  => $contribution_recur_id,
+      'invoice_id'       => $hash,
+      'source'         => $source,
+      'contribution_status_id' => 2, /* initialize as pending, so we can run completetransaction after taking the money */
+      'payment_processor'   => $payment_processor_id,
+      'is_test'        => $values['is_test'], /* propagate the is_test value from the form */
+    );
+    foreach(array('payment_instrument_id','currency','financial_type_id') as $key) {
+      $contribution[$key] = $contribution_template[$key];
     }
-    $params['customerIPAddress'] = (function_exists('ip_address') ? ip_address() : $_SERVER['REMOTE_ADDR']);
-    foreach(array('qfKey','entryURL','firstName','lastName','_qf_default','_qf_IATSCustomerLink_submit') as $key) {
-      if (isset($params[$key])) {
-        unset($params[$key]);
-      }
-    }
-    // make the soap request
-    $response = $iats->request($credentials,$params);
-    $result = $iats->result($response, TRUE); // note: don't log this to the iats_response table
+    $options = array(
+      'is_email_receipt' => 0, // could be in the form?
+      'customer_code' => $values['customerCode'],
+      'subtype' => $subtype,
+    );
+    // now all the hard work in this function, recycled from the original recurring payment job
+    $result = _iats_process_contribution_payment($contribution,$options);
     return $result;
-  }   
+  }
 
   function buildQuickForm() {
 
     list($civicrm_fields, $iats_fields, $labels) = $this->getFields();
-    // I don't need cid, but it allows the back button to work
     $this->add('hidden','cid');
-    $cid = CRM_Utils_Request::retrieve('cid', 'Integer');
-    foreach($labels as $name => $label) {
-      $this->add('text', $name, $label);
-    }
+    $this->add('hidden','crid');
     $this->add('hidden','customerCode');
     $this->add('hidden','paymentProcessorId');
     $this->add('hidden','is_test');
+    $cid = CRM_Utils_Request::retrieve('cid', 'Integer');
+    $crid = CRM_Utils_Request::retrieve('crid', 'Integer');
     $customerCode = CRM_Utils_Request::retrieve('customerCode', 'String');
     $paymentProcessorId = CRM_Utils_Request::retrieve('paymentProcessorId', 'Positive');
     $is_test = CRM_Utils_Request::retrieve('is_test', 'Integer');
     $defaults = array(
       'cid' => $cid,
+      'crid' => $crid,
       'customerCode' => $customerCode,
       'paymentProcessorId' => $paymentProcessorId,
       'is_test' => $is_test,
     );
-    if (empty($_POST)) { // get my current values from iATS as defaults
-      $customer = $this->getCustomerCodeDetail($defaults);
-      foreach(array_keys($labels) as $name) {
-        $iats_field = $iats_fields[$name];
-        if (is_string($customer[$iats_field])) {
-          $defaults[$name] = $customer[$iats_field];
-        }
-      }
-    } 
     $this->setDefaults($defaults);
+    /* always show lots of detail about the card about to be charged or just charged */
+    $customer = $this->getCustomerCodeDetail($defaults);
+    foreach($labels as $name => $label) {
+      $iats_field = $iats_fields[$name];
+      if (is_string($customer[$iats_field])) {
+        $this->add('static', $name, $label, $customer[$iats_field]);
+      }
+    }
+    // todo: show past charges/dates ?
+    
+    // add form elements
+    $this->addMoney(
+      'amount', // field name
+      'Amount', // field label
+      TRUE, NULL, FALSE 
+    );
     $this->addButtons(array(
       array(
         'type' => 'submit',
-        'name' => ts('Submit'),
+        'name' => ts('Charge this card'),
         'isDefault' => TRUE,
       ),
       array(
@@ -137,6 +149,7 @@ class CRM_iATS_Form_IATSCustomerLink extends CRM_Core_Form {
         'name' => ts('Back')
       )
     ));
+
     // export form elements
     $this->assign('elementNames', $this->getRenderableElementNames());
     parent::buildQuickForm();
@@ -144,11 +157,11 @@ class CRM_iATS_Form_IATSCustomerLink extends CRM_Core_Form {
 
   function postProcess() {
     $values = $this->exportValues();
-    // send update to iATS
     // print_r($values); die();
-    $result = $this->updateCreditCardCustomer($values);
+    // send charge request to iATS
+    $result = $this->processCreditCardCustomer($values);
     $message = '<pre>'.print_r($result,TRUE).'</pre>';
-    CRM_Core_Session::setStatus($message, 'Customer Updated'); // , $type, $options);
+    CRM_Core_Session::setStatus($message, 'Customer Card Charged'); // , $type, $options);
     parent::postProcess();
   }
 

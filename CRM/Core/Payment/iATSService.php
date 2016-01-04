@@ -62,11 +62,12 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
     if (!$this->_profile) {
       return self::error('Unexpected error, missing profile');
     }
-    // use the iATSService object for interacting with iATS, mostly the same for recurring contributions
+    // use the iATSService object for interacting with iATS. Recurring contributions go through a more complex process.
     require_once("CRM/iATS/iATSService.php");
     $isRecur = CRM_Utils_Array::value('is_recur', $params) && $params['contributionRecurID'];
-    $method = $isRecur ? 'cc_create_customer_code' : 'cc';
-    $iats = new iATS_Service_Request(array('type' => 'process', 'method' => $method, 'iats_domain' => $this->_profile['iats_domain'], 'currencyID' => $params['currencyID']));
+    $methodType = $isRecur ? 'customer' : 'process';
+    $method = $isRecur ? 'create_credit_card_customer' : 'cc';
+    $iats = new iATS_Service_Request(array('type' => $methodType, 'method' => $method, 'iats_domain' => $this->_profile['iats_domain'], 'currencyID' => $params['currencyID']));
     $request = $this->convertParams($params, $method);
     $request['customerIPAddress'] = (function_exists('ip_address') ? ip_address() : $_SERVER['REMOTE_ADDR']);
     $credentials = array(
@@ -79,18 +80,25 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
 
     // make the soap request
     $response = $iats->request($credentials, $request);
-    // process the soap response into a readable result
-    $result = $iats->result($response);
-    if ($result['status']) {
-      $params['contribution_status_id'] = 1; // success
-      $params['payment_status_id'] = 1; // for future versions, the proper key
-      $params['trxn_id'] = trim($result['remote_id']) . ':' . time();
-      $params['gross_amount'] = $params['amount'];
-      if ($isRecur) {
-        // save the client info in my custom table
-        // Allow further manipulation of the arguments via custom hooks,
-        // before initiating processCreditCard()
-        // CRM_Utils_Hook::alterPaymentProcessorParams($this, $params, $iatslink1);
+    if (!$isRecur) {
+      // process the soap response into a readable result, logging any credit card transactions
+      $result = $iats->result($response);
+      if ($result['status']) {
+        $params['contribution_status_id'] = 1; // success
+        $params['payment_status_id'] = 1; // for versions >= 4.6.6, the proper key
+        $params['trxn_id'] = trim($result['remote_id']) . ':' . time();
+        $params['gross_amount'] = $params['amount'];
+        return $params;
+      }
+      else {
+        return self::error($result['reasonMessage']);
+      }
+    }
+    else { 
+      // save the client info in my custom table, then (maybe) run the transaction
+      $customer = $iats->result($response, FALSE);
+      // print_r($customer);
+      if ($customer['status']) {
         $processresult = $response->PROCESSRESULT;
         $customer_code = (string) $processresult->CUSTOMERCODE;
         $exp = sprintf('%02d%02d', ($params['year'] % 100), $params['month']);
@@ -114,14 +122,40 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
         );
         CRM_Core_DAO::executeQuery("INSERT INTO civicrm_iats_customer_codes
           (customer_code, ip, expiry, cid, email, recur_id) VALUES (%1, %2, %3, %4, %5, %6)", $query_params);
-        $params['contribution_status_id'] = 1;
-        // also set next_sched_contribution
-        $params['next_sched_contribution'] = strtotime('+' . $params['frequency_interval'] . ' ' . $params['frequency_unit']);
+        $settings = CRM_Core_BAO_Setting::getItem('iATS Payments Extension', 'iats_settings');
+        $allow_days = empty($settings['days']) ? array('-1') : $settings['days'];
+        if (max($allow_days) <= 0) { // run the transaction immediately
+          $iats = new iATS_Service_Request(array('type' => 'process', 'method' => 'cc_with_customer_code', 'iats_domain' => $this->_profile['iats_domain'], 'currencyID' => $params['currencyID']));
+          $request = array('invoiceNum' => $params['invoiceID']);
+          $request['total'] = sprintf('%01.2f', CRM_Utils_Rule::cleanMoney($params['amount']));
+          $request['customerCode'] = $customer_code;
+          $request['customerIPAddress'] = (function_exists('ip_address') ? ip_address() : $_SERVER['REMOTE_ADDR']);
+          $response = $iats->request($credentials, $request);
+          $result = $iats->result($response);
+          if ($result['status']) {
+            $params['contribution_status_id'] = 1; // success
+            $params['payment_status_id'] = 1; // for versions >= 4.6.6, the proper key
+            $params['trxn_id'] = trim($result['remote_id']) . ':' . time();
+            $params['gross_amount'] = $params['amount'];
+            $params['next_sched_contribution'] = strtotime('+' . $params['frequency_interval'] . ' ' . $params['frequency_unit']);
+            return $params;
+          }
+          else {
+            return self::error($result['reasonMessage']);
+          }
+        }
+        else { // I've got a schedule to adhere to!
+          $params['contribution_status_id'] = 2; // pending
+          $params['payment_status_id'] = 2; // for versions >= 4.6.6, the proper key
+          $from_time = _iats_contributionrecur_next(time(),$allow_days);
+          $params['next_sched_contribution'] = $params['receive_date'] = date('Ymd', $from_time).'030000';
+          return $params;
+        }
+        return self::error('Unexpected error');
       }
-      return $params;
-    }
-    else {
-      return self::error($result['reasonMessage']);
+      else {
+        return self::error($customer['reasonMessage']);
+      }
     }
   }
 
@@ -226,6 +260,13 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
         $request['ccExp'] = $request['creditCardExpiry'];
         unset($request['creditCardExpiry']);
         break;
+      case 'cc_with_customer_code':
+        foreach(array('creditCardNum','creditCardExpiry','mop') as $key) {
+          if (isset($request[$key])) {
+            unset($request[$key]);
+          }
+        }
+        break;
     }
     if (!empty($params['credit_card_type'])) {
       $mop = array(
@@ -236,6 +277,7 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
       );
       $request['mop'] = $mop[$params['credit_card_type']];
     }
+    // print_r($request); print_r($params); die();
     return $request;
   }
 
