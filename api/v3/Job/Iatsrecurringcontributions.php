@@ -284,9 +284,6 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
       // and then try to get the money, and do one of: update the contribution to failed, complete the transaction, or update a pending ach/eft with it's transaction id
       $output[] = _iats_process_contribution_payment($contribution,$options);
     }
-
-    //$mem_end_date = $member_dao->end_date;
-    // $temp_date = strtotime($dao->next_sched_contribution);
     /* calculate the next collection date. You could use the previous line instead if you wanted to catch up with missing contributions instead of just moving forward from the present */
     /* only move the next sched contribution date forward if the contribution is pending (e.g. ach/eft) or complete */
     if ($contribution_status_id < 3) {

@@ -1030,10 +1030,10 @@ function _iats_process_contribution_payment($contribution, $options) {
   // connect to a membership if requested
   if (!empty($options['membership_id'])) {
     try {
-      civicrm_api('MembershipPayment','create', array('version' => 3, 'contribution_id' => $contribution_id, 'membership_id' => $options['membership_id']));
+      civicrm_api3('MembershipPayment','create', array('contribution_id' => $contribution_id, 'membership_id' => $options['membership_id']));
     }
     catch (Exception $e) {
-      // ignore?
+      // ignore
     }
   }
   // now try to get the money, and then do one of: update the contribution to failed, complete the transaction, or update a pending ach/eft with it's transaction id
@@ -1066,29 +1066,29 @@ function _iats_process_contribution_payment($contribution, $options) {
   if (empty($result['status'])) {
     /* update the contribution record in civicrm with the failed status and include the reason in the source field */
     $contribution_status_id = 4;
-    $contribution = array('version' => 3, 'id' => $contribution_id, 'source' => $contribution['source'].' '.$result['reasonMessage'], 'contribution_status_id' => $contribution_status_id);
-    $contributionResult = civicrm_api('contribution', 'create', $contribution);
+    $contribution = array('id' => $contribution_id, 'source' => $contribution['source'].' '.$result['reasonMessage'], 'contribution_status_id' => $contribution_status_id);
+    $contributionResult = civicrm_api3('contribution', 'create', $contribution);
     return ts('Failed to process recurring contribution id %1: ', array(1 => $contribution['contribution_recur_id'])).$result['reasonMessage'];
   }
   elseif ($contribution_status_id == 1) {
     /* success, done */
     $trxn_id = trim($result['remote_id']) . ':' . time();
-    $complete = array('version' => 3, 'id' => $contribution_id, 'trxn_id' => $trxn_id, 'receive_date' => $receive_date);
+    $complete = array('id' => $contribution_id, 'trxn_id' => $trxn_id, 'receive_date' => $receive_date);
     $complete['is_email_receipt'] = empty($options['is_email_receipt']) ? 0 : 1;
     try {
-      $contributionResult = civicrm_api('contribution', 'completetransaction', $complete);
-      // restore my source field that ipn irritatingly overwrites, and make sure that the trxn_id is set also
-      civicrm_api('contribution','setvalue', array('version' => 3, 'id' => $contribution_id, 'value' => $contribution['source'], 'field' => 'source'));
-      civicrm_api('contribution','setvalue', array('version' => 3, 'id' => $contribution_id, 'value' => $trxn_id, 'field' => 'trxn_id'));
+      $contributionResult = civicrm_api3('contribution', 'completetransaction', $complete);
     }
     catch (Exception $e) {
       throw new API_Exception('Failed to complete transaction: ' . $e->getMessage() . "\n" . $e->getTraceAsString());
     }
+    // restore my source field that ipn irritatingly overwrites, and make sure that the trxn_id is set also
+    civicrm_api3('contribution','setvalue', array('id' => $contribution_id, 'value' => $contribution['source'], 'field' => 'source'));
+    civicrm_api3('contribution','setvalue', array('id' => $contribution_id, 'value' => $trxn_id, 'field' => 'trxn_id'));
     return ts('Successfully processed recurring contribution id %1: ', array(1 => $contribution['contribution_recur_id'])).$result['auth_result'];
   }
   else { // success, but just update the transaction id, wait for completion
-    $contribution = array('version' => 3, 'id' => $contribution_id, 'trxn_id' => trim($result['remote_id']) . ':' . time());
-    $contributionResult = civicrm_api('contribution', 'create', $contribution);
+    $contribution = array('id' => $contribution_id, 'trxn_id' => trim($result['remote_id']) . ':' . time());
+    $contributionResult = civicrm_api3('contribution', 'create', $contribution);
     return ts('Successfully processed pending recurring contribution id %1: ', array(1 => $contribution_recur_id)).$result['auth_result'];
   }
 }
