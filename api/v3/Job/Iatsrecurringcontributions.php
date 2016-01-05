@@ -286,9 +286,8 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
     }
     /* calculate the next collection date. You could use the previous line instead if you wanted to catch up with missing contributions instead of just moving forward from the present */
     /* only move the next sched contribution date forward if the contribution is pending (e.g. ach/eft) or complete */
-    if ($contribution_status_id < 3) {
-      $temp_date = time();
-      $next_collectionDate = strtotime ("+$dao->frequency_interval $dao->frequency_unit", $temp_date);
+    if ($contribution['contribution_status_id'] < 3) {
+      $next_collectionDate = strtotime ("+$dao->frequency_interval $dao->frequency_unit", $receive_ts);
       $next_collectionDate = date('YmdHis', $next_collectionDate);
   
       CRM_Core_DAO::executeQuery("
@@ -302,7 +301,7 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
          )
       );
     } 
-    elseif (4 == $contribution_status_id) {
+    elseif (4 == $contribution['contribution_status_id']) {
       CRM_Core_DAO::executeQuery("
         UPDATE civicrm_contribution_recur 
            SET failure_count = failure_count + 1
