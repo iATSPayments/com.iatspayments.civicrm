@@ -87,8 +87,8 @@ Class iATS_Service_Request {
            }
            break;
       }
-      if (!$valid) { // TODO how about a nicer error here!
-        die('Invalid currency selection: '.$options['currencyID'].' for domain '.$iats_domain);
+      if (!$valid) {
+        CRM_Core_Error::fatal('Invalid currency selection: ' . $options['currencyID'] . ' for domain ' . $iats_domain);
       }
     }
   }

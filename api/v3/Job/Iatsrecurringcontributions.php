@@ -302,7 +302,7 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
          )
       );
     } 
-    elseif (4 == $contribution['contribution_status_id']) {
+    elseif (4 == $contribution['contribution_status_id']) { // i.e. failed
       CRM_Core_DAO::executeQuery("
         UPDATE civicrm_contribution_recur 
            SET failure_count = failure_count + 1
