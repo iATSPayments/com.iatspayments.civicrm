@@ -17,6 +17,7 @@ return array (
       'api_entity' => 'Job',
       'api_action' => 'iatsacheftverify',
       'parameters' => '',
+      'is_active' => '0',
     ),
   ),
 );

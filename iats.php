@@ -511,10 +511,11 @@ function iats_civicrm_pre($op, $objectName, $objectId, &$params) {
       if ($type != 'iATSServiceUKDD' && !empty($params['next_sched_contribution_date'])) {
         $settings = CRM_Core_BAO_Setting::getItem('iATS Payments Extension', 'iats_settings');
         $allow_days = empty($settings['days']) ? array('-1') : $settings['days'];
-        if (0 < max($allow_days)) {
+        if (0 < max($allow_days)) { // force one of the fixed days, and set the cycle_day at the same time
           $init_time = ('create' == $op) ? time() : strtotime($params['next_sched_contribution_date']);
           $from_time = _iats_contributionrecur_next($init_time,$allow_days);
           $params['next_sched_contribution_date'] = date('YmdHis', $from_time);
+          $params['cycle_day'] = date('j', $from_time); // day of month without leading 0
         }
       }
       if (empty($params['installments'])) { // fix a civi bug while I'm here
