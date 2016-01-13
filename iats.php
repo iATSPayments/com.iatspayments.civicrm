@@ -999,17 +999,33 @@ function iats_civicrm_buildForm_CRM_Contribute_Form_UpdateSubscription(&$form) {
   }
   // turn off default notification checkbox, most will want to hide it as well.
   $defaults = array('is_notify' => 0);
-  $edit_fields = array('contribution_status_id', 'next_sched_contribution_date','start_date');
-  foreach($edit_fields as $fid) {
-    $defaults[$fid] = $recur[$fid];
+  $edit_fields = array(
+    'contribution_status_id' => 'Status', 
+    'next_sched_contribution_date' => 'Next Scheduled Contribution',
+    'start_date' => 'Start Date',
+  );
+  foreach(array_keys($edit_fields) as $fid) {
+    if ($form->elementExists($fid)) {
+      unset($edit_fields[$fid]);
+    }
+    else {
+      $defaults[$fid] = $recur[$fid];
+    } 
+  }
+  if (0 == count($edit_fields)) { // some other extension, or core, is exposing my fields, so quit
+    return;
   }
   // print_r($recur); die();
   $form->addElement('static','contact',$contact['display_name']);
   // $form->addElement('static','contact',$contact['display_name']);
-  $contributionStatus = CRM_Contribute_PseudoConstant::contributionStatus(NULL, 'name');
-  $form->addElement('select', 'contribution_status_id', ts('Status'),$contributionStatus);
-  $form->addDateTime('next_sched_contribution_date', ts('Next Scheduled Contribution'));
-  $form->addDateTime('start_date', ts('Start Date'));
+  if ($edit_fields['contribution_status_id']) {
+    $contributionStatus = CRM_Contribute_PseudoConstant::contributionStatus(NULL, 'name');
+    $form->addElement('select', 'contribution_status_id', ts('Status'),$contributionStatus);
+    unset($edit_fields['contribution_status_id']);
+  }
+  foreach($edit_fields as $fid => $label) {
+    $form->addDateTime($fid,ts($label));
+  }
   $form->setDefaults($defaults);
   // now add some more fields for display only
   $pp_label = $form->_paymentProcessor['name']; // get my pp
