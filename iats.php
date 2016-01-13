@@ -345,7 +345,7 @@ function iats_civicrm_pageRun_CRM_Contribute_Page_ContributionRecur($page) {
   $crid = CRM_Utils_Request::retrieve('id', 'Integer', $page, FALSE);
   try {
     $recur = civicrm_api3('ContributionRecur', 'getsingle', array('id' => $crid));
-  } 
+  }
   catch (CiviCRM_API3_Exception $e) {
     return;
   }
@@ -365,7 +365,7 @@ function iats_civicrm_pageRun_CRM_Contribute_Page_ContributionRecur($page) {
       $expiry = str_split($dao->expiry,2);
       $extra['expiry'] = '20'.implode('-',$expiry);
     }
-    if (!empty($recur['invoice_id'])) { 
+    if (!empty($recur['invoice_id'])) {
       // we may have the last 4 digits via the original request log, though they may no longer be accurate, but let's get it anyway if we can
       $params = array(1 => array($recur['invoice_id'],'String'));
       $dao = CRM_Core_DAO::executeQuery("SELECT cc FROM civicrm_iats_request_log WHERE invoice_num = %1", $params);
@@ -383,7 +383,7 @@ function iats_civicrm_pageRun_CRM_Contribute_Page_ContributionRecur($page) {
   $template = CRM_Core_Smarty::singleton();
   foreach($extra as $key => $value) {
     $template->assign($key, $value);
-  }   
+  }
   CRM_Core_Region::instance('page-body')->add(array(
     'template' => 'CRM/iATS/ContributionRecur.tpl',
   ));
@@ -493,13 +493,13 @@ function iats_civicrm_pre($op, $objectName, $objectId, &$params) {
           }
           break;
       }
-      if ($type != 'iATSServiceUKDD' && $objectName == 'Contribution') { 
+      if ($type != 'iATSServiceUKDD' && $objectName == 'Contribution') {
         // new, non-UKDD contribution records in a schedule are forced to comply with any restrictions
         if (0 < max($allow_days)) {
           $from_time = _iats_contributionrecur_next(strtotime($params['receive_date']),$allow_days);
           $params['receive_date'] = date('Ymd', $from_time).'030000';
         }
-      } 
+      }
     }
     // watchdog('iats_civicrm','ignoring hook_civicrm_pre for objectName @id',array('@id' => $objectName));
   }
@@ -1092,4 +1092,65 @@ function _iats_process_contribution_payment($contribution, $options) {
     $contributionResult = civicrm_api3('contribution', 'create', $contribution);
     return ts('Successfully processed pending recurring contribution id %1: ', array(1 => $contribution_recur_id)).$result['auth_result'];
   }
+}
+
+/*
+ * add some functionality to the update subscription form for recurring contributions
+ */
+function iats_civicrm_CRM_Contribute_Form_UpdateSubscription(&$form) {
+  $test = 1;
+  // only do this if the user is allowed to edit contributions. A more stringent permission might be smart.
+  if (!CRM_Core_Permission::check('edit contributions')) {
+    return;
+  }
+  $settings = civicrm_api3('Setting', 'getvalue', array('name' => 'iats_settings'));
+  // don't do this unless the site administrator has enabled it
+  if (empty($settings['edit_extra'])) {
+    return;
+  }
+  $allow_days = empty($settings['days']) ? array('-1') : $settings['days'];
+  if (0 < max($allow_days)) {
+    $userAlert = ts('Your next scheduled contribution date will automatically be updated to the next allowable day of the month: %1',array(1 => implode(',',$allow_days)));
+    CRM_Core_Session::setStatus($userAlert, ts('Warning'), 'alert');
+  }
+  $crid = CRM_Utils_Request::retrieve('crid', 'Integer', $form, FALSE);
+  /* get the recurring contribution record and the contact record, or quit */
+  try {
+    $recur = civicrm_api3('ContributionRecur', 'getsingle', array('id' => $crid));
+  }
+  catch (CiviCRM_API3_Exception $e) {
+    return;
+  }
+  try {
+    $contact = civicrm_api3('Contact', 'getsingle', array('id' => $recur['contact_id']));
+  }
+  catch (CiviCRM_API3_Exception $e) {
+    return;
+  }
+  // turn off default notification checkbox, most will want to hide it as well.
+  $defaults = array('is_notify' => 0);
+  $edit_fields = array('contribution_status_id', 'next_sched_contribution_date','start_date');
+  foreach($edit_fields as $fid) {
+    $defaults[$fid] = $recur[$fid];
+  }
+  // print_r($recur); die();
+  $form->addElement('static','contact',$contact['display_name']);
+  // $form->addElement('static','contact',$contact['display_name']);
+  $contributionStatus = CRM_Contribute_PseudoConstant::contributionStatus(NULL, 'name');
+  $form->addElement('select', 'contribution_status_id', ts('Status'),$contributionStatus);
+  $form->addDateTime('next_sched_contribution_date', ts('Next Scheduled Contribution'));
+  $form->addDateTime('start_date', ts('Start Date'));
+  $form->setDefaults($defaults);
+  // now add some more fields for display only
+  $pp_label = $form->_paymentProcessor['name']; // get my pp
+  $form->addElement('static','payment_processor',$pp_label);
+  $label = CRM_Contribute_Pseudoconstant::financialType($recur['financial_type_id']);
+  $form->addElement('static','financial_type',$label);
+  $labels = CRM_Contribute_Pseudoconstant::paymentInstrument();
+  $label = $labels[$recur['payment_instrument_id']];
+  $form->addElement('static','payment_instrument',$label);
+  CRM_Core_Region::instance('page-body')->add(array(
+    'template' => 'CRM/iATS/Subscription.tpl',
+  ));
+  CRM_Core_Resources::singleton()->addScriptFile('com.iatspayments.civicrm', 'js/subscription.js');
 }

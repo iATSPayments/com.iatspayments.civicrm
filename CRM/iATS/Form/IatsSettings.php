@@ -17,6 +17,12 @@ class CRM_iATS_Form_IatsSettings extends CRM_Core_Form {
       ts('Enable email receipting for each recurring contribution.')
     );
 
+    $this->add(
+      'checkbox', // field type
+      'edit_extra', // field name
+      ts('Enable extra edit fields for recurring contributions.')
+    );
+
     $days = array('-1' => 'disabled');
     for ($i = 1; $i <= 28; $i++) {
       $days["$i"] = "$i";
