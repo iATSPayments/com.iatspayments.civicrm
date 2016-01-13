@@ -965,6 +965,14 @@ function iats_civicrm_buildForm_CRM_Contribute_Form_UpdateSubscription(&$form) {
   if (!CRM_Core_Permission::check('edit contributions')) {
     return;
   }
+  // only mangle this form for recurring contributions using iATS, (and not the UKDD version)
+  $payment_processor_type = $form->_paymentProcessor['class_name'];
+  if (0 !== strpos($payment_processor_type,'Payment_iATSService')) {
+    return;
+  }
+  if ('Payment_iATSServiceUKDD' == $payment_processor_type) {
+    return;
+  }
   $settings = civicrm_api3('Setting', 'getvalue', array('name' => 'iats_settings'));
   // don't do this if the site administrator has disabled it
   if (!empty($settings['no_edit_extra'])) {
