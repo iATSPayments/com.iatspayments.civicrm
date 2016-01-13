@@ -21,4 +21,6 @@
 	<td class="content"><strong>{$form.financial_type.label}</strong></td></tr>
 <tr><td class="label">Payment Instrument</td>
 	<td class="content"><strong>{$form.payment_instrument.label}</strong></td></tr>
+<tr><td class="label">Failure Count</td>
+	<td class="content"><strong>{$form.failure_count.label}</strong></td></tr>
 </table>

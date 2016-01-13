@@ -19,8 +19,8 @@ class CRM_iATS_Form_IatsSettings extends CRM_Core_Form {
 
     $this->add(
       'checkbox', // field type
-      'edit_extra', // field name
-      ts('Enable extra edit fields for recurring contributions.')
+      'no_edit_extra', // field name
+      ts('Disable extra edit fields for recurring contributions.')
     );
 
     $days = array('-1' => 'disabled');

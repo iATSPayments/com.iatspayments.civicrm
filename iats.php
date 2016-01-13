@@ -957,6 +957,67 @@ function iats_civicrm_buildForm_Contribution_ThankYou_Payment_iATSServiceUKDD(&$
   ));
 }
 
+/*
+ * add some functionality to the update subscription form for recurring contributions
+ */
+function iats_civicrm_buildForm_CRM_Contribute_Form_UpdateSubscription(&$form) {
+  // only do this if the user is allowed to edit contributions. A more stringent permission might be smart.
+  if (!CRM_Core_Permission::check('edit contributions')) {
+    return;
+  }
+  $settings = civicrm_api3('Setting', 'getvalue', array('name' => 'iats_settings'));
+  // don't do this if the site administrator has disabled it
+  if (!empty($settings['no_edit_extra'])) {
+    return;
+  }
+  $allow_days = empty($settings['days']) ? array('-1') : $settings['days'];
+  if (0 < max($allow_days)) {
+    $userAlert = ts('Your next scheduled contribution date will automatically be updated to the next allowable day of the month: %1',array(1 => implode(',',$allow_days)));
+    CRM_Core_Session::setStatus($userAlert, ts('Warning'), 'alert');
+  }
+  $crid = CRM_Utils_Request::retrieve('crid', 'Integer', $form, FALSE);
+  /* get the recurring contribution record and the contact record, or quit */
+  try {
+    $recur = civicrm_api3('ContributionRecur', 'getsingle', array('id' => $crid));
+  }
+  catch (CiviCRM_API3_Exception $e) {
+    return;
+  }
+  try {
+    $contact = civicrm_api3('Contact', 'getsingle', array('id' => $recur['contact_id']));
+  }
+  catch (CiviCRM_API3_Exception $e) {
+    return;
+  }
+  // turn off default notification checkbox, most will want to hide it as well.
+  $defaults = array('is_notify' => 0);
+  $edit_fields = array('contribution_status_id', 'next_sched_contribution_date','start_date');
+  foreach($edit_fields as $fid) {
+    $defaults[$fid] = $recur[$fid];
+  }
+  // print_r($recur); die();
+  $form->addElement('static','contact',$contact['display_name']);
+  // $form->addElement('static','contact',$contact['display_name']);
+  $contributionStatus = CRM_Contribute_PseudoConstant::contributionStatus(NULL, 'name');
+  $form->addElement('select', 'contribution_status_id', ts('Status'),$contributionStatus);
+  $form->addDateTime('next_sched_contribution_date', ts('Next Scheduled Contribution'));
+  $form->addDateTime('start_date', ts('Start Date'));
+  $form->setDefaults($defaults);
+  // now add some more fields for display only
+  $pp_label = $form->_paymentProcessor['name']; // get my pp
+  $form->addElement('static','payment_processor',$pp_label);
+  $label = CRM_Contribute_Pseudoconstant::financialType($recur['financial_type_id']);
+  $form->addElement('static','financial_type',$label);
+  $labels = CRM_Contribute_Pseudoconstant::paymentInstrument();
+  $label = $labels[$recur['payment_instrument_id']];
+  $form->addElement('static','payment_instrument',$label);
+  $form->addElement('static','failure_count',$recur['failure_count']);
+  CRM_Core_Region::instance('page-body')->add(array(
+    'template' => 'CRM/iATS/Subscription.tpl',
+  ));
+  CRM_Core_Resources::singleton()->addScriptFile('com.iatspayments.civicrm', 'js/subscription.js');
+}
+
 /**
  * Implementation of hook_civicrm_alterSettingsFolders
  *
@@ -1094,63 +1155,3 @@ function _iats_process_contribution_payment($contribution, $options) {
   }
 }
 
-/*
- * add some functionality to the update subscription form for recurring contributions
- */
-function iats_civicrm_CRM_Contribute_Form_UpdateSubscription(&$form) {
-  $test = 1;
-  // only do this if the user is allowed to edit contributions. A more stringent permission might be smart.
-  if (!CRM_Core_Permission::check('edit contributions')) {
-    return;
-  }
-  $settings = civicrm_api3('Setting', 'getvalue', array('name' => 'iats_settings'));
-  // don't do this unless the site administrator has enabled it
-  if (empty($settings['edit_extra'])) {
-    return;
-  }
-  $allow_days = empty($settings['days']) ? array('-1') : $settings['days'];
-  if (0 < max($allow_days)) {
-    $userAlert = ts('Your next scheduled contribution date will automatically be updated to the next allowable day of the month: %1',array(1 => implode(',',$allow_days)));
-    CRM_Core_Session::setStatus($userAlert, ts('Warning'), 'alert');
-  }
-  $crid = CRM_Utils_Request::retrieve('crid', 'Integer', $form, FALSE);
-  /* get the recurring contribution record and the contact record, or quit */
-  try {
-    $recur = civicrm_api3('ContributionRecur', 'getsingle', array('id' => $crid));
-  }
-  catch (CiviCRM_API3_Exception $e) {
-    return;
-  }
-  try {
-    $contact = civicrm_api3('Contact', 'getsingle', array('id' => $recur['contact_id']));
-  }
-  catch (CiviCRM_API3_Exception $e) {
-    return;
-  }
-  // turn off default notification checkbox, most will want to hide it as well.
-  $defaults = array('is_notify' => 0);
-  $edit_fields = array('contribution_status_id', 'next_sched_contribution_date','start_date');
-  foreach($edit_fields as $fid) {
-    $defaults[$fid] = $recur[$fid];
-  }
-  // print_r($recur); die();
-  $form->addElement('static','contact',$contact['display_name']);
-  // $form->addElement('static','contact',$contact['display_name']);
-  $contributionStatus = CRM_Contribute_PseudoConstant::contributionStatus(NULL, 'name');
-  $form->addElement('select', 'contribution_status_id', ts('Status'),$contributionStatus);
-  $form->addDateTime('next_sched_contribution_date', ts('Next Scheduled Contribution'));
-  $form->addDateTime('start_date', ts('Start Date'));
-  $form->setDefaults($defaults);
-  // now add some more fields for display only
-  $pp_label = $form->_paymentProcessor['name']; // get my pp
-  $form->addElement('static','payment_processor',$pp_label);
-  $label = CRM_Contribute_Pseudoconstant::financialType($recur['financial_type_id']);
-  $form->addElement('static','financial_type',$label);
-  $labels = CRM_Contribute_Pseudoconstant::paymentInstrument();
-  $label = $labels[$recur['payment_instrument_id']];
-  $form->addElement('static','payment_instrument',$label);
-  CRM_Core_Region::instance('page-body')->add(array(
-    'template' => 'CRM/iATS/Subscription.tpl',
-  ));
-  CRM_Core_Resources::singleton()->addScriptFile('com.iatspayments.civicrm', 'js/subscription.js');
-}
