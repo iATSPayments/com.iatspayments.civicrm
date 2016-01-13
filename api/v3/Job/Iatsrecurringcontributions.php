@@ -284,7 +284,8 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
       // and then try to get the money, and do one of: update the contribution to failed, complete the transaction, or update a pending ach/eft with it's transaction id
       $output[] = _iats_process_contribution_payment($contribution,$options);
     }
-    /* calculate the next collection date. You could use the previous line instead if you wanted to catch up with missing contributions instead of just moving forward from the present */
+
+    /* calculate the next collection date, based on the recieve date (note effect of catchup mode)  */
     /* only move the next sched contribution date forward if the contribution is pending (e.g. ach/eft) or complete */
     if ($contribution['contribution_status_id'] < 3) {
       $next_collectionDate = strtotime ("+$dao->frequency_interval $dao->frequency_unit", $receive_ts);
@@ -301,7 +302,7 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
          )
       );
     } 
-    elseif (4 == $contribution['contribution_status_id']) {
+    elseif (4 == $contribution['contribution_status_id']) { // i.e. failed
       CRM_Core_DAO::executeQuery("
         UPDATE civicrm_contribution_recur 
            SET failure_count = failure_count + 1
