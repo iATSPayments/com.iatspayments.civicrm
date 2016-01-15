@@ -155,6 +155,14 @@ class CRM_iATS_Form_Report_Recur extends CRM_Report_Form {
               'expiry' => array('title' => 'Expiry Date', 'default' => TRUE),
             ),
         ),
+      'civicrm_iats_request_log' =>
+        array(
+          'dao' => 'CRM_Contribute_DAO_Contribution',
+          'fields' =>
+            array(
+              'cc' => array('title' => 'last 4 digits (org)', 'default' => TRUE),
+            ),
+        ),
       'civicrm_contribution_recur' => array(
         'dao' => 'CRM_Contribute_DAO_ContributionRecur',
         'order_bys' => array(
@@ -235,11 +243,6 @@ class CRM_iATS_Form_Report_Recur extends CRM_Report_Form {
           self::$nscd_fid => array(
             'title' => ts('Next Scheduled Contribution Date'),
             'default' => TRUE,
-          ),
-          'next_scheduled_day'  => array(
-            'name' => self::$nscd_fid,
-            'dbAlias' => 'DAYOFMONTH(contribution_recur_civireport.next_sched_contribution)',
-            'title' => ts('Next Scheduled Day of the Month'),
           ),
           'cycle_day'  => array(
             'title' => ts('Cycle Day'),
@@ -391,6 +394,9 @@ class CRM_iATS_Form_Report_Recur extends CRM_Report_Form {
         ON ({$this->_aliases['civicrm_contact']}.id = {$this->_aliases['civicrm_phone']}.contact_id AND
           {$this->_aliases['civicrm_phone']}.is_primary = 1)";
     $this->_from .= "
+      LEFT JOIN civicrm_iats_request_log {$this->_aliases['civicrm_iats_request_log']}
+        ON ({$this->_aliases['civicrm_iats_request_log']}.invoice_num = {$this->_aliases['civicrm_contribution_recur']}.invoice_id)";
+    $this->_from .= "
       LEFT JOIN civicrm_iats_customer_codes {$this->_aliases['civicrm_iats_customer_codes']}
         ON ({$this->_aliases['civicrm_iats_customer_codes']}.recur_id = {$this->_aliases['civicrm_contribution_recur']}.id)";
   }
@@ -415,7 +421,6 @@ class CRM_iATS_Form_Report_Recur extends CRM_Report_Form {
       }
 
       // Link to recurring series
-      // e.g. http://lllc.local/civicrm/contact/view/contributionrecur?reset=1&id=13&cid=7481&context=contribution
       if (($value = CRM_Utils_Array::value('civicrm_contribution_recur_id', $row)) &&
         CRM_Core_Permission::check('access CiviContribute')
       ) {
