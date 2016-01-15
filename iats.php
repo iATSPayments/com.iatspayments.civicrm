@@ -1151,7 +1151,7 @@ function _iats_process_contribution_payment($contribution, $options) {
   $result = $iats->result($response);
   if (empty($result['status'])) {
     /* update the contribution record in civicrm  */
-    /* with the failed transation status or pending if I had a server issue */
+    /* with the failed transaction status or pending if I had a server issue */
     /* and include the reason in the source field */
     $contribution_status_id = empty($result['auth_result']) ? 2 : 4;
     $contribution = array('id' => $contribution_id, 'source' => $contribution['source'].' '.$result['reasonMessage'], 'contribution_status_id' => $contribution_status_id);
