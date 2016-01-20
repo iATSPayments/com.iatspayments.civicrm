@@ -184,6 +184,10 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
   $output  = array();
   $settings = CRM_Core_BAO_Setting::getItem('iATS Payments Extension', 'iats_settings');
   $receipt_recurring = empty($settings['receipt_recurring']) ? 0 : 1;
+  $email_failure_report = empty($settings['email_recurring_failure_report']) ? '' : $settings['email_recurring_failure_report'];
+  // by default, after 3 failures move the next scheduled contribution date forward
+  $failure_threshhold = empty($settings['recurring_failure_threshhold']) ? 3 : (int) $settings['recurring_failure_threshhold'];
+
   /* while ($dao->fetch()) {
     foreach($dao as $key => $value) {
       echo "$value,";
@@ -191,6 +195,7 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
     echo "\n";
   }
   die();  */
+  $failure_report_text = '';
   while ($dao->fetch()) {
 
     // Strategy: create the contribution record with status = 2 (= pending), try the payment, and update the status to 1 if successful
@@ -200,6 +205,7 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
     $total_amount = $dao->amount;
     $hash = md5(uniqid(rand(), true));
     $contribution_recur_id    = $dao->id;
+    $failure_count    = $dao->failure_count;
     $subtype = substr($dao->pp_class_name,19);
     $source = "iATS Payments $subtype Recurring Contribution (id=$contribution_recur_id)";
     $receive_ts = $catchup ? strtotime($dao->next_sched_contribution_date) : time();
@@ -259,6 +265,9 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
       if ($contributionResult['is_error']) {
         $errors[] = $contributionResult['error_message'];
       }
+      if ($email_failure_report) {
+        $failure_report_text .= "\n Unexpected Errors: ".implode(' ',$errors);
+      }        
       continue;
     }
     else {
@@ -281,37 +290,46 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
         }
       }
       // so far so, good ... now create the pending contribution, and save its id
-      // and then try to get the money, and do one of: update the contribution to failed, complete the transaction, or update a pending ach/eft with it's transaction id
-      $output[] = _iats_process_contribution_payment($contribution,$options);
+      // and then try to get the money, and do one of: 
+      // update the contribution to failed, leave as pending for server failure, complete the transaction, or update a pending ach/eft with it's transaction id
+      $result = _iats_process_contribution_payment($contribution,$options);
+      if ($email_failure_report && $contribution['iats_reject_code']) {
+        $failure_report_text .= "\n $result ";
+      }        
+      $output[] = $result;
     }
 
-    /* calculate the next collection date, based on the recieve date (note effect of catchup mode)  */
-    /* only move the next sched contribution date forward if the contribution is pending (e.g. ach/eft) or complete */
-    if ($contribution['contribution_status_id'] < 3) {
-      $next_collectionDate = strtotime ("+$dao->frequency_interval $dao->frequency_unit", $receive_ts);
-      $next_collectionDate = date('YmdHis', $next_collectionDate);
+    /* in case of critical failure set the series to pending */
+    if (!empty($contribution['iats_reject_code'])) {
+      switch($contribution['iats_reject_code']) {
+        case 'REJECT: 25': // reported lost or stolen
+        case 'REJECT: 100': //  do not reprocess!
+          /* convert the contribution series to pending to avoid reprocessing until dealt with */
+          civicrm_api('ContributionRecur', 'create', 
+            array(
+              'version' => 3,
+              'id'      => $contribution['contribution_recur_id'],
+              'contribution_status_id'   => 2,
+            )
+          );
+          break;
+      }
+    }
 
-      CRM_Core_DAO::executeQuery("
-        UPDATE civicrm_contribution_recur
-           SET ".IATS_CIVICRM_NSCD_FID." = %1,
-           failure_count = 0
-         WHERE id = %2
-      ", array(
-           1 => array($next_collectionDate, 'String'),
-           2 => array($dao->id, 'Int')
-         )
-      );
-    }
-    elseif (4 == $contribution['contribution_status_id']) { // i.e. failed
-      CRM_Core_DAO::executeQuery("
-        UPDATE civicrm_contribution_recur
-           SET failure_count = failure_count + 1
-         WHERE id = %1
-      ", array(
-           1 => array($dao->id, 'Int')
-         )
-      );
-    }
+    /* calculate the next collection date, based on the recieve date (note effect of catchup mode, above)  */
+    $next_collection_date = date('Y-m-d H:i:s', strtotime("+$dao->frequency_interval $dao->frequency_unit", $receive_ts));
+    /* by default, advance to the next schduled date and set the failure count back to 0 */
+    $contribution_recur_set = array('version' => 3, 'id' => $contribution['contribution_recur_id'], 'failure_count' => '0', 'next_sched_contribution_date' => $next_collection_date);
+    /* special handling for failures */
+    if (4 == $contribution['contribution_status_id']) {
+      $contribution_recur_set['failure_count'] = $failure_count + 1;
+      /* if it has failed but the failure threshold will not be reached with this failure, leave the next sched contribution date as it was */
+      if ($contribution_recur_set['failure_count'] < $failure_threshhold) {
+        // should the failure count be reset otherwise? It is not.
+        unset($contribution_recur_set['next_sched_contribution_date']);
+      }
+    }      
+    civicrm_api('ContributionRecur', 'set', $contribution_recur_set);
     $result = civicrm_api('activity', 'create',
       array(
         'version'       => 3,
@@ -333,9 +351,9 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
         )
       );
       ++$error_count;
-    } else {
+    } 
+    else {
       $output[] = ts('Created activity record for contact id %1', array(1 => $contact_id));
-
     }
     ++$counter;
   }
@@ -363,7 +381,20 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
 
   $lock->release();
   // If errors ..
-  if ($error_count) {
+  if ((strlen($failure_report_text) > 0) && $email_failure_report) {
+    list($fromName, $fromEmail) = CRM_Core_BAO_Domain::getNameAndEmail();
+    $mailparams = array(
+      'from' => $fromName . ' <' . $fromEmail . '> ',
+      'to' => 'System Administrator <' . $email_failure_report . '>',
+      'subject' => ts('iATS Recurring Payment job failure report: '.date('c')),
+      'text' => $failure_report_text,
+      'returnPath' => $fromEmail,
+    );
+    // print_r($mailparams);
+    CRM_Utils_Mail::send($mailparams);
+  }
+  // If errors ..
+  if ($error_count > 0) {
     return civicrm_api3_create_error(
       ts("Completed, but with %1 errors. %2 records processed.",
         array(
