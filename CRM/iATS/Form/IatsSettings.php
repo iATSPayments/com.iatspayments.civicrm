@@ -12,6 +12,18 @@ class CRM_iATS_Form_IatsSettings extends CRM_Core_Form {
 
     // add form elements
     $this->add(
+      'text', // field type
+      'email_recurring_failure_report', // field name
+      ts('Email this address with recurring failure reports.')
+    );
+    $this->addRule('email_recurring_failure_report', ts('Email address is not a valid format.'), 'email');
+    $this->add(
+      'text', // field type
+      'recurring_failure_threshhold', // field name
+      ts('When failure count is equal to or greater than this number, push the next scheduled date forward.')
+    );
+    $this->addRule('recurring_failure_threshhold', ts('Threshhold must be a positive integer.'), 'integer');
+    $this->add(
       'checkbox', // field type
       'receipt_recurring', // field name
       ts('Enable email receipting for each recurring contribution.')
@@ -51,6 +63,9 @@ class CRM_iATS_Form_IatsSettings extends CRM_Core_Form {
 
     $result = CRM_Core_BAO_Setting::getItem('iATS Payments Extension', 'iats_settings');
     $defaults = (empty($result)) ? array() : $result;
+    if (empty($defaults['recurring_failure_threshhold'])) {
+      $defaults['recurring_failure_threshhold'] = 3;
+    }
     $this->setDefaults($defaults);
     $this->addButtons(array(
       array(
