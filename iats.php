@@ -1149,13 +1149,16 @@ function _iats_process_contribution_payment($contribution, $options) {
   $response = $iats->request($credentials,$request);
   // process the soap response into a readable result
   $result = $iats->result($response);
-  if (empty($result['status'])) {
+  if (empty($result['status'])) { // a failure of some kind
     /* update the contribution record in civicrm  */
     /* with the failed transaction status or pending if I had a server issue */
     /* and include the reason in the source field */
+    /* and save the iATS-specific code as well */
     $contribution_status_id = empty($result['auth_result']) ? 2 : 4;
     $contribution = array('id' => $contribution_id, 'source' => $contribution['source'].' '.$result['reasonMessage'], 'contribution_status_id' => $contribution_status_id);
     $contributionResult = civicrm_api3('contribution', 'create', $contribution);
+    // save my reject code here for processing by the calling function (a bit lame)
+    $contribution['iats_reject_code'] = $result['auth_result'];
     return ts('Failed to process recurring contribution id %1: ', array(1 => $contribution['contribution_recur_id'])).$result['reasonMessage'];
   }
   elseif ($contribution_status_id == 1) {
