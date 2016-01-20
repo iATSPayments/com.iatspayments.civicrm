@@ -1109,7 +1109,7 @@ function _iats_contributionrecur_next($from_time, $allow_mdays) {
  * A high-level utility function for making a contribution payment from an existing recurring schedule
  * Used in the Iatsrecurringcontributions.php job and the one-time ('card on file') form.
  */
-function _iats_process_contribution_payment($contribution, $options) {
+function _iats_process_contribution_payment(&$contribution, $options) {
   // first create the pending contribution, and save its id
   $contributionResult = civicrm_api('contribution','create', $contribution);
   $contribution_id = CRM_Utils_Array::value('id', $contributionResult);
@@ -1154,9 +1154,9 @@ function _iats_process_contribution_payment($contribution, $options) {
     /* with the failed transaction status or pending if I had a server issue */
     /* and include the reason in the source field */
     /* and save the iATS-specific code as well */
-    $contribution_status_id = empty($result['auth_result']) ? 2 : 4;
-    $contribution = array('id' => $contribution_id, 'source' => $contribution['source'].' '.$result['reasonMessage'], 'contribution_status_id' => $contribution_status_id);
-    $contributionResult = civicrm_api3('contribution', 'create', $contribution);
+    $contribution['contribution_status_id'] = $contribution_status_id = empty($result['auth_result']) ? 2 : 4;
+    $complete = array('id' => $contribution_id, 'source' => $contribution['source'].' '.$result['reasonMessage'], 'contribution_status_id' => $contribution_status_id);
+    $contributionResult = civicrm_api3('contribution', 'create', $complete);
     // save my reject code here for processing by the calling function (a bit lame)
     $contribution['iats_reject_code'] = $result['auth_result'];
     return ts('Failed to process recurring contribution id %1: ', array(1 => $contribution['contribution_recur_id'])).$result['reasonMessage'];
@@ -1178,9 +1178,8 @@ function _iats_process_contribution_payment($contribution, $options) {
     return ts('Successfully processed recurring contribution id %1: ', array(1 => $contribution['contribution_recur_id'])).$result['auth_result'];
   }
   else { // success, but just update the transaction id, wait for completion
-    $contribution = array('id' => $contribution_id, 'trxn_id' => trim($result['remote_id']) . ':' . time());
-    $contributionResult = civicrm_api3('contribution', 'create', $contribution);
+    $complete = array('id' => $contribution_id, 'trxn_id' => trim($result['remote_id']) . ':' . time());
+    $contributionResult = civicrm_api3('contribution', 'create', $complete);
     return ts('Successfully processed pending recurring contribution id %1: ', array(1 => $contribution_recur_id)).$result['auth_result'];
   }
 }
-
