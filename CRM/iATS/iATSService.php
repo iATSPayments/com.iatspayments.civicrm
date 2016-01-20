@@ -435,6 +435,13 @@ Class iATS_Service_Request {
          //   'message' => 'GetACHEFTJournal',
          //   'response' => 'GetACHEFTJournalResult',
          // ),
+          'cc_journal_csv' => array(
+            'title' => 'Credit Card Journal CSV',
+            'description'=> $desc. 'GetCreditCardApprovedSpecificDateCSV',
+            'method' => 'GetCreditCardApprovedSpecificDateCSV',
+            'message' => 'GetCreditCardApprovedSpecificDateCSV',
+            'response' => 'GetCreditCardApprovedSpecificDateCSVResult',
+          ),
           'acheft_journal_csv' => array(
             'title' => 'ACH-EFT Journal CSV',
             'description'=> $desc. 'GetACHEFTApprovedSpecificDateCSV',
