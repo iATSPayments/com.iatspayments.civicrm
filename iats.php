@@ -606,10 +606,16 @@ function iats_acheft_form_customize($form) {
   // currency is in a funny place for the Event registration form
   $currency = isset($form->_values['event']['currency']) ? $form->_values['event']['currency'] : $form->_values['currency'];
   $fname = 'iats_acheft_form_customize_'.$currency;
-  /* we always want these three fields to be required, in all currencies */
-  $form->addRule('account_holder', ts('%1 is a required field.', array(1 => ts('Name of Account Holder'))), 'required');
-  $form->addRule('bank_account_number', ts('%1 is a required field.', array(1 => ts('Account Number'))), 'required');
-  $form->addRule('bank_name', ts('%1 is a required field.', array(1 => ts('Bank Name'))), 'required');
+  /* we always want these three fields to be required, in all currencies. As of 4.6.?, this is in core */
+  if (empty($form->billingFieldSets['direct_debit']['fields']['account_holder']['is_required'])) {
+    $form->addRule('account_holder', ts('%1 is a required field.', array(1 => ts('Name of Account Holder'))), 'required');
+  }
+  if (empty($form->billingFieldSets['direct_debit']['fields']['bank_account_number']['is_required'])) {
+    $form->addRule('bank_account_number', ts('%1 is a required field.', array(1 => ts('Account Number'))), 'required');
+  }
+  if (empty($form->billingFieldSets['direct_debit']['fields']['bank_name']['is_required'])) {
+    $form->addRule('bank_name', ts('%1 is a required field.', array(1 => ts('Bank Name'))), 'required');
+  }
   if (function_exists($fname)) {
     $fname($form);
   }
