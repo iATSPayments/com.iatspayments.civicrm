@@ -368,6 +368,7 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
         (pp.class_name = %1 OR pp.class_name = %2 OR pp.class_name = %3)
         AND (cr.installments > 0)
         AND (cr.contribution_status_id  = 5)
+        AND (c.contribution_status_id IN (1,2))
       GROUP BY c.contribution_recur_id';
   $dao = CRM_Core_DAO::executeQuery($select,$args);
   while ($dao->fetch()) {
