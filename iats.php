@@ -1082,7 +1082,7 @@ function _iats_civicrm_getContributionTemplate($contribution) {
         foreach(array('price_field_id','qty','line_total','unit_price','label','price_field_value_id','financial_type_id') as $key) {
           $line_item[$key] = $initial_line_item[$key];
         }
-        $template['line_items'] = $line_item;
+        $template['line_items'][] = $line_item;
       }
     }
   }
