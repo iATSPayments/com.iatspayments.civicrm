@@ -329,7 +329,7 @@ function iats_civicrm_pageRun_CRM_Contact_Page_View_Summary(&$page) {
   // because of AJAX loading, I need to load my backend swipe js here
   $swipe = iats_civicrm_processors(NULL,'SWIPE',array('is_default' => 1));
   if (count($swipe) > 0) {
-    CRM_Core_Resources::singleton()->addScriptFile('com.iatspayments.civicrm', 'js/swipe.js',10,'html-header');
+    CRM_Core_Resources::singleton()->addScriptFile('com.iatspayments.civicrm', 'js/swipe.js',10);
   }
 }
 
@@ -774,18 +774,18 @@ function iats_civicrm_buildForm_Contribution_Frontend(&$form) {
   // TODO: skip this if we're just loading a fragment of the page via ajax
   // If a form allows ACH/EFT and enables recurring, set recurring to the default
   if (0 < count($acheft)) {
-    CRM_Core_Resources::singleton()->addScriptFile('com.iatspayments.civicrm', 'js/dd_acheft.js',10,'html-header');
+    CRM_Core_Resources::singleton()->addScriptFile('com.iatspayments.civicrm', 'js/dd_acheft.js',10);
     // country specific js needs to be loaded here so it's available later
-    CRM_Core_Resources::singleton()->addScriptFile('com.iatspayments.civicrm', 'js/dd_cad.js',10,'html-header');
+    CRM_Core_Resources::singleton()->addScriptFile('com.iatspayments.civicrm', 'js/dd_cad.js',10);
     if (isset($form->_elementIndex['is_recur'])) {
       $form->setDefaults(array('is_recur' => 1)); // make recurring contrib default to true
     }
   }
   if (0 < count($swipe)) {
-    CRM_Core_Resources::singleton()->addScriptFile('com.iatspayments.civicrm', 'js/swipe.js',10,'html-header');
+    CRM_Core_Resources::singleton()->addScriptFile('com.iatspayments.civicrm', 'js/swipe.js',10);
   }
   if (0 < count($ukdd)) {
-    CRM_Core_Resources::singleton()->addScriptFile('com.iatspayments.civicrm', 'js/dd_uk.js',10,'html-header');
+    CRM_Core_Resources::singleton()->addScriptFile('com.iatspayments.civicrm', 'js/dd_uk.js',10);
     if (isset($form->_elementIndex['is_recur'])) {
       $form->setDefaults(array('is_recur' => 1)); // make recurring contrib default to true
     }
@@ -880,7 +880,7 @@ function iats_civicrm_buildForm_CreditCard_Backend(&$form) {
 
   // if i'm using swipe as default and I've got a billing section, then customize it
   if ($swipe_id_default) {
-    CRM_Core_Resources::singleton()->addScriptFile('com.iatspayments.civicrm', 'js/swipe.js',10,'html-header');
+    CRM_Core_Resources::singleton()->addScriptFile('com.iatspayments.civicrm', 'js/swipe.js',10);
     if (!empty($form->_elementIndex['credit_card_exp_date'])) {
       iats_swipe_form_customize($form);
     }
