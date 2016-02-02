@@ -638,7 +638,9 @@ function iats_acheft_form_customize_USD($form) {
   $element->setLabel(ts('Bank Account Number'));
   $element = $form->getElement('bank_identification_number');
   $element->setLabel(ts('Bank Routing Number'));
-  $form->addRule('bank_identification_number', ts('%1 is a required field.', array(1 => ts('Bank Routing Number'))), 'required');
+  if (empty($form->billingFieldSets['direct_debit']['fields']['bank_identification_number']['is_required'])) {
+    $form->addRule('bank_identification_number', ts('%1 is a required field.', array(1 => ts('Bank Routing Number'))), 'required');
+  }
   CRM_Core_Region::instance('billing-block')->add(array(
     'template' => 'CRM/iATS/BillingBlockDirectDebitExtra_USD.tpl'
   ));
