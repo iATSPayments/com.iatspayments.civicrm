@@ -27,4 +27,9 @@
       </div>
 
     </div>
-{literal}<script type="text/javascript">iatsACHEFTRefresh();iatsACHEFTca();</script>{/literal}
+{literal}<script type="text/javascript">
+  cj(function ($) {
+    iatsACHEFTRefresh();iatsACHEFTca();
+  });
+</script>
+{/literal}

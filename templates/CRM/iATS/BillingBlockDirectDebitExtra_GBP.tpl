@@ -86,4 +86,9 @@
     </ul>
   </div>
 </div>
-{literal}<script type="text/javascript">iatsUKDDRefresh()</script>{/literal}
+{literal}<script type="text/javascript">
+  cj(function ($) {
+    iatsUKDDRefresh();
+  });
+</script>
+{/literal}
