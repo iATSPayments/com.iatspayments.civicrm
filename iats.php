@@ -742,13 +742,19 @@ function iats_ukdd_form_customize($form) {
   /* customization of existing elements */
   $element = $form->getElement('account_holder');
   $element->setLabel(ts('Account Holder Name'));
-  $form->addRule('account_holder', ts('%1 is a required field.', array(1 => ts('Name of Account Holder'))), 'required');
+  if (empty($form->billingFieldSets['direct_debit']['fields']['bank_identification_number']['is_required'])) {
+    $form->addRule('account_holder', ts('%1 is a required field.', array(1 => ts('Name of Account Holder'))), 'required');
+  }
   $element = $form->getElement('bank_account_number');
   $element->setLabel(ts('Account Number'));
-  $form->addRule('bank_account_number', ts('%1 is a required field.', array(1 => ts('Account Number'))), 'required');
+  if (empty($form->billingFieldSets['direct_debit']['fields']['bank_identification_number']['is_required'])) {
+    $form->addRule('bank_account_number', ts('%1 is a required field.', array(1 => ts('Account Number'))), 'required');
+  }
   $element = $form->getElement('bank_identification_number');
   $element->setLabel(ts('Sort Code'));
-  $form->addRule('bank_identification_number', ts('%1 is a required field.', array(1 => ts('Sort Code'))), 'required');
+  if (empty($form->billingFieldSets['direct_debit']['fields']['bank_identification_number']['is_required'])) {
+    $form->addRule('bank_identification_number', ts('%1 is a required field.', array(1 => ts('Sort Code'))), 'required');
+  }
   /* new payer validation elements */
   $form->addElement('textarea', 'payer_validate_address', ts('Name and full postal address of your Bank or Building Society'), array('rows' => '6', 'columns' => '30'));
   $form->addElement('text', 'payer_validate_service_user_number', ts('Service User Number'));
