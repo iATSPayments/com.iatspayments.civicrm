@@ -294,7 +294,6 @@ function iats_civicrm_buildForm($formName, &$form) {
 
     case 'CRM_Contribute_Form_Contribution_Main':
     case 'CRM_Event_Form_Registration_Register':
-    case 'CRM_Financial_Form_Payment':
       // override normal convention, deal with all these front-end contribution forms the same way
       $fname = 'iats_civicrm_buildForm_Contribution_Frontend';
       break;
@@ -604,7 +603,8 @@ function iats_civicrm_processors($processors, $subtype = '', $params = array()) 
 
 function iats_acheft_form_customize($form) {
   // $fname = 'iats_acheft_form_customize_'.$form->_values['currency'];
-  $currency = iats_getcurrency($form);
+  // currency is in a funny place for the Event registration form
+  $currency = isset($form->_values['event']['currency']) ? $form->_values['event']['currency'] : $form->_values['currency'];
   $fname = 'iats_acheft_form_customize_'.$currency;
   /* we always want these three fields to be required, in all currencies. As of 4.6.?, this is in core */
   if (empty($form->billingFieldSets['direct_debit']['fields']['account_holder']['is_required'])) {
@@ -624,15 +624,6 @@ function iats_acheft_form_customize($form) {
       'template' => 'CRM/iATS/BillingBlockDirectDebitExtra_Other.tpl'
     ));
   }
-}
-
-function iats_getcurrency($form) {
-  // currency can be in any one of three places:
-  // depending on event form vs contribution form and contribution first page load vs radio button pressed
-  $currency = isset($form->_values['event']['currency']) ? $form->_values['event']['currency'] : $form->_values['currency'];
-  $currency = isset($currency) ? $currency : $form->getCurrency();
-
-  return $currency;
 }
 
 /*
@@ -780,25 +771,12 @@ function iats_ukdd_form_customize($form) {
  *  2. add extra fields/modify labels
  */
 function iats_civicrm_buildForm_Contribution_Frontend(&$form) {
-  if (empty($form->_paymentProcessors) && $form->_paymentProcessor['id']==0){
+  if (empty($form->_paymentProcessors)) {
     return;
   }
-  if (!empty($form->_paymentProcessors)) {
-    $acheft = iats_civicrm_processors($form->_paymentProcessors, 'ACHEFT');
-    $swipe = iats_civicrm_processors($form->_paymentProcessors, 'SWIPE');
-    $ukdd = iats_civicrm_processors($form->_paymentProcessors, 'UKDD');
-  }
-  if ($form->_paymentProcessor['id']) {
-    if ($form->_paymentProcessor['class_name'] == 'Payment_iATSServiceACHEFT'){
-      $acheft = $form->_paymentProcessor;
-    }
-    if ($form->_paymentProcessor['class_name'] == 'Payment_iATSServiceSWIPE'){
-      $swipe = $form->_paymentProcessor;
-    }
-    if ($form->_paymentProcessor['class_name'] == 'Payment_iATSServiceUKDD'){
-      $ukdd = $form->_paymentProcessor;
-    }
-  }
+  $acheft = iats_civicrm_processors($form->_paymentProcessors,'ACHEFT');
+  $swipe = iats_civicrm_processors($form->_paymentProcessors,'SWIPE');
+  $ukdd = iats_civicrm_processors($form->_paymentProcessors,'UKDD');
 
   // include the required javascripts for available customized selections
   // TODO: skip this if we're just loading a fragment of the page via ajax
@@ -821,18 +799,18 @@ function iats_civicrm_buildForm_Contribution_Frontend(&$form) {
     }
   }
   /* Mangle (in a currency-dependent way) the ajax-bit of the form if I've just selected an ach/eft option */
-  if (!empty($acheft[$form->_paymentProcessor['id']]) || ($form->_paymentProcessor['class_name']=='Payment_iATSServiceACHEFT')){
+  if (!empty($acheft[$form->_paymentProcessor['id']])){
     iats_acheft_form_customize($form);
     // watchdog('iats_acheft',kprint_r($form,TRUE));
   }
 
   /* now something similar for swipe */
-  if (!empty($swipe[$form->_paymentProcessor['id']]) || ($form->_paymentProcessor['class_name']=='Payment_iATSServiceSWIPE')){
+  if (!empty($swipe[$form->_paymentProcessor['id']]) && !empty($form->_elementIndex['credit_card_exp_date'])) {
     iats_swipe_form_customize($form);
   }
 
   /* UK Direct debit option */
-  if (!empty($ukdd[$form->_paymentProcessor['id']]) || ($form->_paymentProcessor['class_name']=='Payment_iATSServiceUKDD')){
+  if (!empty($ukdd[$form->_paymentProcessor['id']])){
     iats_ukdd_form_customize($form);
     // watchdog('iats_acheft',kprint_r($form,TRUE));
   }
@@ -1036,7 +1014,7 @@ function iats_civicrm_buildForm_CRM_Contribute_Form_UpdateSubscription(&$form) {
   // turn off default notification checkbox, most will want to hide it as well.
   $defaults = array('is_notify' => 0);
   $edit_fields = array(
-    'contribution_status_id' => 'Status',
+    'contribution_status_id' => 'Status', 
     'next_sched_contribution_date' => 'Next Scheduled Contribution',
     'start_date' => 'Start Date',
   );
@@ -1046,7 +1024,7 @@ function iats_civicrm_buildForm_CRM_Contribute_Form_UpdateSubscription(&$form) {
     }
     else {
       $defaults[$fid] = $recur[$fid];
-    }
+    } 
   }
   if (0 == count($edit_fields)) { // some other extension, or core, is exposing my fields, so quit
     return;
