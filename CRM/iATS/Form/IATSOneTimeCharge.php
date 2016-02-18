@@ -92,7 +92,7 @@ class CRM_iATS_Form_IATSOneTimeCharge extends CRM_Core_Form {
       $contribution[$key] = $contribution_template[$key];
     }
     $options = array(
-      'is_email_receipt' => 0, // could be in the form?
+      'is_email_receipt' => (empty($values['is_email_receipt']) ? '0' : '1'), 
       'customer_code' => $values['customerCode'],
       'subtype' => $subtype,
     );
@@ -137,6 +137,11 @@ class CRM_iATS_Form_IATSOneTimeCharge extends CRM_Core_Form {
       'amount', // field name
       'Amount', // field label
       TRUE, NULL, FALSE 
+    );
+    $this->add(
+      'checkbox', // field type
+      'is_email_receipt', // field name
+      ts('Automated email receipt for this contribution.')
     );
     $this->addButtons(array(
       array(
