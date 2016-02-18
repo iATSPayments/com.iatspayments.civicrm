@@ -208,7 +208,7 @@ class CRM_Core_Payment_iATSServiceUKDD extends CRM_Core_Payment {
       $params['contribution_status_id'] = 2;
       $params['start_date'] = $params['payer_validate_start_date'];
       // optimistically set this date, even though CiviCRM will likely not do anything with it yet - I'll change it with my pre hook in the meanwhile
-      $params['receive_date'] = $params['payer_validate_start_date'];
+      // $params['receive_date'] = strtotime($params['payer_validate_start_date']);
       // also set next_sched_contribution, though it won't be used
       $params['next_sched_contribution'] = strtotime($params['payer_validate_start_date'].' + '.$params['frequency_interval'].' '.$params['frequency_unit']);
       return $params;
