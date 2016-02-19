@@ -157,6 +157,9 @@ class CRM_iATS_Form_IATSOneTimeCharge extends CRM_Core_Form {
 
     // export form elements
     $this->assign('elementNames', $this->getRenderableElementNames());
+    // warn the user about the nature of what they are about to do.
+    $message = ts('The contribution created by this form will be saved as a recurring contribution.');
+    CRM_Core_Session::setStatus($message, 'One-Time Charge'); // , $type, $options);
     parent::buildQuickForm();
   }
 
@@ -165,7 +168,7 @@ class CRM_iATS_Form_IATSOneTimeCharge extends CRM_Core_Form {
     // print_r($values); die();
     // send charge request to iATS
     $result = $this->processCreditCardCustomer($values);
-    $message = '<pre>'.print_r($result,TRUE).'</pre>';
+    $message = print_r($result,TRUE);
     CRM_Core_Session::setStatus($message, 'Customer Card Charged'); // , $type, $options);
     parent::postProcess();
   }
