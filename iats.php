@@ -349,21 +349,29 @@ function iats_civicrm_pageRun_CRM_Contribute_Page_ContributionRecur($page) {
   catch (CiviCRM_API3_Exception $e) {
     return;
   }
-  // print_r($recur); die();
+  $type = _iats_civicrm_is_iats($recur['payment_processor_id']);
+  if (!$type) {
+    return;
+  }
   try {
     $params = array(1 => array($crid,'Integer'));
     $dao = CRM_Core_DAO::executeQuery("SELECT customer_code,expiry FROM civicrm_iats_customer_codes WHERE recur_id = %1 ORDER BY id DESC LIMIT 1", $params);
     if ($dao->fetch()) {
       $customer_code = $dao->customer_code;
-      $extra['customerLinkView'] = CRM_Utils_System::url('civicrm/contact/view/iatscustomerlink',
-        'reset=1&cid='.$recur['contact_id'].'&customerCode='.$customer_code.'&paymentProcessorId='.$recur['payment_processor_id'].'&is_test='.$recur['is_test']);
-      $extra['customerLinkEdit'] = CRM_Utils_System::url('civicrm/contact/edit/iatscustomerlink',
-        'reset=1&cid='.$recur['contact_id'].'&customerCode='.$customer_code.'&paymentProcessorId='.$recur['payment_processor_id'].'&is_test='.$recur['is_test']);
-      $extra['processLink'] = CRM_Utils_System::url('civicrm/contact/iatsprocesslink',
-        'reset=1&cid='.$recur['contact_id'].'&customerCode='.$customer_code.'&paymentProcessorId='.$recur['payment_processor_id'].'&crid='.$crid.'&is_test='.$recur['is_test']);
       $extra['iATS Customer Code'] = $customer_code;
-      $expiry = str_split($dao->expiry,2);
-      $extra['expiry'] = '20'.implode('-',$expiry);
+      $customerLinkView = CRM_Utils_System::url('civicrm/contact/view/iatscustomerlink',
+        'reset=1&cid='.$recur['contact_id'].'&customerCode='.$customer_code.'&paymentProcessorId='.$recur['payment_processor_id'].'&is_test='.$recur['is_test']);
+      $extra['customerLink'] = "<a href='$customerLinkView'>View</a>";
+      if ($type == 'iATSService' || $type == 'iATSServiceSWIPE') {
+        $customerLinkEdit = CRM_Utils_System::url('civicrm/contact/edit/iatscustomerlink',
+          'reset=1&cid='.$recur['contact_id'].'&customerCode='.$customer_code.'&paymentProcessorId='.$recur['payment_processor_id'].'&is_test='.$recur['is_test']);
+        $extra['customerLink'] .= " | <a href='$customerLinkEdit'>Edit</a>";
+        $processLink = CRM_Utils_System::url('civicrm/contact/iatsprocesslink',
+          'reset=1&cid='.$recur['contact_id'].'&customerCode='.$customer_code.'&paymentProcessorId='.$recur['payment_processor_id'].'&crid='.$crid.'&is_test='.$recur['is_test']);
+        $extra['customerLink'] .= " | <a href='$processLink'>Process</a>";
+        $expiry = str_split($dao->expiry,2);
+        $extra['expiry'] = '20'.implode('-',$expiry);
+      }
     }
     if (!empty($recur['invoice_id'])) {
       // we may have the last 4 digits via the original request log, though they may no longer be accurate, but let's get it anyway if we can
