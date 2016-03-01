@@ -18,5 +18,6 @@ return array (
       'api_action' => 'iatsacheftverify',
       'parameters' => '',
     ),
+    'update' => 'never'
   ),
 );
