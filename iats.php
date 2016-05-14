@@ -790,9 +790,6 @@ function iats_civicrm_buildForm_Contribution_Frontend(&$form) {
   // TODO: skip this if we're just loading a fragment of the page via ajax
   // If a form allows ACH/EFT and enables recurring, set recurring to the default
   if (0 < count($acheft)) {
-    CRM_Core_Resources::singleton()->addScriptFile('com.iatspayments.civicrm', 'js/dd_acheft.js',10);
-    // country specific js needs to be loaded here so it's available later
-    CRM_Core_Resources::singleton()->addScriptFile('com.iatspayments.civicrm', 'js/dd_cad.js',10);
     if (isset($form->_elementIndex['is_recur'])) {
       $form->setDefaults(array('is_recur' => 1)); // make recurring contrib default to true
     }
@@ -1022,7 +1019,7 @@ function iats_civicrm_buildForm_CRM_Contribute_Form_UpdateSubscription(&$form) {
   // turn off default notification checkbox, most will want to hide it as well.
   $defaults = array('is_notify' => 0);
   $edit_fields = array(
-    'contribution_status_id' => 'Status', 
+    'contribution_status_id' => 'Status',
     'next_sched_contribution_date' => 'Next Scheduled Contribution',
     'start_date' => 'Start Date',
   );
@@ -1032,7 +1029,7 @@ function iats_civicrm_buildForm_CRM_Contribute_Form_UpdateSubscription(&$form) {
     }
     else {
       $defaults[$fid] = $recur[$fid];
-    } 
+    }
   }
   if (0 == count($edit_fields)) { // some other extension, or core, is exposing my fields, so quit
     return;
