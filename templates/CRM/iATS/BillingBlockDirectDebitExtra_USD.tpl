@@ -1,6 +1,9 @@
 {*
  Extra fields for iats direct debit, template for USD
 *}
+
+<script type="text/javascript" src="{crmResURL ext=com.iatspayments.civicrm file=js/dd_acheft.js}"></script>
+
 <div id="iats-direct-debit-extra">
   <div class="crm-section usd-instructions-section">
     <div class="label"><em>{ts domain='com.iatspayments.civicrm'}You can find your Bank Routing Number and Bank Account number by inspecting a check.{/ts}</em></div>

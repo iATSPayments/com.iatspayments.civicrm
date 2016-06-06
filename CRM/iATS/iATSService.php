@@ -76,7 +76,7 @@ Class iATS_Service_Request {
            }
            break;
         case 'www.uk.iatspayments.com':
-           if ('cc' == substr($method,0,2)) {
+           if ('cc' == substr($method,0,2) || 'create_credit_card_customer' == $method) {
              if (in_array($options['currencyID'], array('AUD','USD','EUR','GBP','IEE','CHF','HKD','JPY','SGD','MXN'))) {
                $valid = TRUE;
              }

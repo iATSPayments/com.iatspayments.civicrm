@@ -92,7 +92,7 @@ class CRM_iATS_Form_IATSOneTimeCharge extends CRM_Core_Form {
       $contribution[$key] = $contribution_template[$key];
     }
     $options = array(
-      'is_email_receipt' => 0, // could be in the form?
+      'is_email_receipt' => (empty($values['is_email_receipt']) ? '0' : '1'), 
       'customer_code' => $values['customerCode'],
       'subtype' => $subtype,
     );
@@ -138,6 +138,11 @@ class CRM_iATS_Form_IATSOneTimeCharge extends CRM_Core_Form {
       'Amount', // field label
       TRUE, NULL, FALSE 
     );
+    $this->add(
+      'checkbox', // field type
+      'is_email_receipt', // field name
+      ts('Automated email receipt for this contribution.')
+    );
     $this->addButtons(array(
       array(
         'type' => 'submit',
@@ -152,6 +157,9 @@ class CRM_iATS_Form_IATSOneTimeCharge extends CRM_Core_Form {
 
     // export form elements
     $this->assign('elementNames', $this->getRenderableElementNames());
+    // warn the user about the nature of what they are about to do.
+    $message = ts('The contribution created by this form will be saved as a recurring contribution.');
+    CRM_Core_Session::setStatus($message, 'One-Time Charge'); // , $type, $options);
     parent::buildQuickForm();
   }
 
@@ -160,7 +168,7 @@ class CRM_iATS_Form_IATSOneTimeCharge extends CRM_Core_Form {
     // print_r($values); die();
     // send charge request to iATS
     $result = $this->processCreditCardCustomer($values);
-    $message = '<pre>'.print_r($result,TRUE).'</pre>';
+    $message = print_r($result,TRUE);
     CRM_Core_Session::setStatus($message, 'Customer Card Charged'); // , $type, $options);
     parent::postProcess();
   }
