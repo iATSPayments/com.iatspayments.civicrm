@@ -69,6 +69,7 @@ Class iATS_Service_Request {
     if (isset($options['currencyID'])) {
       $valid = FALSE;
       switch($iats_domain) {
+        case 'www2.iatspayments.com':
         case 'www.iatspayments.com':
            if (in_array($options['currencyID'], array('USD', 'CAD'))) {
              $valid = TRUE;
