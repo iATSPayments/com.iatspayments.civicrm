@@ -295,7 +295,10 @@ function iats_civicrm_buildForm($formName, &$form) {
     case 'CRM_Contribute_Form_Contribution_Main':
     case 'CRM_Event_Form_Registration_Register':
       // override normal convention, deal with all these front-end contribution forms the same way
-      $fname = 'iats_civicrm_buildForm_Contribution_Frontend';
+      if (array_intersect(array_keys($form->_paymentProcessors), array('ACHEFT', 'SWIPE', 'UKDD')
+      )) {
+        $fname = 'iats_civicrm_buildForm_Contribution_Frontend';
+      }
       break;
 
     case 'CRM_Contribute_Form_Contribution_Confirm':
@@ -312,7 +315,7 @@ function iats_civicrm_buildForm($formName, &$form) {
       $fname = 'iats_civicrm_buildForm_'.$formName;
       break;
   }
-  if (function_exists($fname)) {
+  if (!empty($fname) && function_exists($fname)) {
     $fname($form);
   }
   // else echo $fname;
