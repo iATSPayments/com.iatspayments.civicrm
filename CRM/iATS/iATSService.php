@@ -111,7 +111,6 @@ Class iATS_Service_Request {
     // Attempt the SOAP request and log the exception on failure.
     $method = $this->method['method'];
     if (empty($method)) {
-      dsm($this->method);
       return FALSE;
     }
     // do some massaging of parameters for badly behaving iATS methods ($method is now the iATS method, not our internal key)
