@@ -190,7 +190,7 @@ function iats_civicrm_managed(&$entities) {
 function _iats_civicrm_domain_info($key) {
   static $domain;
   if (empty($domain)) {
-    $domain = civicrm_api('Domain', 'getsingle', array('version' => 3, 'current_domain' => TRUE));
+    $domain = civicrm_api3('Domain', 'getsingle', array('current_domain' => TRUE));
   }
   switch($key) {
     case 'version':
@@ -450,7 +450,7 @@ function iats_civicrm_pre($op, $objectName, $objectId, &$params) {
             && (version_compare($version, '4.6.6') < 0)
           ) {
             // but only for the first one
-            $count = civicrm_api('Contribution', 'getcount', array('version' => 3, 'contribution_recur_id' => $params['contribution_recur_id']));
+            $count = civicrm_api3('Contribution', 'getcount', array('contribution_recur_id' => $params['contribution_recur_id']));
             if (
               (is_array($count) && empty($count['result']))
               || empty($count)
@@ -539,11 +539,9 @@ function iats_civicrm_pre($op, $objectName, $objectId, &$params) {
  */
 function _iats_civicrm_get_payment_processor_id($contribution_recur_id) {
   $params = array(
-    'version' => 3,
-    'sequential' => 1,
     'id' => $contribution_recur_id,
   );
-  $result = civicrm_api('ContributionRecur', 'getsingle', $params);
+  $result = civicrm_api3('ContributionRecur', 'getsingle', $params);
   if (empty($result['payment_processor_id'])) {
     return FALSE;
     // TODO: log error
@@ -558,11 +556,9 @@ function _iats_civicrm_get_payment_processor_id($contribution_recur_id) {
  */
 function _iats_civicrm_is_iats($payment_processor_id) {
   $params = array(
-    'version' => 3,
-    'sequential' => 1,
     'id' => $payment_processor_id,
   );
-  $result = civicrm_api('PaymentProcessor', 'getsingle', $params);
+  $result = civicrm_api3('PaymentProcessor', 'getsingle', $params);
   if (empty($result['class_name'])) {
     return FALSE;
     // TODO: log error
@@ -582,14 +578,18 @@ function _iats_civicrm_is_iats($payment_processor_id) {
  */
 function iats_civicrm_processors($processors, $subtype = '', $params = array()) {
   $list = array();
-  $class_name = 'Payment_iATSService'.$subtype;
-  $params = $params + array('version' => 3, 'sequential' => 1, 'class_name' => $class_name);
-  $result = civicrm_api('PaymentProcessor', 'get', $params);
+  $match_all = ('*' == $subtype)  ? TRUE : FALSE;
+  if (!$match_all) {
+    $params['class_name'] = 'Payment_iATSService'. $subtype;
+  }
+  $result = civicrm_api3('PaymentProcessor', 'get', $params);
   if (0 == $result['is_error'] && count($result['values']) > 0) {
     foreach($result['values'] as $paymentProcessor) {
       $id = $paymentProcessor['id'];
       if ((is_null($processors)) || !empty($processors[$id])) {
-        $list[$id] = $paymentProcessor;
+        if (!$match_all || (0 === strpos($paymentProcessor['class_name'],'Payment_iATSService'))) {
+          $list[$id] = $paymentProcessor;
+        }
       }
     }
   }
@@ -782,10 +782,24 @@ function iats_civicrm_buildForm_Contribution_Frontend(&$form) {
   if (empty($form->_paymentProcessors)) {
     return;
   }
-  $acheft = iats_civicrm_processors($form->_paymentProcessors,'ACHEFT');
-  $swipe = iats_civicrm_processors($form->_paymentProcessors,'SWIPE');
-  $ukdd = iats_civicrm_processors($form->_paymentProcessors,'UKDD');
-
+  $iats_processors = iats_civicrm_processors($form->_paymentProcessors,'*');
+  if (empty($iats_processors)) {
+    return;
+  }
+  $ukdd = $swipe = $acheft = array();
+  foreach($iats_processors as $id => $processor) {
+    switch($processor['class_name']) {
+      case 'Payment_iATSServiceACHEFT':
+        $acheft[$id] = $processor;
+        break;
+      case 'Payment_iATSServiceSWIPE':
+        $swipe[$id] = $processor;
+        break;
+      case 'Payment_iATSServiceUKDD':
+        $ukdd[$id] = $processor;
+        break;
+    }
+  }
   // include the required javascripts for available customized selections
   // TODO: skip this if we're just loading a fragment of the page via ajax
   // If a form allows ACH/EFT and enables recurring, set recurring to the default
@@ -823,6 +837,7 @@ function iats_civicrm_buildForm_Contribution_Frontend(&$form) {
   /* and finally, for most frontend forms, use the dpm.js script to use the DirectPost Method override
    * TODO: provide an admin way to prevent this
    * TODO: use it for swipe, never for ukdd?
+   * NOTE: this is inactive code, isDPM is still always returning false.
    */
   require_once("CRM/iATS/iATSService.php");
   if (iATS_Service_Request::isDPM($form->_paymentProcessor)) {
@@ -915,8 +930,8 @@ function iats_civicrm_buildForm_CRM_Contribute_Form_Search(&$form) {
   // for each ACH/EFT payment processor, try to provide a different mechanism for 'backoffice' type contributions
   // note: only offer payment pages that provide iATS ACH/EFT exclusively
   foreach(array_keys($acheft) as $pp_id) {
-    $params = array('version' => 3, 'sequential' => 1, 'is_active' => 1, 'payment_processor' => $pp_id);
-    $result = civicrm_api('ContributionPage', 'get', $params);
+    $params = array('is_active' => 1, 'payment_processor' => $pp_id);
+    $result = civicrm_api3('ContributionPage', 'get', $params);
     if (0 == $result['is_error'] && count($result['values']) > 0) {
       foreach($result['values'] as $page) {
         $url = CRM_Utils_System::url('civicrm/contribute/transact','reset=1&cid='.$contactID.'&id='.$page['id']);
@@ -1076,17 +1091,17 @@ function iats_civicrm_alterSettingsFolders(&$metaDataFolders = NULL) {
 function _iats_civicrm_getContributionTemplate($contribution) {
   // Get the first contribution in this series that matches the same total_amount, if present
   $template = array();
-  $get = array('version'  => 3, 'contribution_recur_id' => $contribution['contribution_recur_id'], 'options'  => array('sort'  => ' id' , 'limit'  => 1));
+  $get = array('contribution_recur_id' => $contribution['contribution_recur_id'], 'options'  => array('sort'  => ' id' , 'limit'  => 1));
   if (!empty($contribution['total_amount'])) {
     $get['total_amount'] = $contribution['total_amount'];
   }
-  $result = civicrm_api('contribution', 'get', $get);
+  $result = civicrm_api3('contribution', 'get', $get);
   if (!empty($result['values'])) {
     $contribution_ids = array_keys($result['values']);
     $template = $result['values'][$contribution_ids[0]];
     $template['line_items'] = array();
-    $get = array('version'  => 3, 'entity_table' => 'civicrm_contribution', 'entity_id' => $contribution_ids[0]);
-    $result = civicrm_api('LineItem', 'get', $get);
+    $get = array('entity_table' => 'civicrm_contribution', 'entity_id' => $contribution_ids[0]);
+    $result = civicrm_api3('LineItem', 'get', $get);
     if (!empty($result['values'])) {
       foreach($result['values'] as $initial_line_item) {
         $line_item = array();
@@ -1130,7 +1145,7 @@ function _iats_contributionrecur_next($from_time, $allow_mdays) {
  */
 function _iats_process_contribution_payment(&$contribution, $options) {
   // first create the pending contribution, and save its id
-  $contributionResult = civicrm_api('contribution','create', $contribution);
+  $contributionResult = civicrm_api3('contribution','create', $contribution);
   $contribution_id = CRM_Utils_Array::value('id', $contributionResult);
   // connect to a membership if requested
   if (!empty($options['membership_id'])) {
