@@ -101,7 +101,7 @@ Class iATS_Service_Request {
    *   The request object or array containing the merchant credentials
    *
    * @param $request_params
-   *   The request object or array containing the parameters of the requested services.
+   *   The request array containing the parameters of the requested services.
    *
    * @return
    *   The response object from the API with properties pertinent to the requested
@@ -158,11 +158,13 @@ Class iATS_Service_Request {
     }
     // the agent user and password only get put in here so they don't end up in a log above
     try {
+      $credentials = (array) $credentials;
+      $testAgentCode = ('TEST88' == $credentials['agentCode']) ? TRUE : FALSE;
       /* until iATS fixes it's box verify, we need to have trace on to make the hack below work */
       $soapClient = new SoapClient($this->_wsdl_url, array('trace' => 1,'soap_version' => SOAP_1_2));
       /* build the request manually as per the iATS docs */
       $xml = '<'.$message.' xmlns="'.$this->_wsdl_url_ns.'">';
-      $request = array_merge($this->request,(array) $credentials, (array) $request_params);
+      $request = array_merge($this->request, $credentials, $request_params);
       // Pass CiviCRM tag + version to iATS
       $request['comment'] = 'CiviCRM: ' . CRM_Utils_System::version() . ' + ' . 'iATS Extension: ' . $this->iats_extension_version();
       $tags = (!empty($this->_tag_order)) ? $this->_tag_order : array_keys($request);
@@ -172,16 +174,16 @@ Class iATS_Service_Request {
         }
       }
       $xml .= '</'.$message.'>';
-      if (!empty($this->options['log'])) {
+      if ($testAgentCode && !empty($this->options['debug'])) {
          watchdog('civicrm_iatspayments_com', 'Method info: !method', array('!method' => $method), WATCHDOG_NOTICE);
          watchdog('civicrm_iatspayments_com', 'XML: !xml', array('!xml' => $xml), WATCHDOG_NOTICE);
       }
       $soapRequest = new SoapVar($xml, XSD_ANYXML);
-      if (!empty($this->options['log'])) {
+      if ($testAgentCode && !empty($this->options['debug'])) {
          watchdog('civicrm_iatspayments_com', 'Request !request', array('!request' => print_r($soapRequest,TRUE)), WATCHDOG_NOTICE);
       }
       $soapResponse = $soapClient->$method($soapRequest);
-      if (!empty($this->options['log']) && !empty($this->options['debug'])) {
+      if (!empty($this->options['log']) && !empty($this->options['debug'])  && $testAgentCode) {
          $request_log = "\n HEADER:\n";
          $request_log .= $soapClient->__getLastRequestHeaders();
          $request_log .= "\n BODY:\n";
