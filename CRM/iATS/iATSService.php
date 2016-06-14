@@ -68,6 +68,7 @@ Class iATS_Service_Request {
     if (isset($options['currencyID'])) {
       $valid = FALSE;
       switch($iats_domain) {
+        case 'www2.iatspayments.com':
         case 'www.iatspayments.com':
            if (in_array($options['currencyID'], array('USD', 'CAD'))) {
              $valid = TRUE;
@@ -152,22 +153,12 @@ Class iATS_Service_Request {
         }
       }
       $xml .= '</'.$message.'>';
-      if (!empty($this->options['log'])) {
+      if (!empty($this->options['debug'])) {
          watchdog('civicrm_iatspayments_com', 'Method info: !method', array('!method' => $method), WATCHDOG_NOTICE);
-         watchdog('civicrm_iatspayments_com', 'XML: !xml', array('!xml' => $xml), WATCHDOG_NOTICE);
       }
       $soapRequest = new SoapVar($xml, XSD_ANYXML);
-      if (!empty($this->options['log'])) {
-         watchdog('civicrm_iatspayments_com', 'Request !request', array('!request' => print_r($soapRequest,TRUE)), WATCHDOG_NOTICE);
-      }
       $soapResponse = $soapClient->$method($soapRequest);
       if (!empty($this->options['log']) && !empty($this->options['debug'])) {
-         $request_log = "\n HEADER:\n";
-         $request_log .= $soapClient->__getLastRequestHeaders();
-         $request_log .= "\n BODY:\n";
-         $request_log .= $soapClient->__getLastRequest();
-         $request_log .= "\n BODYEND:\n";
-         watchdog('civicrm_iatspayments_com', 'Request: !request', array('!request' => '<pre>' . $request_log . '</pre>'), WATCHDOG_NOTICE);
          $response_log = "\n HEADER:\n";
          $response_log .= $soapClient->__getLastResponseHeaders();
          $response_log .= "\n BODY:\n";
