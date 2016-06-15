@@ -14,15 +14,15 @@
     <author>Alan Dixon</author>
     <email>iats@blackflysolutions.ca</email>
   </maintainer>
-  <releaseDate>2016-06-14</releaseDate>
-  <version>1.5.1</version>
+  <releaseDate>2016-06-15</releaseDate>
+  <version>1.5.2</version>
   <develStage>stable</develStage>
   <compatibility>
     <ver>4.4</ver>
     <ver>4.5</ver>
     <ver>4.6</ver>
   </compatibility>
-  <comments>This release (1.5.1) includes a security update and is strongly recommended for all installs.
+  <comments>This release (1.5.2) includes a security update and is strongly recommended for all installs.
 </comments>
   <civix>
     <namespace>CRM/iATS</namespace>

@@ -541,7 +541,12 @@ function _iats_civicrm_get_payment_processor_id($contribution_recur_id) {
   $params = array(
     'id' => $contribution_recur_id,
   );
-  $result = civicrm_api3('ContributionRecur', 'getsingle', $params);
+  try {
+    $result = civicrm_api3('ContributionRecur', 'getsingle', $params);
+  }
+  catch (CiviCRM_API3_Exception $e) {
+    return FALSE;
+  }
   if (empty($result['payment_processor_id'])) {
     return FALSE;
     // TODO: log error
@@ -555,10 +560,18 @@ function _iats_civicrm_get_payment_processor_id($contribution_recur_id) {
  * This function relies on our naming convention for the iats payment processor classes, staring with the string Payment_iATSService
  */
 function _iats_civicrm_is_iats($payment_processor_id) {
+  if (empty($payment_processor_id)) {
+    return FALSE;
+  }
   $params = array(
     'id' => $payment_processor_id,
   );
-  $result = civicrm_api3('PaymentProcessor', 'getsingle', $params);
+  try {
+    $result = civicrm_api3('PaymentProcessor', 'getsingle', $params);
+  }
+  catch (CiviCRM_API3_Exception $e) {
+    return FALSE;
+  } 
   if (empty($result['class_name'])) {
     return FALSE;
     // TODO: log error
