@@ -1217,7 +1217,9 @@ function _iats_process_contribution_payment(&$contribution, $options) {
       $contributionResult = civicrm_api3('contribution', 'completetransaction', $complete);
     }
     catch (Exception $e) {
-      throw new API_Exception('Failed to complete transaction: ' . $e->getMessage() . "\n" . $e->getTraceAsString());
+      // Don't throw an exception here, or else I won't have updated my next contribution date for example.
+      // throw new API_Exception('Failed to complete transaction: ' . $e->getMessage() . "\n" . $e->getTraceAsString());
+      $contribution['source'] .= ' [with unexpected api.completetransaction error: '. $e->getMessage().']';
     }
     // restore my source field that ipn irritatingly overwrites, and make sure that the trxn_id is set also
     civicrm_api3('contribution','setvalue', array('id' => $contribution_id, 'value' => $contribution['source'], 'field' => 'source'));
