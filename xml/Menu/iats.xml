@@ -15,7 +15,7 @@
     <path>civicrm/admin/contribute/iatssettings</path>
     <page_callback>CRM_iATS_Form_IatsSettings</page_callback>
     <title>iATS Payments Settings</title>
-    <access_arguments>access CiviContribute, administer CiviCRM</access_arguments>
+    <access_arguments>access CiviContribute,administer CiviCRM</access_arguments>
   </item>
   <item>
     <path>civicrm/contact/view/iatscustomerlink</path>
