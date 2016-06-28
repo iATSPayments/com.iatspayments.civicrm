@@ -265,28 +265,27 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
     $subtype = substr($dao->pp_class_name,19);
     $source = "iATS Payments $subtype Recurring Contribution (id=$contribution_recur_id)";
     $contribution['source'] = $source;
-    //$source = "iATS Payments $subtype Recurring Contribution (id=$contribution_recur_id)";
     // API (PaymentProcessor, pay) does not exist - Eileen must have her own
-   // $payment = civicrm_api3('PaymentProcessor', 'pay', array(
-   //   'amount' => $originalContribution['total_amount'],
-   //   'currency' => $originalContribution['currency'],
-   //   'payment_processor_id' => $paymentProcessorID,
-   //   'contributionID' => $pending['id'],
-   //   'contactID' => $originalContribution['contact_id'],
-   //   'description' => ts('Repeat payment, original was ' . $originalContribution['id']),
-   //   'token' => $dao->customer_code,
-      // iATS tokens are still in the civicrm_iats_customer_codes table
-      // 'token' => civicrm_api3('PaymentToken', 'getvalue', array(
-      //   'id' => $recurringPayment['payment_token_id'],
-      //   'return' => 'token',
-      // )),
-   // ));
-    // can not happen here - move down
-   // civicrm_api3('Contribution', 'completetransaction', array(
-   //   'id' => $pending['id'],
-   //   'trxn_id' => $payment['trxn_id'],
-   // ));
-   // $result['success']['ids'] = $contribution_recur_id;
+    // $payment = civicrm_api3('PaymentProcessor', 'pay', array(
+    //   'amount' => $originalContribution['total_amount'],
+    //   'currency' => $originalContribution['currency'],
+    //   'payment_processor_id' => $paymentProcessorID,
+    //   'contributionID' => $pending['id'],
+    //   'contactID' => $originalContribution['contact_id'],
+    //   'description' => ts('Repeat payment, original was ' . $originalContribution['id']),
+    //   'token' => $dao->customer_code,
+    // iATS tokens are still in the civicrm_iats_customer_codes table
+    //   'token' => civicrm_api3('PaymentToken', 'getvalue', array(
+    //     'id' => $recurringPayment['payment_token_id'],
+    //     'return' => 'token',
+    //    )),
+    // ));
+    // KG Eileen does this here - we do this in iats.php
+    // civicrm_api3('Contribution', 'completetransaction', array(
+    //   'id' => $pending['id'],
+    //   'trxn_id' => $payment['trxn_id'],
+    // ));
+    // $result['success']['ids'] = $contribution_recur_id;
     // </KG>
 
     $get_from_template = array('contribution_campaign_id','amount_level');
