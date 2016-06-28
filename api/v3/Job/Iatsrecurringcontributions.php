@@ -198,7 +198,7 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
   $failure_report_text = '';
   while ($dao->fetch()) {
 
-    // KG re-attempt to use repeattransaction instead of completetransacion.
+    // KG re-attempt to use repeattransaction instead of completetransaction.
 
     // Strategy: create the contribution record with status = 2 (= pending), try the payment, and update the status to 1 if successful
     // Try to get a contribution template for this contribution series - if none matches (e.g. if a donation amount has been changed), we'll just be naive about it.
@@ -242,6 +242,47 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
       'payment_processor'   => $dao->payment_processor_id,
       'is_test'        => $dao->is_test, /* propagate the is_test value from the parent contribution */
     );
+
+    // <KG>
+    $paymentProcessorID = $dao->payment_processor_id;
+    $originalContribution = civicrm_api3('Contribution', 'getsingle', array(
+      'contribution_recur_id' => $contribution_recur_id,
+      'options' => array('limit' => 1),
+      'is_test' => CRM_Utils_Array::value('is_test', $dao->is_test),
+      'contribution_test' => CRM_Utils_Array::value('is_test', $dao->is_test),
+    ));
+    $result[$contribution_recur_id]['original_contribution'] = $originalContribution;
+    $pending = civicrm_api3('Contribution', 'repeattransaction', array(
+      'original_contribution_id' => $originalContribution['id'],
+      'contribution_status_id' => 'Pending',
+      'payment_processor_id' => $paymentProcessorID,
+    ));
+    // KG - restructure to what the _iats_process_contribution_payment is expecting:
+    $contribution = $pending['values'][$pending['id']];
+    $contribution['payment_processor']  = $dao->payment_processor_id;
+    // API (PaymentProcessor, pay) does not exist - Eileen must have her own
+   // $payment = civicrm_api3('PaymentProcessor', 'pay', array(
+   //   'amount' => $originalContribution['total_amount'],
+   //   'currency' => $originalContribution['currency'],
+   //   'payment_processor_id' => $paymentProcessorID,
+   //   'contributionID' => $pending['id'],
+   //   'contactID' => $originalContribution['contact_id'],
+   //   'description' => ts('Repeat payment, original was ' . $originalContribution['id']),
+   //   'token' => $dao->customer_code,
+      // iATS tokens are still in the civicrm_iats_customer_codes table
+      // 'token' => civicrm_api3('PaymentToken', 'getvalue', array(
+      //   'id' => $recurringPayment['payment_token_id'],
+      //   'return' => 'token',
+      // )),
+   // ));
+    // can not happen here - move down
+   // civicrm_api3('Contribution', 'completetransaction', array(
+   //   'id' => $pending['id'],
+   //   'trxn_id' => $payment['trxn_id'],
+   // ));
+   // $result['success']['ids'] = $contribution_recur_id;
+    // </KG>
+
     $get_from_template = array('contribution_campaign_id','amount_level');
     foreach($get_from_template as $field) {
       if (isset($contribution_template[$field])) {
@@ -254,10 +295,13 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
     else { // 4.3+
        $contribution['financial_type_id'] = $dao->financial_type_id;
     }
-    if (!empty($contribution_template['line_items'])) {
-      $contribution['skipLineItem'] = 1;
-      $contribution[ 'api.line_item.create'] = $contribution_template['line_items'];
-    }
+    // <KG> repeattransaction is going to create the LineItems: if I leave this in we get:
+    // Error in call to LineItem_create : DB Error: already exists
+    //if (!empty($contribution_template['line_items'])) {
+    //  $contribution['skipLineItem'] = 1;
+    //  $contribution[ 'api.line_item.create'] = $contribution_template['line_items'];
+    //}
+    // </KG>
     if (count($errors)) {
       ++$error_count;
       ++$counter;
@@ -318,7 +362,7 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
       }
     }
 
-    /* calculate the next collection date, based on the recieve date (note effect of catchup mode, above)  */
+    /* calculate the next collection date, based on the receive date (note effect of catchup mode, above)  */
     $next_collection_date = date('Y-m-d H:i:s', strtotime("+$dao->frequency_interval $dao->frequency_unit", $receive_ts));
     /* by default, advance to the next schduled date and set the failure count back to 0 */
     $contribution_recur_set = array('version' => 3, 'id' => $contribution['contribution_recur_id'], 'failure_count' => '0', 'next_sched_contribution_date' => $next_collection_date);
