@@ -198,7 +198,7 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
   $failure_report_text = '';
   while ($dao->fetch()) {
 
-    // KG re-attempt to use repeattransaction instead of completetransaction.
+    // KG re-attempt to use repeattransaction instead
 
     // Strategy: create the contribution record with status = 2 (= pending), try the payment, and update the status to 1 if successful
     // Try to get a contribution template for this contribution series - if none matches (e.g. if a donation amount has been changed), we'll just be naive about it.
