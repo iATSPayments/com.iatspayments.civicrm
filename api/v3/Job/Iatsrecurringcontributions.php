@@ -259,7 +259,13 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
     ));
     // KG - restructure to what the _iats_process_contribution_payment is expecting:
     $contribution = $pending['values'][$pending['id']];
+    // KG - add payment_processor to the array returned from repeattransaction
     $contribution['payment_processor']  = $dao->payment_processor_id;
+    // KG - overwrite the source field that is returned from repeattransaction - iats like:
+    $subtype = substr($dao->pp_class_name,19);
+    $source = "iATS Payments $subtype Recurring Contribution (id=$contribution_recur_id)";
+    $contribution['source'] = $source;
+    //$source = "iATS Payments $subtype Recurring Contribution (id=$contribution_recur_id)";
     // API (PaymentProcessor, pay) does not exist - Eileen must have her own
    // $payment = civicrm_api3('PaymentProcessor', 'pay', array(
    //   'amount' => $originalContribution['total_amount'],
@@ -324,6 +330,7 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
         'subtype' => $subtype,
       );
       // if our template contribution is a membership payment, make this one also
+      // KG - Perhaps repeattransaction already does this too
       if ($domemberships && !empty($contribution_template['contribution_id'])) {
         try {
           $membership_payment = civicrm_api('MembershipPayment','getsingle', array('version' => 3, 'contribution_id' => $contribution_template['contribution_id']));
@@ -338,7 +345,7 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
       // so far so, good ... now create the pending contribution, and save its id
       // and then try to get the money, and do one of:
       // update the contribution to failed, leave as pending for server failure, complete the transaction, or update a pending ach/eft with it's transaction id
-      $result = _iats_process_contribution_payment($contribution,$options);
+      $result = _iats_process_contribution_payment($contribution, $options);
       if ($email_failure_report && $contribution['iats_reject_code']) {
         $failure_report_text .= "\n $result ";
       }
