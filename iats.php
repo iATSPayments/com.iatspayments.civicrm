@@ -446,6 +446,7 @@ function iats_civicrm_pre($op, $objectName, $objectId, &$params) {
           // for civi version before 4.6.6, we had to force the status to 1
           if ((2 == $params['contribution_status_id'])
             && !empty($params['contribution_recur_id'])
+            && !empty($params['trxn_id'])
             && (max($allow_days) <= 0)
             && (version_compare($version, '4.6.6') < 0)
           ) {
@@ -1211,7 +1212,7 @@ function _iats_process_contribution_payment(&$contribution, $options) {
   elseif ($contribution_status_id == 1) {
     /* success, done */
     $trxn_id = trim($result['remote_id']) . ':' . time();
-    $complete = array('id' => $contribution_id, 'trxn_id' => $trxn_id, 'receive_date' => $receive_date);
+    $complete = array('id' => $contribution_id, 'trxn_id' => $trxn_id, 'receive_date' => $contribution['receive_date']);
     $complete['is_email_receipt'] = empty($options['is_email_receipt']) ? 0 : 1;
     try {
       $contributionResult = civicrm_api3('contribution', 'completetransaction', $complete);
