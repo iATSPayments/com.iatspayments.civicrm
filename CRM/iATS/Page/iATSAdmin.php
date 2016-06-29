@@ -7,7 +7,11 @@ require_once 'CRM/Core/Page.php';
 
 class CRM_iATS_Page_iATSAdmin extends CRM_Core_Page {
   function run() {
+    // reset the saved version of the extension
+    require_once('CRM/iATS/iATSService.php');
+    $iats_extension_version = iATS_Service_Request::iats_extension_version(1); 
     // the current time
+    $this->assign('currentVersion', $iats_extension_version);
     $this->assign('currentTime', date('Y-m-d H:i:s'));
     $this->assign('jobLastRunWarning', '0');
     // check if I've got any recurring contributions setup. In theory I should only worry about iATS, but it's a problem regardless ..

@@ -721,10 +721,10 @@ Class iATS_Service_Request {
     return 'https://' . $iats_domain . self::iATS_URL_DPMPROCESS;
   }
 
-  public static function iats_extension_version() {
-    $version = CRM_Core_BAO_Setting::getItem('iATS Payments Extension', 'iats_extension_version');
+  public static function iats_extension_version($reset = 0) {
+    $version = $reset ? '' : CRM_Core_BAO_Setting::getItem('iATS Payments Extension', 'iats_extension_version');
     if (empty($version)) {
-      $xmlfile = CRM_Core_Resources::singleton()->getUrl('com.iatspayments.civicrm','info.xml');
+      $xmlfile = CRM_Core_Resources::singleton()->getPath('com.iatspayments.civicrm','info.xml');
       $myxml = simplexml_load_file($xmlfile);
       $version = (string)$myxml->version;
       CRM_Core_BAO_Setting::setItem($version, 'iATS Payments Extension', 'iats_extension_version');

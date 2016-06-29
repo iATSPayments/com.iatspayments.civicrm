@@ -1,6 +1,7 @@
 {if $jobLastRunWarning == 1}
   <h3>{if $jobOverdue != ''}{ts}Warning!{/ts}{else}{ts}Cron Running{/ts}{/if}</h3>
   <p>The current time is {$currentTime}</p>
+  <p>Your iATS Payments extension version is {$currentVersion}</p>
   <p>{ts 1=$jobLastRun}Your iATS Payments cron last ran at %1.{/ts}</p>
   <p>{if $jobOverdue != ''}<strong style="font-size: 120%">{ts}Your recurring contributions for iATS Payments requires a correctly setup and functioning cron job that runs daily. You need to take action now.{/ts}</strong>{else}{ts}It's all good.{/ts}{/if}</p>
 {/if}
