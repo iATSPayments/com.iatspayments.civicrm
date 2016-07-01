@@ -380,7 +380,7 @@ class iATS_Service_Request {
           // Now the method specific headers.
           switch ($method) {
             case 'cc_journal_csv':
-              $transation->data = $data; // full details in case it's a new one
+              $transaction->data = $data; // full details in case it's a new one
             case 'acheft_journal_csv':
               $datetime = $data[$headers['Date']];
               $transaction->invoice = $data[$headers['Invoice']];
