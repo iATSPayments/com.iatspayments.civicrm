@@ -364,7 +364,7 @@ class iATS_Service_Request {
     }
     if (is_object($response)) {
       $box = preg_split("/\r\n|\n|\r/", $this->file($response));
-      // watchdog('civicrm_iatspayments_com', 'data: <pre>!data</pre>', array('!data' => print_r($box,TRUE)), WATCHDOG_NOTICE);.
+      // watchdog('civicrm_iatspayments_com', 'csv: <pre>!data</pre>', array('!data' => print_r($box,TRUE)), WATCHDOG_NOTICE);.
       if (1 < count($box)) {
         // Data is an array of rows, the first of which is the column headers.
         $headers = array_flip(array_map('trim',str_getcsv($box[0])));
@@ -379,6 +379,8 @@ class iATS_Service_Request {
           $transaction->customer_code = $data[$headers['Customer Code']];
           // Now the method specific headers.
           switch ($method) {
+            case 'cc_journal_csv':
+              $transation->data = $data; // full details in case it's a new one
             case 'acheft_journal_csv':
               $datetime = $data[$headers['Date']];
               $transaction->invoice = $data[$headers['Invoice']];
@@ -393,7 +395,7 @@ class iATS_Service_Request {
               break;
           }
           // And now the uk dd specific hack, only for the box journals.
-          if ('www.uk.iatspayments.com' == $iats_domain && 'acheft_journal_csv' != $method) {
+          if ('www.uk.iatspayments.com' == $iats_domain && 'acheft_journal_csv' != $method && 'cc_journal_csv' != $method) {
             $transaction->achref = $data[$headers['ACH Ref.']];
           }
           // Note that date_format depends on the server (iats_domain)
