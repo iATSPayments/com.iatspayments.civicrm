@@ -206,6 +206,14 @@ function _iats_civicrm_domain_info($key) {
 
 /* START utility functions to allow this extension to work with different civicrm version */
 
+/*
+ * Does this version of Civi implement repeattransaction well?
+ */
+function _iats_civicrm_use_repeattransaction() {
+  $version = CRM_Utils_System::version();
+  return (version_compare($version, '4.7.9') < 0) ? FALSE : TRUE;
+}
+
 /**
  * Get the name of the next scheduled contribution date field, (not necessary since 4.4)
  */
@@ -515,7 +523,7 @@ function iats_civicrm_pre($op, $objectName, $objectId, &$params) {
   // if I've set fixed monthly recurring dates, force any iats (non uk dd) recurring contribution schedule records to comply
   // it's a bit draconian, and you likely want to give administrators the ability to modify these schedules
   // this is separate from the above because I want to deal with both create and edit possibilities
-  if (('ContributionRecur' == $objectName) && ('create' == $op || 'edit' == $op))  {
+  if (('ContributionRecur' == $objectName) && ('create' == $op || 'edit' == $op) && !empty($params['payment_processor_id'])) {
     if ($type = _iats_civicrm_is_iats($params['payment_processor_id'])) {
       if ($type != 'iATSServiceUKDD' && !empty($params['next_sched_contribution_date'])) {
         $settings = CRM_Core_BAO_Setting::getItem('iATS Payments Extension', 'iats_settings');
@@ -1151,7 +1159,7 @@ function _iats_contributionrecur_next($from_time, $allow_mdays) {
 /*
  * function _iats_contribution_payment
  *
- * @param $contribution
+ * @param $contribution an array of a contribution to be created
  * @param $options must include customer code, subtype and iats_domain, may include a membership id
  *
  * A high-level utility function for making a contribution payment from an existing recurring schedule
@@ -1159,10 +1167,33 @@ function _iats_contributionrecur_next($from_time, $allow_mdays) {
  */
 function _iats_process_contribution_payment(&$contribution, $options) {
   // first create the pending contribution, and save its id
-  $contributionResult = civicrm_api3('contribution','create', $contribution);
-  $contribution_id = CRM_Utils_Array::value('id', $contributionResult);
+  // we'll first try to use the repeattransaction api if we trust it, otherwise just create it naively
+  $contribution_id = NULL;
+  $used_repeattransaction = FALSE;
+  if (_iats_civicrm_use_repeattransaction()) {
+    try {
+     $pending = civicrm_api3('Contribution', 'repeattransaction', array(
+        'contribution_status_id' => $contribution['contribution_status_id'],
+        'receive_date' => $contribution['receive_date'],
+        //'campaign_id' => $contribution['campaign_id'],
+        //'financial_type_id' => $contribution['financial_type_id'],
+        'payment_processor_id' => $contribution['payment_processor'],
+        'contribution_recur_id' => $contribution['contribution_recur_id']
+      )); 
+      // watchdog('iats_civicrm','repeat transaction result <pre>@params</pre>',array('@params' => print_r($pending,TRUE)));
+      $contribution_id = $pending['contribution_id'];
+      $used_repeattransaction = TRUE;
+    } 
+    catch (Exception $e) {
+      // give up
+    }
+  }
+  if (empty($contribution_id)) { // repeattransaction isn't working or didn't work above
+    $contributionResult = civicrm_api3('contribution','create', $contribution);
+    $contribution_id = CRM_Utils_Array::value('id', $contributionResult);
+  }
   // connect to a membership if requested
-  if (!empty($options['membership_id'])) {
+  if (!$used_repeattransaction && !empty($options['membership_id'])) {
     try {
       civicrm_api3('MembershipPayment','create', array('contribution_id' => $contribution_id, 'membership_id' => $options['membership_id']));
     }
@@ -1197,6 +1228,7 @@ function _iats_process_contribution_payment(&$contribution, $options) {
   $response = $iats->request($credentials,$request);
   // process the soap response into a readable result
   $result = $iats->result($response);
+  $contribution['id'] = $contribution_id; // pass this back indirectly since I'm calling by reference
   if (empty($result['status'])) { // a failure of some kind
     /* update the contribution record in civicrm  */
     /* with the failed transaction status or pending if I had a server issue */
@@ -1225,11 +1257,11 @@ function _iats_process_contribution_payment(&$contribution, $options) {
     // restore my source field that ipn irritatingly overwrites, and make sure that the trxn_id is set also
     civicrm_api3('contribution','setvalue', array('id' => $contribution_id, 'value' => $contribution['source'], 'field' => 'source'));
     civicrm_api3('contribution','setvalue', array('id' => $contribution_id, 'value' => $trxn_id, 'field' => 'trxn_id'));
-    return ts('Successfully processed recurring contribution id %1: ', array(1 => $contribution['contribution_recur_id'])).$result['auth_result'];
+    return ts('Successfully processed recurring contribution in series id %1: ', array(1 => $contribution['contribution_recur_id'])).$result['auth_result'];
   }
   else { // success, but just update the transaction id, wait for completion
     $complete = array('id' => $contribution_id, 'trxn_id' => trim($result['remote_id']) . ':' . time());
     $contributionResult = civicrm_api3('contribution', 'create', $complete);
-    return ts('Successfully processed pending recurring contribution id %1: ', array(1 => $contribution_recur_id)).$result['auth_result'];
+    return ts('Successfully processed pending recurring contribution in series id %1: ', array(1 => $contribution['contribution_recur_id'])).$result['auth_result'];
   }
 }
