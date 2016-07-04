@@ -386,9 +386,10 @@ class iATS_Service_Request {
               $transaction->invoice = $data[$headers['Invoice']];
               $transaction->amount = $data[$headers['Total']];
               break;
-
             // The box journals.
-            default:
+            case 'cc_payment_box_journal_csv':
+              $transaction->data = $data; // full details in case it's a new one
+            default: // the box journals
               $transaction->amount = $data[$headers['Amount']];
               $datetime = $data[$headers['Date Time']];
               $transaction->invoice = $data[$headers['Invoice Number']];
@@ -479,6 +480,20 @@ class iATS_Service_Request {
             'method' => 'GetCreditCardApprovedSpecificDateCSV',
             'message' => 'GetCreditCardApprovedSpecificDateCSV',
             'response' => 'GetCreditCardApprovedSpecificDateCSVResult',
+          ),
+          'cc_payment_box_journal_csv' => array(
+            'title' => 'Credit Card Payment Box Journal CSV',
+            'description'=> $desc. 'GetCreditCardApprovedDateRangeCSV',
+            'method' => 'GetCreditCardApprovedDateRangeCSV',
+            'message' => 'GetCreditCardApprovedDateRangeCSV',
+            'response' => 'GetCreditCardApprovedDateRangeCSVResult',
+          ),
+          'cc_payment_box_reject_csv' => array(
+            'title' => 'Credit Card Payment Box Reject CSV',
+            'description'=> $desc. 'GetCreditCardRejectDateRangeCSV',
+            'method' => 'GetCreditCardRejectDateRangeCSV',
+            'message' => 'GetCreditCardRejectDateRangeCSV',
+            'response' => 'GetCreditCardRejectDateRangeCSVResult',
           ),
           'acheft_journal_csv' => array(
             'title' => 'ACH-EFT Journal CSV',
