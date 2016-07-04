@@ -335,7 +335,7 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
         'version'       => 3,
         'activity_type_id'  => 6,
         'source_contact_id'   => $contact_id,
-        'source_record_id' => CRM_Utils_Array::value('id', $contributionResult),
+        'source_record_id' => $contribution['id'],
         'assignee_contact_id' => $contact_id,
         'subject'       => "Attempted iATS Payments $subtype Recurring Contribution for " . $total_amount,
         'status_id'       => 2,
