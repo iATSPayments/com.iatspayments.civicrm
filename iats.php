@@ -1258,6 +1258,7 @@ function _iats_contributionrecur_next($from_time, $allow_mdays) {
  *
  * @param $contribution an array of a contribution to be created
  * @param $options must include customer code, subtype and iats_domain, may include a membership id
+ * @param $transaction_result if included, it's the result of a previous iats transaction request
  *
  *   A high-level utility function for making a contribution payment from an existing recurring schedule
  *   Used in the Iatsrecurringcontributions.php job and the one-time ('card on file') form.
