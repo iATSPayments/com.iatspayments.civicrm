@@ -170,7 +170,7 @@ Class iATS_Service_Request {
       $tags = (!empty($this->_tag_order)) ? $this->_tag_order : array_keys($request);
       foreach($tags as $k) {
         if (isset($request[$k])) {
-          $xml .= '<'.$k.'>'.$request[$k].'</'.$k.'>';
+          $xml .= '<'.$k.'>'. htmlspecialchars($request[$k], ENT_XML1, 'UTF-8') .'</'.$k.'>';
         }
       }
       $xml .= '</'.$message.'>';
