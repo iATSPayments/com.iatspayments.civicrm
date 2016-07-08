@@ -454,7 +454,6 @@ function iats_civicrm_pre($op, $objectName, $objectId, &$params) {
           // for civi version before 4.6.6, we had to force the status to 1
           if ((2 == $params['contribution_status_id'])
             && !empty($params['contribution_recur_id'])
-            && !empty($params['trxn_id'])
             && (max($allow_days) <= 0)
             && (version_compare($version, '4.6.6') < 0)
           ) {
