@@ -293,7 +293,8 @@ Class iATS_Service_Request {
       );
       CRM_Core_DAO::executeQuery("INSERT INTO civicrm_iats_response_log
         (invoice_num, auth_result, remote_id, response_datetime) VALUES (%1, %2, %3, NOW())", $query_params);
-      // fix core!!!
+      // #hack - this is necessary for 4.4 and possibly earlier versions of 4.6.x
+      // this ensures that trxn_id gets written to the contribution record - even if core did not do so 
       if ($this->options['method'] == 'cc_with_customer_code') {
         $api_params = array(
           'version' => 3,
