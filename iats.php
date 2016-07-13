@@ -603,6 +603,12 @@ function iats_civicrm_processors($processors, $subtype = '', $params = array()) 
   if (!$match_all) {
     $params['class_name'] = 'Payment_iATSService'. $subtype;
   }
+
+  // Set the domain id if not passed in.
+  if (!array_key_exists('domain_id', $params)) {
+    $params['domain_id']    = CRM_Core_Config::domainID();
+  }
+
   $result = civicrm_api3('PaymentProcessor', 'get', $params);
   if (0 == $result['is_error'] && count($result['values']) > 0) {
     foreach($result['values'] as $paymentProcessor) {
