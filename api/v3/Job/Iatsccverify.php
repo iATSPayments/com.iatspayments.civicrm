@@ -28,6 +28,12 @@ function _civicrm_api3_job_iatsccverify_spec(&$spec) {
     'api.required' => 0,
     'type' => 1,
   );
+  $spec['reverify'] = array(
+    'name' => 'reverify',
+    'title' => 'Reverify contributions',
+    'api.required' => 0,
+    'type' => 1,
+  );
 }
 
 /**
@@ -49,6 +55,7 @@ function _civicrm_api3_job_iatsccverify_spec(&$spec) {
 function civicrm_api3_job_iatsccverify($params) {
 
   /* get a list of all active/non-test iATS payment processors of type cc, quit if there are none */
+  /* We'll make sure they are unique from iATS point of view (i.e. distinct agent codes = usern_name) */
   try {
     $result = civicrm_api3('PaymentProcessor', 'get', array(
       'sequential' => 1,
@@ -73,16 +80,16 @@ function civicrm_api3_job_iatsccverify($params) {
   // invoice id is not yet sanitized
   $invoice_id = empty($params['invoice_id']) ? '' : trim($params['invoice_id']);
   unset($params['invoice_id']);
+  $reverify = empty($params['reverify']) ? FALSE : TRUE;
+  unset($params['reverify']);
+  // Only do a full scan if I'm not verifying a specific contribution
+  // TODO: handling these one-offs at all ...
   $scan_all = (!$recur_id && !$contribution_id && !$invoice_id);
   // $iats_service_params = $params;  // what's left is assumed as parameters to pass the iats service object
   // get the settings: TODO allow more detailed configuration of which transactions to import
   $settings = CRM_Core_BAO_Setting::getItem('iATS Payments Extension', 'iats_settings');
-  $found = array('update' => array(), 'match' => array());
   foreach(array('quick', 'recur', 'series') as $setting) {
     $import[$setting] = empty($settings['import_'.$setting]) ? 0 : 1;
-    if ($import[$setting]) {
-      $found[$setting] = array();
-    }
   }
   $receipt_recurring = empty($settings['receipt_recurring']) ? 0 : 1;
   $domemberships = empty($params['ignoremembership']);
@@ -153,10 +160,24 @@ function civicrm_api3_job_iatsccverify($params) {
       // watchdog('civicrm_iatspayments_com', "key: $key, time: $time, trxn: ".$dao->trxn_id);
       $cc_civicrm['quick'][$key] = array('id' => $dao->id, 'contact_id' => $dao->contact_id, 'contribution_recur_id' => 0, 'contribution_status_id' => $dao->contribution_status_id, 'invoice_id' => $dao->invoice_id);
     }
+  } 
+  $verified = array();
+  if (!$reverify) { // get a list of all my recent verifications so I don't have to look them up again.
+    $select = 'SELECT *
+      FROM civicrm_iats_verify
+      WHERE
+        verify_datetime > %1
+        AND NOT(ISNULL(auth_result))'
+    $args = array(
+      1 => array(date('c',strtotime('-'.$civicrm_verify_days.' days')), 'String')
+    );
+    $dao = CRM_Core_DAO::executeQuery($select,$args);
+    while ($dao->fetch()) {
+      $verified[$dao->auth_result] = array('contribution_id' => $dao->contribution_id, 'contribution_status_id' => $dao->contribution_status_id);
+    }
     // watchdog('civicrm_iatspayments_com', 'cc_civicrm: <pre>!cc</pre>', array('!cc' => print_r($cc_civicrm,TRUE)), WATCHDOG_NOTICE);
     // watchdog('civicrm_iatspayments_com', 'contribution_recur: <pre>!cc</pre>', array('!cc' => print_r($contribution_recur,TRUE)), WATCHDOG_NOTICE);
-  } 
-
+  }
   //if (empty(count($cc_pending))) {
   //  return civicrm_api3_create_success(ts('No pending records found to process.'));
   //}
@@ -167,12 +188,20 @@ function civicrm_api3_job_iatsccverify($params) {
   // $process_methods = array('cc_journal_csv' => 1);
   /* initialize some values so I can report at the end */
   $error_count = 0;
-  // count the number of each record from iats analysed, and the number of each kind found
-  $processed = array_fill_keys(array_keys($process_methods),0);
+  // count the number of records from each iats account analysed, and the number of each kind found ('action')
+  $processed = array(); // array_fill_keys(array_keys($process_methods),0);
+  // $action = array(); // array('ignore' => array(), 'update' => array(), 'match' => array(), 'quick' => array(), 'recur' => array(), 'series' => array());
   // save all my api result messages as well
   $output = array();
   // watchdog('civicrm_iatspayments_com', 'pending: <pre>!pending</pre>', array('!pending' => print_r($iats_cc_recur_pending,TRUE)), WATCHDOG_NOTICE);
   foreach($payment_processors as $payment_processor) {
+    /* if I've already processed this account via a different payment processor (e.g. swipe), then don't do it again */
+    $user_name = $payment_processor['user_name'];
+    if (isset($processed[$user_name])) continue;
+    $processed[$user_name] = array();
+    foreach(array_keys($process_methods) as $method) {
+      $processed[$user_name][$method] = array('ignore' => array(), 'update' => array(), 'match' => array(), 'quick' => array(), 'recur' => array(), 'series' => array());
+    }
     $subtype = substr($payment_processor['class_name'],19);
     // watchdog('civicrm_iatspayments_com', 'pp: <pre>!pp</pre>', array('!pp' => print_r($payment_processor,TRUE)), WATCHDOG_NOTICE);
     /* get approvals from yesterday, approvals from previous days, and then rejections for this payment processor */
@@ -203,9 +232,13 @@ function civicrm_api3_job_iatsccverify($params) {
       $response = $iats->request($credentials,$request);
       // watchdog('civicrm_iatspayments_com', 'response: <pre>!response</pre>', array('!trans' => print_r($response,TRUE)), WATCHDOG_NOTICE);
       $transactions = $iats->getCSV($response, $method);
-      $processed[$method]+= count($transactions);
       // watchdog('civicrm_iatspayments_com', 'transactions: <pre>!trans</pre>', array('!trans' => print_r($transactions,TRUE)), WATCHDOG_NOTICE);
       foreach($transactions as $transaction_id => $transaction) {
+        if (isset($verified[$transaction])) {
+          $processed[$user_name][$method]['ignored'][] = $transaction_id;
+          continue;
+        }
+    
         $cr = array(); // matching corresponding recurring contribution record
         $trxn_id = $transaction_id.':'.time();
         $is_quick = ('quick client' == strtolower($transaction->customer_code)) || empty($transaction->customer_code);
@@ -220,10 +253,10 @@ function civicrm_api3_job_iatsccverify($params) {
           if ($contribution_status_id == $contribution['contribution_status_id']) { // just count it
             // watchdog('civicrm_iatspayments_com', 'ignore matched existing transaction: <pre>!data</pre>', array('!data' => print_r($contribution,TRUE)), WATCHDOG_NOTICE);
             $contribution = array();
-            $found['match'][] = $transaction_id;
+            $processed[$user_name][$method]['match'][] = $transaction_id;
           }
           else {
-            $found['update'][] = $transaction_id;
+            $processed[$user_name][$method]['update'][] = $transaction_id;
             // watchdog('civicrm_iatspayments_com', 'change status of id !id: !from to !to', array('!id' => $contribution['id'], '!from' => $contribution['contribution_status_id'], '!to' => $contribution_status_id));
             // modifying a contribution status to complete or failed needs some extra bookkeeping
             // note that I'm updating the timestamp portion of the transaction id here, since this might be useful at some point
@@ -276,14 +309,14 @@ function civicrm_api3_job_iatsccverify($params) {
         elseif (!$is_quick) {
           // it's a (possibly) new recurring contribution triggered from iATS
           if (!isset($cc_civicrm[$customer_code])) {
-            $found['series'][] = $transaction_id;
+            $processed[$user_name][$method]['series'][] = $transaction_id;
             if ($import['series']) { 
               // TODO: create a new series
             }
           }
           // only deal with this if I aleady had this customer code on file or if I've created one above
           if (isset($cc_civicrm[$customer_code])) { 
-            $found['recur'][] = $transaction_id; // found a new entry tied to an existing customer code [i.e. recurring series]
+            $processed[$user_name][$method]['recur'][] = $transaction_id;
             if ($import['recur']) {
               // save my contribution in civicrm
               // first find my matching recurring contribution object
@@ -361,8 +394,8 @@ function civicrm_api3_job_iatsccverify($params) {
             }
           }
         }
-        else { // it's a new/unrecognized quick contribution - i.e. via some other system
-          $found['quick'][] = $transaction_id;
+        else { // it's a new unrecognized quick contribution - i.e. via some other system
+          $processed[$user_name][$method]['action'][] = $transaction_id;
           if ($import['quick']) { 
             // find and/or create the contact
             // watchdog('civicrm_iatspayments_com', 'ignore new transaction: <pre>!found</pre>', array('!found' => print_r($transaction->data,TRUE)), WATCHDOG_NOTICE);
@@ -385,6 +418,15 @@ function civicrm_api3_job_iatsccverify($params) {
             ); */
           }
         }
+        // always log the verification to my cutom civicrm table so I don't redo it
+        // watchdog('civicrm_iatspayments_com', 'contribution: <pre>!contribution</pre>', array('!contribution' => print_r($query_params,TRUE)), WATCHDOG_NOTICE);
+        try {
+          $params = array('transaction_id' => $transaction_id, 'customer_code' => $customer_code, 'contribution' => $contribution);
+          civicrm_api3('IatsPayments', 'verifylog', $params);
+        }
+        catch (CiviCRM_API3_Exception $e) {
+          // ignore
+        }
         if (!empty($contribution)) {
           $subject_string = empty($contribution['id']) ? 'Found new iATS Payments CC contribution for contact id %3' : '%1 iATS Payments CC contribution id %2 for contact id %3';
           $subject = ts($subject_string,
@@ -393,44 +435,39 @@ function civicrm_api3_job_iatsccverify($params) {
                 2 => ((empty($contribution['id'])) ? '' : $contribution['id']),
                 3 => $contribution['contact_id'],
               ));
-          $result = civicrm_api('activity', 'create', array(
-            'version'       => 3,
-            'activity_type_id'  => 6, // 6 = contribution
-            'source_contact_id'   => $contribution['contact_id'],
-            'assignee_contact_id' => $contribution['contact_id'],
-            'subject'       => $subject,
-            'status_id'       => 2, // TODO: what should this be?
-            'activity_date_time'  => date("YmdHis"),
-          ));
-          if ($result['is_error']) {
-            $output[] = ts(
-              'An error occurred while creating activity record for contact id %1: %2',
-              array(
-                1 => $contribution['contact_id'],
-                2 => $result['error_message']
-              )
-            );
-            ++$error_count;
-          }
-          else {
+          try {
+            $result = civicrm_api3('activity', 'create', array(
+              'activity_type_id'  => 6, // 6 = contribution
+              'source_contact_id'   => $contribution['contact_id'],
+              'assignee_contact_id' => $contribution['contact_id'],
+              'subject'       => $subject,
+              'status_id'       => 2, // TODO: what should this be?
+              'activity_date_time'  => date("YmdHis"),
+            ));
             $output[] = $subject;
+          }
+          catch (CiviCRM_API3_Exception $e) {
+            ++$error_count;
+            // ignore
           }
         }
         // otherwise ignore it
       }
     }
   }
-  watchdog('civicrm_iatspayments_com', 'found: <pre>!found</pre>', array('!found' => print_r($found,TRUE)), WATCHDOG_NOTICE);
+  watchdog('civicrm_iatspayments_com', 'found: <pre>!found</pre>', array('!found' => print_r($processed,TRUE)), WATCHDOG_NOTICE);
   $message = '<br />'. ts('Completed with %1 errors.',
     array(
       1 => $error_count,
     )
   );
-  $message .= '<br />'. ts('Processed %1 approvals from today, %2 approval and %3 rejection records from the previous '.IATS_CC_VERIFY_DAYS.' days.',
+  foreach($processed as $user_name => $p) {
+    $message .= '<br />'. ts('For account %4, processed %1 approvals from today, and %2 approval and %3 rejection records from the previous '.IATS_CC_VERIFY_DAYS.' days.',
     array(
-      1 => $processed['cc_journal_csv'],
-      2 => $processed['cc_payment_box_journal_csv'],
-      3 => $processed['cc_payment_box_reject_csv'],
+      1 => $p['cc_journal_csv'],
+      2 => $p['cc_payment_box_journal_csv'],
+      3 => $p['cc_payment_box_reject_csv'],
+      4 => $user_name,
     )
   );
   // If errors ..
@@ -439,15 +476,17 @@ function civicrm_api3_job_iatsccverify($params) {
   }
   // If no errors and some records processed ..
   if (array_sum($processed) > 0) {
-    if (count($cc_civicrm) > 0) {
-      $message .= '<br />'. ts('%1 existing CiviCRM cc contributions compared, %2 unchanged matches found, %3 contributions matched and updated, %4 new recurring contributions found, %5 new recurring sequences found, %6 new one-time contributions found.',
+    foreach($action as $user_name => $a) {
+      $message .= '<br />'. ts('For account %6, %1 previous verified transactions ignored, %2 unchanged matches found, %3 contributions matched and updated, %4 new recurring contributions found, %5 new recurring sequences identified, %6 new one-time contributions found.',
         array(
-          1 => count($cc_civicrm),
-          2 => count($found['match']),
-          3 => count($found['update']),
-          4 => count($found['recur']),
-          5 => count($found['series']),
-          6 => count($found['quick']),
+          1 => count($action['ignore']),
+          2 => count($action['match']),
+          3 => count($action['update']),
+          4 => count($action['recur']),
+          5 => count($action['series']),
+          5 => count($action['series']),
+          6 => count($action['quick']),
+          7 => $user_name,
         )
       );
     }
