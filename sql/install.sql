@@ -52,11 +52,13 @@ CREATE TABLE `civicrm_iats_verify` (
   `recur_id` int(10) unsigned DEFAULT '0' COMMENT 'CiviCRM recurring_contribution table id',
   `contribution_status_id` int(10) unsigned DEFAULT '0' COMMENT 'CiviCRM new status id',
   `verify_datetime` datetime COMMENT 'Date time of verification',
+  `auth_result` varchar(255) COMMENT 'Authorization string from iATS',
   PRIMARY KEY ( `id` ),
   KEY (`customer_code`),
   KEY (`cid`),
   KEY (`contribution_id`),
-  KEY (`recur_id`)
+  KEY (`recur_id`),
+  KEY (`auth_result`),
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='Table to store verification information';
 
 CREATE TABLE `civicrm_iats_ukdd_validate` (
