@@ -178,6 +178,28 @@ function iats_civicrm_managed(&$entities) {
       'payment_type' => 2,
     ),
   );
+  $entities[] = array(
+    'module' => 'com.iatspayments.civicrm',
+    'name' => 'iATS Payments DPM',
+    'entity' => 'PaymentProcessorType',
+    'params' => array(
+      'version' => 3,
+      'name' => 'iATS Payments Credit Card using DPM',
+      'title' => 'iATS Payments Credit Card, using DPM',
+      'description' => 'iATS credit card payment processor using DirectPost method.',
+      'class_name' => 'Payment_iATSServiceDPM',
+      'billing_mode' => 'notify',
+      'user_name_label' => 'Agent Code',
+      /* 'password_label' => 'Password', */
+      'signature_label' => 'Process key',
+      'url_site_default' => 'https://www.iatspayments.com/NetGate/IATSDPMProcess.aspx?WSDL',
+      'url_recur_default' => 'https://www.iatspayments.com/NetGate/IATSDPMProcess.aspx?WSDL',
+      'url_site_test_default' => 'https://www.iatspayments.com/NetGate/IATSDPMProcess.aspx?WSDL',
+      'url_recur_test_default' => 'https://www.iatspayments.com/NetGate/IATSDPMProcess.aspx?WSDL',
+      'is_recur' => 1,
+      'payment_type' => 1,
+    ),
+  );
   return _iats_civix_civicrm_managed($entities);
 }
 

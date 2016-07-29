@@ -35,4 +35,10 @@
     <title>IATSOneTimeCharge</title>
     <access_arguments>access CiviCRM</access_arguments>
   </item>
+  <item>
+    <path>civicrm/payment/iatsdpm</path>
+    <page_callback>CRM_iATS_Form_IATSDPM</page_callback>
+    <title>Payment Credit Card Details</title>
+    <access_arguments>make online contributions</access_arguments>
+  </item>
 </menu>
