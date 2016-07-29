@@ -63,7 +63,9 @@ class CRM_iATS_Form_IATSCustomerLink extends CRM_Core_Form {
     // make the soap request
     $response = $iats->request($credentials,$request);
     $customer = $iats->result($response, FALSE); // note: don't log this to the iats_response table
-    // print_r($customer); die();
+    if (empty($customer['ac1'])) {
+      throw new Exception('Unable to retrieve card details.');
+    }
     $ac1 = $customer['ac1']; // this is a SimpleXMLElement Object
     $card = get_object_vars($ac1->CC);
     return $customer + $card;
@@ -98,15 +100,7 @@ class CRM_iATS_Form_IATSCustomerLink extends CRM_Core_Form {
   function buildQuickForm() {
 
     list($civicrm_fields, $iats_fields, $labels) = $this->getFields();
-    // I don't need cid, but it allows the back button to work
-    $this->add('hidden','cid');
     $cid = CRM_Utils_Request::retrieve('cid', 'Integer');
-    foreach($labels as $name => $label) {
-      $this->add('text', $name, $label);
-    }
-    $this->add('hidden','customerCode');
-    $this->add('hidden','paymentProcessorId');
-    $this->add('hidden','is_test');
     $customerCode = CRM_Utils_Request::retrieve('customerCode', 'String');
     $paymentProcessorId = CRM_Utils_Request::retrieve('paymentProcessorId', 'Positive');
     $is_test = CRM_Utils_Request::retrieve('is_test', 'Integer');
@@ -117,7 +111,12 @@ class CRM_iATS_Form_IATSCustomerLink extends CRM_Core_Form {
       'is_test' => $is_test,
     );
     if (empty($_POST)) { // get my current values from iATS as defaults
-      $customer = $this->getCustomerCodeDetail($defaults);
+      try {
+        $customer = $this->getCustomerCodeDetail($defaults);
+      } catch (Exception $e) {
+        CRM_Core_Session::setStatus($e->getMessage(), ts('Warning'), 'alert');
+        return;
+      }
       foreach(array_keys($labels) as $name) {
         $iats_field = $iats_fields[$name];
         if (is_string($customer[$iats_field])) {
@@ -125,6 +124,14 @@ class CRM_iATS_Form_IATSCustomerLink extends CRM_Core_Form {
         }
       }
     } 
+    // I don't need cid, but it allows the back button to work
+    $this->add('hidden','cid');
+    foreach($labels as $name => $label) {
+      $this->add('text', $name, $label);
+    }
+    $this->add('hidden','customerCode');
+    $this->add('hidden','paymentProcessorId');
+    $this->add('hidden','is_test');
     $this->setDefaults($defaults);
     $this->addButtons(array(
       array(
