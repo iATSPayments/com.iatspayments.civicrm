@@ -59,6 +59,10 @@ class CRM_iATS_Form_IATSOneTimeCharge extends CRM_Core_Form {
     $response = $iats->request($credentials,$request);
     $customer = $iats->result($response, FALSE); // note: don't log this to the iats_response table
     // print_r($customer); die();
+    if (empty($customer['ac1'])) {
+      $alert = ts('Unable to retrieve card details from iATS.<br />%1', array(1 => $customer['AUTHORIZATIONRESULT']));
+      throw new Exception($alert);
+    }
     $ac1 = $customer['ac1']; // this is a SimpleXMLElement Object
     $card = get_object_vars($ac1->CC);
     return $customer + $card;
@@ -123,7 +127,12 @@ class CRM_iATS_Form_IATSOneTimeCharge extends CRM_Core_Form {
     );
     $this->setDefaults($defaults);
     /* always show lots of detail about the card about to be charged or just charged */
-    $customer = $this->getCustomerCodeDetail($defaults);
+    try {
+      $customer = $this->getCustomerCodeDetail($defaults);
+    } catch (Exception $e) {
+      CRM_Core_Session::setStatus($e->getMessage(), ts('Warning'), 'alert');
+      return;
+    }
     foreach($labels as $name => $label) {
       $iats_field = $iats_fields[$name];
       if (is_string($customer[$iats_field])) {
