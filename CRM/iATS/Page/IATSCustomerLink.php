@@ -19,18 +19,24 @@ class CRM_iATS_Page_IATSCustomerLink extends CRM_Core_Page {
     // make the soap request
     $response = $iats->request($credentials,$request);
     $customer = $iats->result($response, FALSE); // note: don't log this to the iats_response table
-    $ac1 = $customer['ac1']; // this is a SimpleXMLElement Object
-    $attributes = $ac1->attributes();
-    $type = $attributes['type'];
-    $card = get_object_vars($ac1->$type);
-    $card['type'] = $type;
-    foreach(array('ac1','status','remote_id','auth_result') as $key) {
-      if (isset($customer[$key])) {
-        unset($customer[$key]);
-      }
+    if (empty($customer['ac1'])) {
+      $alert = ts('Unable to retrieve card details from iATS.<br />%1', array(1 => $customer['AUTHORIZATIONRESULT']));
+      CRM_Core_Session::setStatus($alert, ts('Warning'), 'alert');
     }
-    $this->assign('customer', $customer);
-    $this->assign('card', $card);
+    else {
+      $ac1 = $customer['ac1']; // this is a SimpleXMLElement Object
+      $attributes = $ac1->attributes();
+      $type = $attributes['type'];
+      $card = get_object_vars($ac1->$type);
+      $card['type'] = $type;
+      foreach(array('ac1','status','remote_id','auth_result') as $key) {
+        if (isset($customer[$key])) {
+          unset($customer[$key]);
+        }
+      }
+      $this->assign('customer', $customer);
+      $this->assign('card', $card);
+    }
     parent::run();
   }
 }

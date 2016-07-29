@@ -64,7 +64,8 @@ class CRM_iATS_Form_IATSCustomerLink extends CRM_Core_Form {
     $response = $iats->request($credentials,$request);
     $customer = $iats->result($response, FALSE); // note: don't log this to the iats_response table
     if (empty($customer['ac1'])) {
-      throw new Exception('Unable to retrieve card details.');
+      $alert = ts('Unable to retrieve card details from iATS.<br />%1', array(1 => $customer['AUTHORIZATIONRESULT']));
+      throw new Exception($alert);
     }
     $ac1 = $customer['ac1']; // this is a SimpleXMLElement Object
     $card = get_object_vars($ac1->CC);
