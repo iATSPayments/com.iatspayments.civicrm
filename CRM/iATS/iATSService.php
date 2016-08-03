@@ -686,7 +686,7 @@ Class iATS_Service_Request {
   public static function credentials($payment_processor_id, $is_test = 0) {
     static $credentials = array();
     if (empty($credentials[$payment_processor_id])) {
-      $select = 'SELECT user_name, password, url_site FROM civicrm_payment_processor WHERE id = %1 AND is_test = %2';
+      $select = 'SELECT user_name, password, signature, url_site FROM civicrm_payment_processor WHERE id = %1 AND is_test = %2';
       $args = array(
         1 => array($payment_processor_id, 'Int'),
         2 => array($is_test, 'Int'),
@@ -696,6 +696,7 @@ Class iATS_Service_Request {
         $cred = array(
           'agentCode' => $dao->user_name,
           'password' => $dao->password,
+          'signature' => $dao->signature,
           'domain' => parse_url($dao->url_site,PHP_URL_HOST),
         );
         $credentials[$payment_processor_id] = $cred;
