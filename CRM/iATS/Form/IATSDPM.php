@@ -9,6 +9,7 @@ require_once 'CRM/Core/Form.php';
  */
 class CRM_iATS_Form_IATSDPM extends CRM_Core_Form {
 
+  public $_myMatch = '';
   /**
    * Get the field names and labels expected by iATS DPM,
    * and the corresponding fields in CiviCRM
@@ -17,40 +18,37 @@ class CRM_iATS_Form_IATSDPM extends CRM_Core_Form {
    */
   public function getFields() {
     $civicrm_fields = array(
-      'firstName' => 'billing_first_name',
-      'lastName' => 'billing_last_name',
-      'address' => 'street_address',
-      'city' => 'city',
-      'state' => 'state_province',
-      'zipCode' => 'postal_code',
-      'creditCardNum' => 'credit_card_number',
-      'creditCardExpiry' => 'credit_card_expiry',
-      'mop' => 'credit_card_type',
-    );
-    // when querying using DPM
-    $iats_fields = array(
-      'creditCardCustomerName' => 'CSTN', // FLN
-      'address' => 'ADD',
-      'city' => 'CTY',
-      'state' => 'ST',
-      'zipCode' => 'ZC',
-      'creditCardNum' => 'CCN',
-      'creditCardExpiry' => 'EXP',
-      'mop' => 'MP'
+      'IATS_DPM_FirstName' => 'first_name',
+      'IATS_DPM_LastName' => 'last_name',
+      'IATS_DPM_Email' => 'email',
+      'IATS_DPM_Address' => 'street_address',
+      'IATS_DPM_City' => 'city',
+      'IATS_DPM_Province' => 'state_province',
+      'IATS_DPM_Country' => 'country',
+      'IATS_DPM_ZipCode' => 'postal_code',
+      'IATS_DPM_Phone' => 'phone',
+      'IATS_DPM_AccountNumber' => 'credit_card_number',
+      'IATS_DPM_ExpiryDate' => 'credit_card_expiry',
+      'IATS_DPM_ExpiryDate' => 'credit_card_expiry',
+      'IATS_DPM_Amount' => 'amount',
+      /* 'IATS_DPM_mop' => 'credit_card_type', */
     );
     $labels = array(
-      //'firstName' => 'First Name',
-      // 'lastName' => 'Last Name',
-      'creditCardCustomerName' => 'Name on Card',
-      'address' => 'Street Address',
-      'city' => 'City',
-      'state' => 'State or Province',
-      'zipCode' => 'Postal Code or Zip Code',
-      'creditCardNum' => 'Credit Card Number',
-      'creditCardExpiry' => 'Credit Card Expiry Date',
-      'mop' => 'Credit Card Type',
+      //'IATS_DPM_firstName' => 'First Name',
+      // 'IATS_DPM_lastName' => 'Last Name',
+      'IATS_DPM_FirstName' => 'First Name',
+      'IATS_DPM_LastName' => 'Last Name',
+      'IATS_DPM_Email' => 'Email',
+      'IATS_DPM_Address' => 'Street Address',
+      'IATS_DPM_City' => 'City',
+      'IATS_DPM_Province' => 'State or Province',
+      'IATS_DPM_ZipCode' => 'Postal Code or Zip Code',
+      'IATS_DPM_AccountNumber' => 'Credit Card Number',
+      'IATS_DPM_ExpiryDate' => 'Credit Card Expiry Date',
+      'IATS_DPM_CVV2' => 'CVV',
+    /*  'IATS_DPM_mop' => 'Credit Card Type', */
     );
-    return array($civicrm_fields, $iats_fields, $labels);
+    return array($civicrm_fields, $labels);
   }
 
   protected function getCustomerCodeDetail($params) {
@@ -98,30 +96,48 @@ class CRM_iATS_Form_IATSDPM extends CRM_Core_Form {
     return $result;
   }   
 
+  function myMatch($match) {
+    return strpos($match, $this->_myMatch) === 0;
+  }
+
   function buildQuickForm() {
     require_once("CRM/iATS/iATSService.php");
-    list($civicrm_fields, $iats_fields, $labels) = $this->getFields();
+    list($civicrm_fields, $labels) = $this->getFields();
     $key = CRM_Utils_Request::retrieve('key', 'String');
-    // $customerCode = CRM_Utils_Request::retrieve('customerCode', 'String');
-    $paymentProcessorId = CRM_Utils_Request::retrieve('paymentProcessorId', 'Positive');
-    $is_test = CRM_Utils_Request::retrieve('is_test', 'Integer');
-    $params = array(
-      'paymentProcessorId' => $paymentProcessorId,
-      'is_test' => $is_test,
-    );
-    // I don't need cid, but it allows the back button to work
-    // $this->add('hidden','cid');
+    // TODO: handle potential errors in next line
+    $params = json_decode(CRM_Core_Session::singleton()->get('iats_dpm_' . $key),TRUE); // , json_encode($params));
+    $params['is_test'] = CRM_Utils_Request::retrieve('is_test', 'Integer');
+    $param_keys = array_keys($params);
+    // print_r($params);
+    foreach(array('email','street_address','city','state_province','postal_code','country') as $key) {
+      if (!isset($params[$key])) {
+        $this->_myMatch = $key.'-';
+        $filtered = array_filter($param_keys, array($this,'myMatch'));
+        $value = $params[current($filtered)];
+        // for state_prov and country, convert code to value
+        if ($key == 'state_province' || $key == 'country') {
+          $value = CRM_Core_Pseudoconstant::getLabel('CRM_Core_BAO_Address', $key.'_id', $value);
+        }
+        $params[$key] = $value;
+      }
+    }
     foreach($labels as $name => $label) {
       $this->add('text', $name, $label);
     }
-    $credentials = iATS_Service_Request::credentials($params['paymentProcessorId'], $params['is_test']);
+
+    $credentials = iATS_Service_Request::credentials($params['payment_processor_id'], $params['is_test']);
     $this->setFormAction('https://'.$credentials['domain'].iATS_Service_Request::iATS_URL_DPMPROCESS);
-    //$action = $this->getFormAction();
-    //print_r($action); die();
-    // $this->add('hidden','customerCode');
-    $this->add('hidden','paymentProcessorId');
-    $this->add('hidden','is_test');
-    // $this->setDefaults($defaults);
+    $this->add('hidden','email');
+    $this->add('hidden','IATS_DPM_ProcessID');
+    $defaults = array(
+      'IATS_DPM_ProcessID' => $credentials['signature'],
+    );
+    foreach($civicrm_fields as $iats_key => $civicrm_key) {
+      if (!empty($params[$civicrm_key])) {
+        $defaults[$iats_key] = $params[$civicrm_key];
+      }
+    }
+    $this->setDefaults($defaults);
     $this->addButtons(array(
       array(
         'type' => 'submit',
