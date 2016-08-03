@@ -10,6 +10,11 @@ require_once 'CRM/Core/Form.php';
 class CRM_iATS_Form_IATSDPM extends CRM_Core_Form {
 
   public $_myMatch = '';
+
+  private function cleaner_url($url) {
+    return str_replace('amp;','',$url);
+  }
+
   /**
    * Get the field names and labels expected by iATS DPM,
    * and the corresponding fields in CiviCRM
@@ -31,6 +36,7 @@ class CRM_iATS_Form_IATSDPM extends CRM_Core_Form {
       'IATS_DPM_ExpiryDate' => 'credit_card_expiry',
       'IATS_DPM_ExpiryDate' => 'credit_card_expiry',
       'IATS_DPM_Amount' => 'amount',
+      'IATS_DPM_Invoice' => 'invoiceID',
       /* 'IATS_DPM_mop' => 'credit_card_type', */
     );
     $labels = array(
@@ -102,13 +108,22 @@ class CRM_iATS_Form_IATSDPM extends CRM_Core_Form {
 
   function buildQuickForm() {
     require_once("CRM/iATS/iATSService.php");
-    list($civicrm_fields, $labels) = $this->getFields();
-    $key = CRM_Utils_Request::retrieve('key', 'String');
-    // TODO: handle potential errors in next line
-    $params = json_decode(CRM_Core_Session::singleton()->get('iats_dpm_' . $key),TRUE); // , json_encode($params));
+    $session_key = CRM_Utils_Request::retrieve('key', 'String');
+    $success = CRM_Utils_Request::retrieve('success', 'String');
+    $params = json_decode(CRM_Core_Session::singleton()->get('iats_dpm_' . $session_key),TRUE); // , json_encode($params));
     $params['is_test'] = CRM_Utils_Request::retrieve('is_test', 'Integer');
+    if ('1' === $success) {
+      // redirect to thank you page
+      CRM_Utils_System::redirect(CRM_Utils_System::url('civicrm/contribute/transact', "_qf_ThankYou_display=1&qfKey=$session_key", TRUE, NULL, FALSE));
+    }
+    elseif ('0' === $success) { // get the most recent response from the log
+      $auth_result = civicrm_api3('IatsPayments', 'getresponse', array('invoice_id' => $params['invoiceID']));
+      $error = empty($auth_result) ? '' : iATS_Service_Request::reasonMessage($auth_result['values']);
+      $alert = ts('Unable to process card, please try again.<br />%1', array(1 => $error));
+      CRM_Core_Session::setStatus($alert, ts('Warning'), 'alert');
+    }
     $param_keys = array_keys($params);
-    // print_r($params);
+    list($civicrm_fields, $labels) = $this->getFields();
     foreach(array('email','street_address','city','state_province','postal_code','country') as $key) {
       if (!isset($params[$key])) {
         $this->_myMatch = $key.'-';
@@ -127,10 +142,30 @@ class CRM_iATS_Form_IATSDPM extends CRM_Core_Form {
 
     $credentials = iATS_Service_Request::credentials($params['payment_processor_id'], $params['is_test']);
     $this->setFormAction('https://'.$credentials['domain'].iATS_Service_Request::iATS_URL_DPMPROCESS);
-    $this->add('hidden','email');
     $this->add('hidden','IATS_DPM_ProcessID');
+    $this->add('hidden','IATS_DPM_PostBackURL');
+    $this->add('hidden','IATS_DPM_SuccessRedirectURL');
+    $this->add('hidden','IATS_DPM_FailedRedirectURL');
+    $this->add('hidden','IATS_DPM_Amount');
+    $this->add('hidden','IATS_DPM_Invoice');
+    $this->add('hidden','IATS_DPM_Item1');
+    $iatsdpm = array(
+      'is_test' => $params['is_test'],
+      'key' => $session_key
+    );
+    $postback_url = $this->cleaner_url(CRM_Utils_System::url('civicrm/payment/iatsdpm_postback',$iatsdpm, TRUE));
+    $iatsdpm['success'] = '1';
+    $success_redirect_url = $this->cleaner_url(CRM_Utils_System::url('civicrm/payment/iatsdpm',$iatsdpm, TRUE));
+    $iatsdpm['success'] = '0';
+    $failed_redirect_url = $this->cleaner_url(CRM_Utils_System::url('civicrm/payment/iatsdpm',$iatsdpm, TRUE));
     $defaults = array(
+      'IATS_DPM_Amount' => $params['amount'],
+      'IATS_DPM_Invoice' => $params['invoiceID'],
       'IATS_DPM_ProcessID' => $credentials['signature'],
+      'IATS_DPM_PostBackURL' => $postback_url,
+      'IATS_DPM_SuccessRedirectURL' => $success_redirect_url,
+      'IATS_DPM_FailedRedirectURL' =>  $failed_redirect_url,
+      'IATS_DPM_Item1' => (function_exists('ip_address') ? ip_address() : $_SERVER['REMOTE_ADDR']),
     );
     foreach($civicrm_fields as $iats_key => $civicrm_key) {
       if (!empty($params[$civicrm_key])) {
@@ -157,7 +192,7 @@ class CRM_iATS_Form_IATSDPM extends CRM_Core_Form {
   function postProcess() {
     $values = $this->exportValues();
     // send update to iATS
-    // print_r($values); die();
+    print_r($values); die();
     $result = $this->updateCreditCardCustomer($values);
     $message = '<pre>'.print_r($result,TRUE).'</pre>';
     CRM_Core_Session::setStatus($message, 'Customer Updated'); // , $type, $options);
