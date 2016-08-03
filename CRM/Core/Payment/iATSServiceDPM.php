@@ -72,6 +72,7 @@ class CRM_Core_Payment_iATSServiceDPM extends CRM_Core_Payment_iATSService {
     // $this->saveBillingAddressIfRequired($params);
     try {
       CRM_Core_Session::storeSessionObjects(FALSE); // don't reset
+      CRM_Core_Session::singleton()->set('iats_dpm_' . $params['qfKey'], json_encode($params));
       // $this->storeTransparentRedirectFormData($params['qfKey'], array()); /* $response->getRedirectData() + array(
       //      'payment_processor_id' => $this->_paymentProcessor['id'],
       //      'post_submit_url' => $response->getRedirectURL(),
@@ -79,7 +80,6 @@ class CRM_Core_Payment_iATSServiceDPM extends CRM_Core_Payment_iATSService {
       $iatsdpm = array(
        'is_test' => ($this->_profile['mode'] == 'test') ? 1 : 0,
        'key' => $params['qfKey'],
-       'paymentProcessorId' => $this->_paymentProcessor['id'],
       );
       CRM_Utils_System::redirect(CRM_Utils_System::url('civicrm/payment/iatsdpm',$iatsdpm)); 
     }
