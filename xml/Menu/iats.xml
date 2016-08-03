@@ -41,4 +41,10 @@
     <title>Payment Credit Card Details</title>
     <access_arguments>make online contributions</access_arguments>
   </item>
+  <item>
+    <path>civicrm/payment/iatsdpm_postback</path>
+    <page_callback>CRM_iATS_Page_IATSDPMPostback</page_callback>
+    <title>iATS Postback</title>
+    <access_arguments>*always allow*</access_arguments>
+  </item>
 </menu>
