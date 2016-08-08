@@ -1,7 +1,7 @@
 com.iatspayments.civicrm
 ===============
 
-CiviCRM Extension for iATS Web Services Payment Processor - Date: July 16, 2015, version 1.4.0
+CiviCRM Extension for iATS Web Services Payment Processor - Date: July 16, 2015, version 1.5.3
 
 This README.md contains information specific to system administrators/developers. Information for users/implementors can be found in the Documentation Wiki: https://github.com/iATSPayments/com.iatspayments.civicrm/wiki/Documentation
 
@@ -12,11 +12,14 @@ Requirements
 
 2. Your PHP needs to include the SOAP extension (php.net/manual/en/soap.setup.php).
 
-3. NOTE: to ensure all different types of transactions are working across all CiviCRM pathways [our test matrix includes 21 type of transactions at the moment] - a small patch to CiviCRM core is required for 4.4 and 4.5. You can find iATS_4.4.14.diff and iATS_4.5.8.diff in the repository. If you use another version of CiviCRM you may have to adjust the line numbers in these patches. 
+3. iATS retired TLS1.0 and moved to TLS1.1/1.2 and SHA-256
 
-4. You must have an iATS Payments Account - and have configured it to accept payment though WebServices. For details please see the Documentation Wiki: https://github.com/iATSPayments/com.iatspayments.civicrm/wiki/Documentation
+4. NOTE: to ensure all different types of transactions are working across all CiviCRM pathways [our test matrix includes 21 type of transactions at the moment] - a small patch to CiviCRM core is required for 4.4 and 4.5. You can find iATS_4.4.14.diff and iATS_4.5.8.diff in the repository. If you use another version of CiviCRM you may have to adjust the line numbers in these patches. 
 
-5. To handle ACH/EFT Contributions (verification of them) and to handle Recurring Contributions (of any type) you must configure cron for your CiviCRM install. Information about how to do this can be found in: http://wiki.civicrm.org/confluence/display/CRMDOC/Managing+Scheduled+Jobs
+5. You must have an iATS Payments Account - and have configured it to accept payment though WebServices. For details please see the Documentation Wiki: https://github.com/iATSPayments/com.iatspayments.civicrm/wiki/Documentation
+
+6. To handle ACH/EFT Contributions (verification of them) and to handle Recurring Contributions (of any type) you must configure cron for your CiviCRM install. Information about how to do this can be found in: http://wiki.civicrm.org/confluence/display/CRMDOC/Managing+Scheduled+Jobs
+
 
 Installation
 ------------
