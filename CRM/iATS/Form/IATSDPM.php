@@ -54,7 +54,16 @@ class CRM_iATS_Form_IATSDPM extends CRM_Core_Form {
       'IATS_DPM_CVV2' => 'CVV',
     /*  'IATS_DPM_mop' => 'Credit Card Type', */
     );
-    return array($civicrm_fields, $labels);
+    $recurring_fields = array(
+      'IATS_DPM_ProcessOption' => 'TOKEN',
+      'IATS_DPM_RecurringOn' => 'FALSE',
+      'IATS_DPM_BeginDate' => '01/01/2000', 
+      'IATS_DPM_EndDate' => '01/01/2000', 
+      'IATS_DPM_ScheduleType' => 'Monthly',
+      'IATS_DPM_ScheduleMonth' => '1',
+      'IATS_DPM_ScheduleDate' => '1'
+    );
+    return array($civicrm_fields, $labels, $recurring_fields);
   }
 
   protected function getCustomerCodeDetail($params) {
@@ -112,6 +121,7 @@ class CRM_iATS_Form_IATSDPM extends CRM_Core_Form {
     $success = CRM_Utils_Request::retrieve('success', 'String');
     $params = json_decode(CRM_Core_Session::singleton()->get('iats_dpm_' . $session_key),TRUE); // , json_encode($params));
     $params['is_test'] = CRM_Utils_Request::retrieve('is_test', 'Integer');
+    // echo '<pre>'; print_r($params); die();
     if ('1' === $success) {
       // redirect to thank you page
       CRM_Utils_System::redirect(CRM_Utils_System::url('civicrm/contribute/transact', "_qf_ThankYou_display=1&qfKey=$session_key", TRUE, NULL, FALSE));
@@ -123,17 +133,21 @@ class CRM_iATS_Form_IATSDPM extends CRM_Core_Form {
       CRM_Core_Session::setStatus($alert, ts('Warning'), 'alert');
     }
     $param_keys = array_keys($params);
-    list($civicrm_fields, $labels) = $this->getFields();
+    list($civicrm_fields, $labels, $recurring_fields) = $this->getFields();
+    // fill in defaults from suitable candidates on previous form
+    // TODO - this will be annoying when returning to this form from an error
     foreach(array('email','street_address','city','state_province','postal_code','country') as $key) {
       if (!isset($params[$key])) {
         $this->_myMatch = $key.'-';
         $filtered = array_filter($param_keys, array($this,'myMatch'));
-        $value = $params[current($filtered)];
-        // for state_prov and country, convert code to value
-        if ($key == 'state_province' || $key == 'country') {
-          $value = CRM_Core_Pseudoconstant::getLabel('CRM_Core_BAO_Address', $key.'_id', $value);
+        if (count($filtered)) {
+          $value = $params[current($filtered)];
+          // for state_prov and country, convert code to value
+          if ($key == 'state_province' || $key == 'country') {
+            $value = CRM_Core_Pseudoconstant::getLabel('CRM_Core_BAO_Address', $key.'_id', $value);
+          }
+          $params[$key] = $value;
         }
-        $params[$key] = $value;
       }
     }
     foreach($labels as $name => $label) {
@@ -170,6 +184,14 @@ class CRM_iATS_Form_IATSDPM extends CRM_Core_Form {
     foreach($civicrm_fields as $iats_key => $civicrm_key) {
       if (!empty($params[$civicrm_key])) {
         $defaults[$iats_key] = $params[$civicrm_key];
+      }
+    }
+    if (!empty($params['is_recur'])) { // 
+      $this->add('hidden','IATS_DPM_Item2');
+      $defaults['IATS_DPM_Item2'] = $params['invoiceID']; // used when doing recurring, since invoice isn't used/returned in the postback by iATS
+      foreach($recurring_fields as $iats_key => $value) {
+        $this->add('hidden',$iats_key);
+        $defaults[$iats_key] = $value;
       }
     }
     $this->setDefaults($defaults);
