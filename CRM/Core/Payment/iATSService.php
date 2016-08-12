@@ -40,7 +40,8 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
   public function __construct($mode, &$paymentProcessor, &$paymentForm = NULL, $force = FALSE) {
     $this->_paymentProcessor = $paymentProcessor;
     $this->_processorName = ts('iATS Payments');
-
+    // override the billing mode depending on the signature? Not useful since this constructor not called when I need it
+    // $this->_paymentProcessor['billing_mode'] = (empty($paymentProcessor['signature']))  ? 1 : 4;
     // get merchant data from config
     $config = CRM_Core_Config::singleton();
     // live or test
@@ -50,6 +51,8 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
   }
 
   static function &singleton($mode, &$paymentProcessor, &$paymentForm = NULL, $force = FALSE) {
+    // override the billing mode depending on the signature
+    // $paymentProcessor['billing_mode'] = (empty($paymentProcessor['signature']))  ? 1 : 4;
     $processorName = $paymentProcessor['name'];
     if (self::$_singleton[$processorName] === NULL) {
       self::$_singleton[$processorName] = new CRM_Core_Payment_iATSService($mode, $paymentProcessor);
@@ -57,8 +60,7 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
     return self::$_singleton[$processorName];
   }
 
-  function doDirectPayment(&$params) {
-
+  function doDirectPayment(&$params, $component = 'contribute') {
     if (!$this->_profile) {
       return self::error('Unexpected error, missing profile');
     }
@@ -112,16 +114,15 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
         elseif (isset($params['email-Primary'])) {
           $email = $params['email-Primary'];
         }
-        $query_params = array(
-          1 => array($customer_code, 'String'),
-          2 => array($request['customerIPAddress'], 'String'),
-          3 => array($exp, 'String'),
-          4 => array($params['contactID'], 'Integer'),
-          5 => array($email, 'String'),
-          6 => array($params['contributionRecurID'], 'Integer'),
+        $customercode_params = array(
+          'customer_code' => $customer_code,
+          'customerIPAddress' => $request['customerIPAddress'],
+          'expiry' => $exp,
+          'contactID' => $params['contactID'],
+          'email' => $email,
+          'contributionRecurID' => $parms['contributionRecurId'],
         );
-        CRM_Core_DAO::executeQuery("INSERT INTO civicrm_iats_customer_codes
-          (customer_code, ip, expiry, cid, email, recur_id) VALUES (%1, %2, %3, %4, %5, %6)", $query_params);
+        civicrm_api3('IatsPayments', 'customercodeadd', $customercode_params);
         $settings = CRM_Core_BAO_Setting::getItem('iATS Payments Extension', 'iats_settings');
         $allow_days = empty($settings['days']) ? array('-1') : $settings['days'];
         if (max($allow_days) <= 0) { // run the transaction immediately
@@ -159,6 +160,29 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
     }
   }
 
+  // Add a doTransferCheckout function
+  function doTransferCheckout(&$params, $component = 'contribute') {
+    if (!$this->_profile) {
+      return self::error('Unexpected error, missing profile');
+    }
+    $this->_component = strtolower($component);
+    /* save stuff for when I return, then redirect to the locally hosted payment page that direct posts to IATS */
+    // todo: save Billing Address If Required
+    try {
+      CRM_Core_Session::storeSessionObjects(FALSE); // FALSE == don't reset
+      CRM_Core_Session::singleton()->set('iats_dpm_' . $params['qfKey'], json_encode($params));
+      $iatsdpm = array(
+       'is_test' => ($this->_profile['mode'] == 'test') ? 1 : 0,
+       'key' => $params['qfKey'],
+      );
+      CRM_Utils_System::redirect(CRM_Utils_System::url('civicrm/payment/iatsdpm',$iatsdpm)); 
+    }
+    catch (\Exception $e) {
+      // internal error, log exception and display a generic message to the customer
+      return $this->handleError('error', 'unknown processor error ' . $this->_paymentProcessor['payment_processor_type'], array($e->getCode() => $e->getMessage()), $e->getCode(), 'Sorry, there was an error processing your payment. Please try again later.');
+    }
+  }
+
   function changeSubscriptionAmount(&$message = '', $params = array()) {
     $userAlert = ts('You have updated the amount of this recurring contribution.');
     CRM_Core_Session::setStatus($userAlert, ts('Warning'), 'alert');
@@ -168,6 +192,20 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
   function cancelSubscription(&$message = '', $params = array()) {
     $userAlert = ts('You have cancelled this recurring contribution.');
     CRM_Core_Session::setStatus($userAlert, ts('Warning'), 'alert');
+    return TRUE;
+  }
+
+  /*
+   * We support backoffice even if we're using DPM
+   */
+  protected function supportsBackoffice() {
+    return TRUE;
+  }
+
+  /*
+   * We support future recurring start dates
+   */
+  protected function supportsFutureRecurStartDate() {
     return TRUE;
   }
 
@@ -196,6 +234,21 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
     }
     return $e;
   }
+
+  /**
+   * Get array of fields that should be displayed on the payment form.
+   *
+   * @return array
+   * @throws CiviCRM_API3_Exception
+   */
+  public function getPaymentFormFields() {
+    if (!empty($this->_paymentProcessor['signature'])) {
+      // using DPM
+      return array();
+    }
+    return $this->getCreditCardFormFields();
+  }
+
 
   /**
    * This function checks to see if we have the right config values.
