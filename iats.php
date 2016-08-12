@@ -105,6 +105,7 @@ function iats_civicrm_managed(&$entities) {
       'billing_mode' => 'form',
       'user_name_label' => 'Agent Code',
       'password_label' => 'Password',
+      'signature_label' => 'Process key',
       'url_site_default' => 'https://www.iatspayments.com/NetGate/ProcessLinkv2.asmx?WSDL',
       'url_recur_default' => 'https://www.iatspayments.com/NetGate/ProcessLinkv2.asmx?WSDL',
       'url_site_test_default' => 'https://www.iatspayments.com/NetGate/ProcessLinkv2.asmx?WSDL',
@@ -147,6 +148,7 @@ function iats_civicrm_managed(&$entities) {
       'billing_mode' => 'form',
       'user_name_label' => 'Agent Code',
       'password_label' => 'Password',
+      //'signature_label' => 'Process key',
       'url_site_default' => 'https://www.iatspayments.com/NetGate/ProcessLinkv2.asmx?WSDL',
       'url_recur_default' => 'https://www.iatspayments.com/NetGate/ProcessLinkv2.asmx?WSDL',
       'url_site_test_default' => 'https://www.iatspayments.com/NetGate/ProcessLinkv2.asmx?WSDL',
@@ -478,6 +480,7 @@ function iats_civicrm_pre($op, $objectName, $objectId, &$params) {
             && !empty($params['contribution_recur_id'])
             && (max($allow_days) <= 0)
             && (version_compare($version, '4.6.6') < 0)
+            // TODO: should I also exclude DPM?
           ) {
             // but only for the first one
             $count = civicrm_api3('Contribution', 'getcount', array('contribution_recur_id' => $params['contribution_recur_id']));
@@ -562,6 +565,21 @@ function iats_civicrm_pre($op, $objectName, $objectId, &$params) {
     }
   }
 }
+
+/*
+ * Convert the billing mode according to the presence of the signature = api key
+ */
+function iats_civicrm_postSave_civicrm_payment_processor($dao) {
+  if ($dao->class_name == 'Payment_iATSService') {
+    if (4 != $dao->billing_mode && 'null' != $dao->signature) {
+      CRM_Core_DAO::executeQuery('UPDATE civicrm_payment_processor SET billing_mode = 4 WHERE id = %1', array(1 => array($dao->id,'Integer'))); 
+    }
+    elseif (1 != $dao->billing_mode && 'null' == $dao->signature) {
+      CRM_Core_DAO::executeQuery('UPDATE civicrm_payment_processor SET billing_mode = 1 WHERE id = %1', array(1 => array($dao->id,'Integer'))); 
+    }
+  }
+}
+
 
 /**
  * The contribution itself doesn't tell you which payment processor it came from
@@ -823,7 +841,7 @@ function iats_ukdd_form_customize($form) {
   ));
 }
 
-/* Modifications to a (public/frontend) contribution forms if iATS ACH/EFT or SWIPE is enabled
+/* Modifications to a (public/frontend) contribution form
  *  1. set recurring to be the default, if enabled (ACH/EFT) [previously forced recurring, removed in 1.2.4]
  *  2. add extra fields/modify labels
  */
@@ -883,21 +901,6 @@ function iats_civicrm_buildForm_Contribution_Frontend(&$form) {
     // watchdog('iats_acheft',kprint_r($form,TRUE));
   }
 
-  /* and finally, for most frontend forms, use the dpm.js script to use the DirectPost Method override
-   * TODO: provide an admin way to prevent this
-   * TODO: use it for swipe, never for ukdd?
-   * NOTE: this is inactive code, isDPM is still always returning false.
-   */
-  require_once("CRM/iATS/iATSService.php");
-  if (iATS_Service_Request::isDPM($form->_paymentProcessor)) {
-    CRM_Core_Region::instance('billing-block')->add(array(
-      'template' => 'CRM/iATS/BillingBlockDPM.tpl'
-    ));
-    $iats_domain = parse_url($form->_paymentProcessor['url_site'],PHP_URL_HOST);
-    $dpm_url = iATS_Service_Request::dpm_url($iats_domain);
-    _iats_civicrm_varset(array('dpmURL' => $dpm_url));
-    CRM_Core_Resources::singleton()->addScriptFile('com.iatspayments.civicrm', 'js/dpm.js');
-  }
 }
 
 /*  Fix the backend credit card contribution forms
