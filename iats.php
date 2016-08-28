@@ -1212,7 +1212,7 @@ function _iats_process_contribution_payment(&$contribution, $options) {
         'contribution_recur_id' => $contribution['contribution_recur_id']
       ));
       // watchdog('iats_civicrm','repeat transaction result <pre>@params</pre>',array('@params' => print_r($pending,TRUE)));
-      $contribution_id = $pending['contribution_id'];
+      $contribution_id = $pending['id'];
       $used_repeattransaction = TRUE;
     }
     catch (Exception $e) {

@@ -267,7 +267,7 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
       }
       if ($email_failure_report) {
         $failure_report_text .= "\n Unexpected Errors: ".implode(' ',$errors);
-      }        
+      }
       continue;
     }
     else {
@@ -290,12 +290,12 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
         }
       }
       // so far so, good ... now create the pending contribution, and save its id
-      // and then try to get the money, and do one of: 
+      // and then try to get the money, and do one of:
       // update the contribution to failed, leave as pending for server failure, complete the transaction, or update a pending ach/eft with it's transaction id
-      $result = _iats_process_contribution_payment($contribution,$options);
+      $result = _iats_process_contribution_payment($contribution, $options);
       if ($email_failure_report && $contribution['iats_reject_code']) {
         $failure_report_text .= "\n $result ";
-      }        
+      }
       $output[] = $result;
     }
 
@@ -305,7 +305,7 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
         case 'REJECT: 25': // reported lost or stolen
         case 'REJECT: 100': //  do not reprocess!
           /* convert the contribution series to pending to avoid reprocessing until dealt with */
-          civicrm_api('ContributionRecur', 'create', 
+          civicrm_api('ContributionRecur', 'create',
             array(
               'version' => 3,
               'id'      => $contribution['contribution_recur_id'],
@@ -328,7 +328,7 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
         // should the failure count be reset otherwise? It is not.
         unset($contribution_recur_set['next_sched_contribution_date']);
       }
-    } 
+    }
     civicrm_api('ContributionRecur', 'create', $contribution_recur_set);
     $result = civicrm_api('activity', 'create',
       array(
@@ -351,7 +351,7 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
         )
       );
       ++$error_count;
-    } 
+    }
     else {
       $output[] = ts('Created activity record for contact id %1', array(1 => $contact_id));
     }
