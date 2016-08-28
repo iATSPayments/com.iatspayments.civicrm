@@ -638,7 +638,6 @@ function iats_civicrm_processors($processors, $subtype = '', $params = array()) 
  */
 
 function iats_acheft_form_customize($form) {
-  // $fname = 'iats_acheft_form_customize_'.$form->_values['currency'];
   // currency is in a funny place for the Event registration form
   $currency = iats_getcurrency($form);
   $fname = 'iats_acheft_form_customize_'.$currency;
