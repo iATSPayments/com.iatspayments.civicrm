@@ -211,7 +211,7 @@ function _iats_civicrm_domain_info($key) {
  */
 function _iats_civicrm_use_repeattransaction() {
   $version = CRM_Utils_System::version();
-  return (version_compare($version, '4.7.9') < 0) ? FALSE : TRUE;
+  return (version_compare($version, '4.7.12') < 0) ? FALSE : TRUE;
 }
 
 /**
@@ -1152,6 +1152,7 @@ function _iats_civicrm_getContributionTemplate($contribution) {
   if (!empty($result['values'])) {
     $contribution_ids = array_keys($result['values']);
     $template = $result['values'][$contribution_ids[0]];
+    $template['original_contribution_id'] = $contribution_ids[0];
     $template['line_items'] = array();
     $get = array('entity_table' => 'civicrm_contribution', 'entity_id' => $contribution_ids[0]);
     $result = civicrm_api3('LineItem', 'get', $get);
@@ -1196,21 +1197,24 @@ function _iats_contributionrecur_next($from_time, $allow_mdays) {
  * A high-level utility function for making a contribution payment from an existing recurring schedule
  * Used in the Iatsrecurringcontributions.php job and the one-time ('card on file') form.
  */
-function _iats_process_contribution_payment(&$contribution, $options) {
+function _iats_process_contribution_payment(&$contribution, $options, $original_contribution_id) {
   // first create the pending contribution, and save its id
   // we'll first try to use the repeattransaction api if we trust it, otherwise just create it naively
   $contribution_id = NULL;
   $used_repeattransaction = FALSE;
   if (_iats_civicrm_use_repeattransaction()) {
     try {
+     // KG repeattransaction requires the original contribution ID:
      $pending = civicrm_api3('Contribution', 'repeattransaction', array(
-        'contribution_status_id' => $contribution['contribution_status_id'],
+       'original_contribution_id' => $original_contribution_id,
+       'contribution_status_id' => $contribution['contribution_status_id'],
         'receive_date' => $contribution['receive_date'],
         //'campaign_id' => $contribution['campaign_id'],
         //'financial_type_id' => $contribution['financial_type_id'],
         'payment_processor_id' => $contribution['payment_processor'],
         'contribution_recur_id' => $contribution['contribution_recur_id']
       ));
+
       // watchdog('iats_civicrm','repeat transaction result <pre>@params</pre>',array('@params' => print_r($pending,TRUE)));
       $contribution_id = $pending['id'];
       $used_repeattransaction = TRUE;
