@@ -9,7 +9,7 @@
 cj(function ($) {
   'use strict';
   $('#crm-main-content-wrapper').crmSnippet().on('crmLoad', function(e, data) {
-    var backofficeLinks = (typeof CRM.vars.iatspayments != 'undefined') ? CRM.vars.iatspayments.backofficeLinks : CRM.iatspayments.backofficeLinks;
+    var backofficeLinks = (typeof CRM.iatspayments != 'undefined') ? CRM.iatspayments.backofficeLinks : ((typeof CRM.vars != 'undefined') ? ((typeof CRM.vars.iatspayments != 'undefined') ? CRM.vars.iatspayments.backofficeLinks : []) : []); 
     if (0 < backofficeLinks.length 
         && data.title == 'Contributions'
         && 0 == $('form.CRM_Contribute_Form_Search #help .acheft-backend-link').length
