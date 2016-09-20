@@ -689,8 +689,7 @@ function iats_civicrm_processors($processors, $subtype = '', $params = array()) 
  * Each one also includes some javascript to move the new fields around on the DOM
  */
 function iats_acheft_form_customize($form) {
-  // Currency is in a funny place for the Event registration form.
-  $currency = iats_getcurrency($form);
+  $currency = iats_getCurrency($form);
   $fname = 'iats_acheft_form_customize_' . $currency;
   /* we always want these three fields to be required, in all currencies. As of 4.6.?, this is in core */
   if (empty($form->billingFieldSets['direct_debit']['fields']['account_holder']['is_required'])) {
@@ -716,12 +715,28 @@ function iats_acheft_form_customize($form) {
 /**
  *
  */
-function iats_getcurrency($form) {
-  // Currency can be in any one of three places:
-  // depending on event form vs contribution form and contribution first page load vs radio button pressed.
-  $currency = isset($form->_values['event']['currency']) ? $form->_values['event']['currency'] : $form->_values['currency'];
-  $currency = isset($currency) ? $currency : $form->getCurrency();
-
+function iats_getCurrency($form) {
+  // getting the currency depends on the form class
+  $form_class = get_class($form);
+  $currency = '';
+  switch($form_class) {
+    case 'CRM_Contribute_Form_Contribution':
+    case 'CRM_Contribute_Form_Contribution_Main':
+    case 'CRM_Member_Form_Membership':
+      $currency = $form->_values['currency'];
+      break;
+    case 'CRM_Financial_Form_Payment':
+      // This is the new ajax-loaded payment form.
+      $currency = $form->getCurrency();
+      break;
+    case 'CRM_Event_Form_Participant':
+    case 'CRM_Event_Form_Registration_Register':
+      $currency = $form->_values['event']['currency'];
+      break;
+  }
+  if (empty($currency)) {
+    CRM_Core_Error::fatal('Unable to determine currency for form %class', array('%class' => $form_class));
+  }
   return $currency;
 }
 
@@ -873,52 +888,46 @@ function iats_ukdd_form_customize($form) {
  * Modifications to a (public/frontend) contribution forms if iATS ACH/EFT or SWIPE is enabled
  * 1. set recurring to be the default, if enabled (ACH/EFT) [previously forced recurring, removed in 1.2.4]
  * 2. add extra fields/modify labels.
+ * 
+ * We're handling event, contribution, and financial payment class forms here. 
+ * The new 4.7 financial payment class form is used when switching payment processors.
  */
 function iats_civicrm_buildForm_Contribution_Frontend(&$form) {
-  if (empty($form->_paymentProcessors) && $form->_paymentProcessor['id'] == 0) {
-    return;
-  }
 
-  if (!empty($form->_paymentProcessors)) {
-    // we're on CRM_Contribute_Form_Contribution_Main - these are all the iATS Payment Processors on this form:
-    $iats_processors = iats_civicrm_processors($form->_paymentProcessors, '*');
-    if (empty($iats_processors)) {
+  $form_class = get_class($form);
+
+  if ($form_class == 'CRM_Financial_Form_Payment') {
+    // We're on CRM_Financial_Form_Payment, we've got just one payment processor
+    $id = $form->_paymentProcessor['id'];
+    $iats_processors = iats_civicrm_processors(array($id => $form->_paymentProcessor), '*');
+  }
+  else { 
+    // Handle the event and contribution page forms
+    if (empty($form->_paymentProcessors)) {
       return;
     }
-    $ukdd = $swipe = $acheft = array();
-    foreach ($iats_processors as $id => $processor) {
-      switch ($processor['class_name']) {
-        case 'Payment_iATSServiceACHEFT':
-          $acheft[$id] = $processor;
-          break;
-
-        case 'Payment_iATSServiceSWIPE':
-          $swipe[$id] = $processor;
-          break;
-
-        case 'Payment_iATSServiceUKDD':
-          $ukdd[$id] = $processor;
-          break;
-      }
-    }
-    // we're on CRM_Financial_Form_Payment: figure out which iATS Payment Processor we have here:
+    $iats_processors = iats_civicrm_processors($form->_paymentProcessors, '*');
   }
-  else {
-    if ($form->_paymentProcessor['id']) {
-      if ($form->_paymentProcessor['class_name'] == 'Payment_iATSServiceACHEFT') {
-        $acheft = $form->_paymentProcessor;
-      }
-      if ($form->_paymentProcessor['class_name'] == 'Payment_iATSServiceSWIPE') {
-        $swipe = $form->_paymentProcessor;
-      }
-      if ($form->_paymentProcessor['class_name'] == 'Payment_iATSServiceUKDD') {
-        $ukdd = $form->_paymentProcessor;
-      }
+  if (empty($iats_processors)) {
+    return;
+  }
+  $ukdd = $swipe = $acheft = array();
+  foreach ($iats_processors as $id => $processor) {
+    switch ($processor['class_name']) {
+      case 'Payment_iATSServiceACHEFT':
+        $acheft[$id] = $processor;
+        break;
+
+      case 'Payment_iATSServiceSWIPE':
+        $swipe[$id] = $processor;
+        break;
+
+      case 'Payment_iATSServiceUKDD':
+        $ukdd[$id] = $processor;
+        break;
     }
   }
-
   // Include the required javascripts for available customized selections
-  // TODO: skip this if we're just loading a fragment of the page via ajax
   // If a form allows ACH/EFT and enables recurring, set recurring to the default.
   if (0 < count($acheft)) {
     if (isset($form->_elementIndex['is_recur'])) {
@@ -937,37 +946,22 @@ function iats_civicrm_buildForm_Contribution_Frontend(&$form) {
     }
   }
   /* Mangle (in a currency-dependent way) the ajax-bit of the form if I've just selected an ach/eft option */
-  if (!empty($acheft[$form->_paymentProcessor['id']]) || ($form->_paymentProcessor['class_name'] == 'Payment_iATSServiceACHEFT')) {
+  if (!empty($acheft[$form->_paymentProcessor['id']])) {
     iats_acheft_form_customize($form);
     // watchdog('iats_acheft',kprint_r($form,TRUE));.
   }
 
   /* now something similar for swipe */
-  if (!empty($swipe[$form->_paymentProcessor['id']]) || ($form->_paymentProcessor['class_name'] == 'Payment_iATSServiceSWIPE')) {
+  if (!empty($swipe[$form->_paymentProcessor['id']])) {
     iats_swipe_form_customize($form);
   }
 
   /* UK Direct debit option */
-  if (!empty($ukdd[$form->_paymentProcessor['id']]) || ($form->_paymentProcessor['class_name'] == 'Payment_iATSServiceUKDD')) {
+  if (!empty($ukdd[$form->_paymentProcessor['id']])) {
     iats_ukdd_form_customize($form);
     // watchdog('iats_acheft',kprint_r($form,TRUE));.
   }
 
-  /* and finally, for most frontend forms, use the dpm.js script to use the DirectPost Method override
-   * TODO: provide an admin way to prevent this
-   * TODO: use it for swipe, never for ukdd?
-   * NOTE: this is inactive code, isDPM is still always returning false.
-   */
-  require_once "CRM/iATS/iATSService.php";
-  if (iATS_Service_Request::isDPM($form->_paymentProcessor)) {
-    CRM_Core_Region::instance('billing-block')->add(array(
-      'template' => 'CRM/iATS/BillingBlockDPM.tpl',
-    ));
-    $iats_domain = parse_url($form->_paymentProcessor['url_site'], PHP_URL_HOST);
-    $dpm_url = iATS_Service_Request::dpm_url($iats_domain);
-    _iats_civicrm_varset(array('dpmURL' => $dpm_url));
-    CRM_Core_Resources::singleton()->addScriptFile('com.iatspayments.civicrm', 'js/dpm.js');
-  }
 }
 
 /**
