@@ -1,5 +1,7 @@
 <?php
-/* Copyright iATS Payments (c) 2014
+
+/**
+ * @file Copyright iATS Payments (c) 2014.
  * @author Alan Dixon
  *
  * This file is a part of CiviCRM published extension.
@@ -17,13 +19,16 @@
  * License with this program; if not, see http://www.gnu.org/licenses/
  *
  * This code provides glue between CiviCRM payment model and the iATS Payment model encapsulated in the iATS_Service_Request object
+ */
+
+/**
  *
  */
 class CRM_Core_Payment_iATSServiceSWIPE extends CRM_Core_Payment_iATSService {
 
   /**
    * We only need one instance of this object. So we use the singleton
-   * pattern and cache the instance in this variable
+   * pattern and cache the instance in this variable.
    *
    * @var object
    * @static
@@ -31,25 +36,29 @@ class CRM_Core_Payment_iATSServiceSWIPE extends CRM_Core_Payment_iATSService {
   static private $_singleton = NULL;
 
   /**
-   * Constructor
+   * Constructor.
    *
-   * @param string $mode the mode of operation: live or test
+   * @param string $mode
+   *   the mode of operation: live or test.
    *
    * @return void
    */
-  function __construct($mode, &$paymentProcessor) {
+  public function __construct($mode, &$paymentProcessor) {
     $this->_paymentProcessor = $paymentProcessor;
     $this->_processorName = ts('iATS Payments SWIPE');
 
-    // get merchant data from config
+    // Get merchant data from config.
     $config = CRM_Core_Config::singleton();
-    // live or test
+    // Live or test.
     $this->_profile['mode'] = $mode;
-    // we only use the domain of the configured url, which is different for NA vs. UK
+    // We only use the domain of the configured url, which is different for NA vs. UK.
     $this->_profile['iats_domain'] = parse_url($this->_paymentProcessor['url_site'], PHP_URL_HOST);
   }
 
-  static function &singleton($mode, &$paymentProcessor, &$paymentForm = NULL, $force = FALSE) {
+  /**
+   *
+   */
+  static public function &singleton($mode, &$paymentProcessor, &$paymentForm = NULL, $force = FALSE) {
     $processorName = $paymentProcessor['name'];
     if (self::$_singleton[$processorName] === NULL) {
       self::$_singleton[$processorName] = new CRM_Core_Payment_iATSServiceSWIPE($mode, $paymentProcessor);
@@ -57,8 +66,11 @@ class CRM_Core_Payment_iATSServiceSWIPE extends CRM_Core_Payment_iATSService {
     return self::$_singleton[$processorName];
   }
 
+  /**
+   *
+   */
   public function validatePaymentInstrument($values, &$errors) {
-    // override the default and don't do any validation because my values are encrypted
+    // Override the default and don't do any validation because my values are encrypted.
   }
 
 }

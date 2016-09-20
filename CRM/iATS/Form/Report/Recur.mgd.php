@@ -1,15 +1,20 @@
 <?php
-// This file declares a managed database record of type "ReportTemplate".
+
+/**
+ * @file
+ * This file declares a managed database record of type "ReportTemplate".
+ */
+
 // The record will be automatically inserted, updated, or deleted from the
 // database as appropriate. For more details, see "hook_civicrm_managed" at:
 // http://wiki.civicrm.org/confluence/display/CRMDOC42/Hook+Reference
-return array (
+return array(
   0 =>
-  array (
+  array(
     'name' => 'CRM_iATS_Form_Report_Recur',
     'entity' => 'ReportTemplate',
     'params' =>
-    array (
+    array(
       'version' => 3,
       'label' => 'iATS Payments - Recurring Contributions',
       'description' => 'iATS Payments - Recurring Contributions Report',

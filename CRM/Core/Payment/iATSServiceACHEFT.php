@@ -1,6 +1,8 @@
 <?php
+
 /**
- * Copyright iATS Payments (c) 2014
+ * @file
+ * Copyright iATS Payments (c) 2014.
  * @author Alan Dixon
  *
  * This file is a part of CiviCRM published extension.
@@ -19,11 +21,15 @@
  *
  * This code provides glue between CiviCRM payment model and the iATS Payment model encapsulated in the iATS_Service_Request object
  */
+
+/**
+ *
+ */
 class CRM_Core_Payment_iATSServiceACHEFT extends CRM_Core_Payment {
 
   /**
    * We only need one instance of this object. So we use the singleton
-   * pattern and cache the instance in this variable
+   * pattern and cache the instance in this variable.
    *
    * @var object
    * @static
@@ -33,20 +39,24 @@ class CRM_Core_Payment_iATSServiceACHEFT extends CRM_Core_Payment {
   /**
    * Constructor.
    *
-   * @param string $mode the mode of operation: live or test
+   * @param string $mode
+   *   the mode of operation: live or test.
    * @param array $paymentProcessor
    */
   public function __construct($mode, &$paymentProcessor) {
     $this->_paymentProcessor = $paymentProcessor;
     $this->_processorName = ts('iATS Payments ACHEFT');
 
-    // live or test
+    // Live or test.
     $this->_profile['mode'] = $mode;
-    // we only use the domain of the configured url, which is different for NA vs. UK
+    // We only use the domain of the configured url, which is different for NA vs. UK.
     $this->_profile['iats_domain'] = parse_url($this->_paymentProcessor['url_site'], PHP_URL_HOST);
   }
 
-  static function &singleton($mode, &$paymentProcessor, &$paymentForm = NULL, $force = FALSE) {
+  /**
+   *
+   */
+  static public function &singleton($mode, &$paymentProcessor, &$paymentForm = NULL, $force = FALSE) {
     $processorName = $paymentProcessor['name'];
     if (self::$_singleton[$processorName] === NULL) {
       self::$_singleton[$processorName] = new CRM_Core_Payment_iATSServiceACHEFT($mode, $paymentProcessor);
@@ -54,52 +64,58 @@ class CRM_Core_Payment_iATSServiceACHEFT extends CRM_Core_Payment {
     return self::$_singleton[$processorName];
   }
 
-  function doDirectPayment(&$params) {
+  /**
+   *
+   */
+  public function doDirectPayment(&$params) {
 
     if (!$this->_profile) {
       return self::error('Unexpected error, missing profile');
     }
-    // use the iATSService object for interacting with iATS, mostly the same for recurring contributions
-    require_once("CRM/iATS/iATSService.php");
+    // Use the iATSService object for interacting with iATS, mostly the same for recurring contributions.
+    require_once "CRM/iATS/iATSService.php";
     // TODO: force bail if it's not recurring?
-    $isRecur =  CRM_Utils_Array::value('is_recur', $params) && $params['contributionRecurID'];
-    $method = $isRecur ? 'acheft_create_customer_code':'acheft';
-    // to add debugging info in the drupal log, assign 1 to log['all'] below
+    $isRecur = CRM_Utils_Array::value('is_recur', $params) && $params['contributionRecurID'];
+    $method = $isRecur ? 'acheft_create_customer_code' : 'acheft';
+    // To add debugging info in the drupal log, assign 1 to log['all'] below.
     $iats = new iATS_Service_Request(array('type' => 'process', 'method' => $method, 'iats_domain' => $this->_profile['iats_domain'], 'currencyID' => $params['currencyID']));
     $request = $this->convertParams($params, $method);
     $request['customerIPAddress'] = (function_exists('ip_address') ? ip_address() : $_SERVER['REMOTE_ADDR']);
-    $credentials = array('agentCode' => $this->_paymentProcessor['user_name'],
-                         'password'  => $this->_paymentProcessor['password' ]);
+    $credentials = array(
+      'agentCode' => $this->_paymentProcessor['user_name'],
+      'password'  => $this->_paymentProcessor['password'],
+    );
     // Get the API endpoint URL for the method's transaction mode.
     // TODO: enable override of the default url in the request object
-    // $url = $this->_paymentProcessor['url_site'];
-
-    // make the soap request
-    $response = $iats->request($credentials,$request);
-    // process the soap response into a readable result
+    // $url = $this->_paymentProcessor['url_site'];.
+    // Make the soap request.
+    $response = $iats->request($credentials, $request);
+    // Process the soap response into a readable result.
     $result = $iats->result($response);
     if ($result['status']) {
-      $params['contribution_status_id'] = 2; // always pending status
-      $params['payment_status_id'] = 2; // for future versions, the proper key
+      // Always pending status.
+      $params['contribution_status_id'] = 2;
+      // For future versions, the proper key.
+      $params['payment_status_id'] = 2;
       $params['trxn_id'] = trim($result['remote_id']) . ':' . time();
       $params['gross_amount'] = $params['amount'];
       if ($isRecur) {
-        // save the client info in my custom table
+        // Save the client info in my custom table
         // Allow further manipulation of the arguments via custom hooks,
         // before initiating processCreditCard()
-        // CRM_Utils_Hook::alterPaymentProcessorParams($this, $params, $iatslink1);
+        // CRM_Utils_Hook::alterPaymentProcessorParams($this, $params, $iatslink1);.
         $processresult = $response->PROCESSRESULT;
         $customer_code = (string) $processresult->CUSTOMERCODE;
-        // $exp = sprintf('%02d%02d', ($params['year'] % 100), $params['month']);
+        // $exp = sprintf('%02d%02d', ($params['year'] % 100), $params['month']);.
         $exp = '0000';
-        $email ='';
+        $email = '';
         if (isset($params['email'])) {
           $email = $params['email'];
         }
-        elseif(isset($params['email-5'])) {
+        elseif (isset($params['email-5'])) {
           $email = $params['email-5'];
         }
-        elseif(isset($params['email-Primary'])) {
+        elseif (isset($params['email-Primary'])) {
           $email = $params['email-Primary'];
         }
         $query_params = array(
@@ -112,9 +128,9 @@ class CRM_Core_Payment_iATSServiceACHEFT extends CRM_Core_Payment {
         );
         CRM_Core_DAO::executeQuery("INSERT INTO civicrm_iats_customer_codes
           (customer_code, ip, expiry, cid, email, recur_id) VALUES (%1, %2, %3, %4, %5, %6)", $query_params);
-        // also set next_sched_contribution, the field name is civicrm version dependent
+        // Also set next_sched_contribution, the field name is civicrm version dependent.
         $field_name = _iats_civicrm_nscd_fid();
-        $params[$field_name] = strtotime('+'.$params['frequency_interval'].' '.$params['frequency_unit']);
+        $params[$field_name] = strtotime('+' . $params['frequency_interval'] . ' ' . $params['frequency_unit']);
       }
       return $params;
     }
@@ -123,19 +139,28 @@ class CRM_Core_Payment_iATSServiceACHEFT extends CRM_Core_Payment {
     }
   }
 
-  function changeSubscriptionAmount(&$message = '', $params = array()) {
+  /**
+   *
+   */
+  public function changeSubscriptionAmount(&$message = '', $params = array()) {
     $userAlert = ts('You have updated the amount of this recurring contribution.');
     CRM_Core_Session::setStatus($userAlert, ts('Warning'), 'alert');
     return TRUE;
   }
 
-  function cancelSubscription(&$message = '', $params = array()) {
+  /**
+   *
+   */
+  public function cancelSubscription(&$message = '', $params = array()) {
     $userAlert = ts('You have cancelled this recurring contribution.');
     CRM_Core_Session::setStatus($userAlert, ts('Warning'), 'alert');
     return TRUE;
   }
 
-  function &error($error = NULL) {
+  /**
+   *
+   */
+  public function &error($error = NULL) {
     $e = CRM_Core_Error::singleton();
     if (is_object($error)) {
       $e->push($error->getResponseCode(),
@@ -162,14 +187,16 @@ class CRM_Core_Payment_iATSServiceACHEFT extends CRM_Core_Payment {
   }
 
   /**
-   * This function checks to see if we have the right config values
+   * This function checks to see if we have the right config values.
    *
-   * @param  string $mode the mode we are operating in (live or test)
+   * @param string $mode
+   *   the mode we are operating in (live or test)
    *
    * @return string the error message if any
+   *
    * @public
    */
-  function checkConfig() {
+  public function checkConfig() {
     $error = array();
 
     if (empty($this->_paymentProcessor['user_name'])) {
@@ -188,10 +215,10 @@ class CRM_Core_Payment_iATSServiceACHEFT extends CRM_Core_Payment {
     }
   }
 
-  /*
-   * Convert the values in the civicrm params to the request array with keys as expected by iATS
+  /**
+   * Convert the values in the civicrm params to the request array with keys as expected by iATS.
    */
-  function convertParams($params, $method) {
+  public function convertParams($params, $method) {
     $request = array();
     $convert = array(
       'firstName' => 'billing_first_name',
@@ -206,23 +233,22 @@ class CRM_Core_Payment_iATSServiceACHEFT extends CRM_Core_Payment {
       'accountType' => 'bank_account_type',
     );
 
-    foreach($convert as $r => $p) {
+    foreach ($convert as $r => $p) {
       if (isset($params[$p])) {
         $request[$r] = $params[$p];
       }
     }
     $request['total'] = sprintf('%01.2f', CRM_Utils_Rule::cleanMoney($params['amount']));
-    // place for ugly hacks
-    switch($method) {
+    // Place for ugly hacks.
+    switch ($method) {
       case 'acheft':
       case 'acheft_create_customer_code':
-        // add bank number + transit to account number
+        // Add bank number + transit to account number
         // TODO: verification?
-        $request['accountNum'] = preg_replace('/^0-9]/','',$params['bank_identification_number'].$params['bank_account_number']);
+        $request['accountNum'] = preg_replace('/^0-9]/', '', $params['bank_identification_number'] . $params['bank_account_number']);
         break;
     }
     return $request;
   }
 
 }
-

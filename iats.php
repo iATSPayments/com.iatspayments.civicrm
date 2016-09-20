@@ -1,7 +1,8 @@
 <?php
 
-/* Copyright iATS Payments (c) 2014
- * Author: Alan Dixon
+/**
+ * @file Copyright iATS Payments (c) 2014
+ * Author: Alan Dixon.
  *
  * This file is a part of CiviCRM published extension.
  *
@@ -28,7 +29,7 @@ function iats_civicrm_config(&$config) {
 }
 
 /**
- * Implementation of hook_civicrm_xmlMenu
+ * Implementation of hook_civicrm_xmlMenu.
  *
  * @param $files array(string)
  */
@@ -37,7 +38,7 @@ function iats_civicrm_xmlMenu(&$files) {
 }
 
 /**
- * Implementation of hook_civicrm_install
+ * Implementation of hook_civicrm_install.
  */
 function iats_civicrm_install() {
   if (!class_exists('SoapClient')) {
@@ -48,14 +49,14 @@ function iats_civicrm_install() {
 }
 
 /**
- * Implementation of hook_civicrm_uninstall
+ * Implementation of hook_civicrm_uninstall.
  */
 function iats_civicrm_uninstall() {
   return _iats_civix_civicrm_uninstall();
 }
 
 /**
- * Implementation of hook_civicrm_enable
+ * Implementation of hook_civicrm_enable.
  */
 function iats_civicrm_enable() {
   if (!class_exists('SoapClient')) {
@@ -66,14 +67,14 @@ function iats_civicrm_enable() {
 }
 
 /**
- * Implementation of hook_civicrm_disable
+ * Implementation of hook_civicrm_disable.
  */
 function iats_civicrm_disable() {
   return _iats_civix_civicrm_disable();
 }
 
 /**
- * Implementation of hook_civicrm_upgrade
+ * Implementation of hook_civicrm_upgrade.
  *
  * @param $op string, the type of operation being performed; 'check' or 'enqueue'
  * @param $queue CRM_Queue_Queue, (for 'enqueue') the modifiable list of pending up upgrade tasks
@@ -86,7 +87,7 @@ function iats_civicrm_upgrade($op, CRM_Queue_Queue $queue = NULL) {
 }
 
 /**
- * Implementation of hook_civicrm_managed
+ * Implementation of hook_civicrm_managed.
  *
  * Generate a list of entities to create/deactivate/delete when this module
  * is installed, disabled, uninstalled.
@@ -181,20 +182,20 @@ function iats_civicrm_managed(&$entities) {
   return _iats_civix_civicrm_managed($entities);
 }
 
-
 /**
- * Utility function to get domain info
+ * Utility function to get domain info.
  *
- * Get values from the civicrm_domain table
+ * Get values from the civicrm_domain table.
  */
 function _iats_civicrm_domain_info($key) {
   static $domain;
   if (empty($domain)) {
     $domain = civicrm_api3('Domain', 'getsingle', array('current_domain' => TRUE));
   }
-  switch($key) {
+  switch ($key) {
     case 'version':
-      return explode('.',$domain['version']);
+      return explode('.', $domain['version']);
+
     default:
       if (!empty($domain[$key])) {
         return $domain[$key];
@@ -206,7 +207,7 @@ function _iats_civicrm_domain_info($key) {
 
 /* START utility functions to allow this extension to work with different civicrm version */
 
-/*
+/**
  * Does this version of Civi implement repeattransaction well?
  */
 function _iats_civicrm_use_repeattransaction() {
@@ -227,7 +228,8 @@ function _iats_civicrm_nscd_fid() {
  */
 function _iats_civicrm_varset($vars) {
   $version = CRM_Utils_System::version();
-  if (version_compare($version, '4.5') < 0) { /// support 4.4!
+  // Support 4.4!
+  if (version_compare($version, '4.5') < 0) {
     CRM_Core_Resources::singleton()->addSetting('iatspayments', $vars);
   }
   else {
@@ -238,7 +240,7 @@ function _iats_civicrm_varset($vars) {
 /* END functions to allow this extension to work with different civicrm version */
 
 /**
- * Utility to get the next available menu key
+ * Utility to get the next available menu key.
  */
 function _iats_getMenuKeyMax($menuArray) {
   $max = array(max(array_keys($menuArray)));
@@ -250,6 +252,9 @@ function _iats_getMenuKeyMax($menuArray) {
   return max($max);
 }
 
+/**
+ *
+ */
 function iats_civicrm_navigationMenu(&$navMenu) {
   $pages = array(
     'admin_page' => array(
@@ -260,26 +265,26 @@ function iats_civicrm_navigationMenu(&$navMenu) {
       'permission' => 'access CiviContribute,administer CiviCRM',
       'operator'   => 'AND',
       'separator'  => NULL,
-      'active'     => 1
+      'active'     => 1,
     ),
     'settings_page' => array(
       'label'      => 'iATS Payments Settings',
       'name'       => 'iATS Payments Settings',
       'url'        => 'civicrm/admin/contribute/iatssettings',
-      'parent'    => array('Administer','CiviContribute'),
+      'parent'    => array('Administer', 'CiviContribute'),
       'permission' => 'access CiviContribute,administer CiviCRM',
       'operator'   => 'AND',
       'separator'  => NULL,
-      'active'     => 1
+      'active'     => 1,
     ),
   );
-  foreach($pages as $item) {
-    // Check that our item doesn't already exist
+  foreach ($pages as $item) {
+    // Check that our item doesn't already exist.
     $menu_item_search = array('url' => $item['url']);
     $menu_items = array();
     CRM_Core_BAO_Navigation::retrieve($menu_item_search, $menu_items);
     if (empty($menu_items)) {
-      $path = implode('/',$item['parent']);
+      $path = implode('/', $item['parent']);
       unset($item['parent']);
       _iats_civix_insert_navigation_menu($navMenu, $path, $item);
     }
@@ -287,68 +292,74 @@ function iats_civicrm_navigationMenu(&$navMenu) {
 }
 
 /**
- * hook_civicrm_buildForm.
- * Do a Drupal 7 style thing so we can write smaller functions
+ * Hook_civicrm_buildForm.
+ * Do a Drupal 7 style thing so we can write smaller functions.
  */
 function iats_civicrm_buildForm($formName, &$form) {
-  // but start by grouping a few forms together for nicer code
+  // But start by grouping a few forms together for nicer code.
   switch ($formName) {
     case 'CRM_Event_Form_Participant':
     case 'CRM_Member_Form_Membership':
     case 'CRM_Contribute_Form_Contribution':
-    // override normal convention, deal with all these backend credit card contribution forms the same way
+      // Override normal convention, deal with all these backend credit card contribution forms the same way.
       $fname = 'iats_civicrm_buildForm_CreditCard_Backend';
       break;
 
     case 'CRM_Contribute_Form_Contribution_Main':
     case 'CRM_Event_Form_Registration_Register':
     case 'CRM_Financial_Form_Payment':
-    // override normal convention, deal with all these front-end contribution forms the same way
+      // Override normal convention, deal with all these front-end contribution forms the same way.
       $fname = 'iats_civicrm_buildForm_Contribution_Frontend';
       break;
 
     case 'CRM_Contribute_Form_Contribution_Confirm':
-      // on the confirmation form, we know the processor, so only do processor specific customizations
-      $fname = 'iats_civicrm_buildForm_Contribution_Confirm_'.$form->_paymentProcessor['class_name'];
+      // On the confirmation form, we know the processor, so only do processor specific customizations.
+      $fname = 'iats_civicrm_buildForm_Contribution_Confirm_' . $form->_paymentProcessor['class_name'];
       break;
 
     case 'CRM_Contribute_Form_Contribution_ThankYou':
-      // on the confirmation form, we know the processor, so only do processor specific customizations
-      $fname = 'iats_civicrm_buildForm_Contribution_ThankYou_'.$form->_paymentProcessor['class_name'];
+      // On the confirmation form, we know the processor, so only do processor specific customizations.
+      $fname = 'iats_civicrm_buildForm_Contribution_ThankYou_' . $form->_paymentProcessor['class_name'];
       break;
 
     default:
-      $fname = 'iats_civicrm_buildForm_'.$formName;
+      $fname = 'iats_civicrm_buildForm_' . $formName;
       break;
   }
   if (function_exists($fname)) {
     $fname($form);
   }
-  // else echo $fname;
+  // Else echo $fname;.
 }
 
+/**
+ *
+ */
 function iats_civicrm_pageRun(&$page) {
-  $fname = 'iats_civicrm_pageRun_'.$page->getVar('_name');
+  $fname = 'iats_civicrm_pageRun_' . $page->getVar('_name');
   if (function_exists($fname)) {
     $fname($page);
   }
 }
 
+/**
+ *
+ */
 function iats_civicrm_pageRun_CRM_Contact_Page_View_Summary(&$page) {
-  // because of AJAX loading, I need to load my backend swipe js here
-  $swipe = iats_civicrm_processors(NULL,'SWIPE',array('is_default' => 1));
+  // Because of AJAX loading, I need to load my backend swipe js here.
+  $swipe = iats_civicrm_processors(NULL, 'SWIPE', array('is_default' => 1));
   if (count($swipe) > 0) {
-    CRM_Core_Resources::singleton()->addScriptFile('com.iatspayments.civicrm', 'js/swipe.js',10);
+    CRM_Core_Resources::singleton()->addScriptFile('com.iatspayments.civicrm', 'js/swipe.js', 10);
   }
 }
 
-/*
+/**
  * Modify the recurring contribution (subscription) page.
  * Display extra information about recurring contributions using iATS, and
  * link to iATS CustomerLink display and editing pages.
  */
 function iats_civicrm_pageRun_CRM_Contribute_Page_ContributionRecur($page) {
-  // get the corresponding (most recently created) iATS customer code record referenced from the customer_codes table via the recur_id ('crid')
+  // Get the corresponding (most recently created) iATS customer code record referenced from the customer_codes table via the recur_id ('crid')
   // we'll also get the expiry date and last four digits (at least, our best information about that).
   $extra = array();
   $crid = CRM_Utils_Request::retrieve('id', 'Integer', $page, FALSE);
@@ -363,28 +374,28 @@ function iats_civicrm_pageRun_CRM_Contribute_Page_ContributionRecur($page) {
     return;
   }
   try {
-    $params = array(1 => array($crid,'Integer'));
+    $params = array(1 => array($crid, 'Integer'));
     $dao = CRM_Core_DAO::executeQuery("SELECT customer_code,expiry FROM civicrm_iats_customer_codes WHERE recur_id = %1 ORDER BY id DESC LIMIT 1", $params);
     if ($dao->fetch()) {
       $customer_code = $dao->customer_code;
       $extra['iATS Customer Code'] = $customer_code;
       $customerLinkView = CRM_Utils_System::url('civicrm/contact/view/iatscustomerlink',
-        'reset=1&cid='.$recur['contact_id'].'&customerCode='.$customer_code.'&paymentProcessorId='.$recur['payment_processor_id'].'&is_test='.$recur['is_test']);
+        'reset=1&cid=' . $recur['contact_id'] . '&customerCode=' . $customer_code . '&paymentProcessorId=' . $recur['payment_processor_id'] . '&is_test=' . $recur['is_test']);
       $extra['customerLink'] = "<a href='$customerLinkView'>View</a>";
       if ($type == 'iATSService' || $type == 'iATSServiceSWIPE') {
         $customerLinkEdit = CRM_Utils_System::url('civicrm/contact/edit/iatscustomerlink',
-          'reset=1&cid='.$recur['contact_id'].'&customerCode='.$customer_code.'&paymentProcessorId='.$recur['payment_processor_id'].'&is_test='.$recur['is_test']);
+          'reset=1&cid=' . $recur['contact_id'] . '&customerCode=' . $customer_code . '&paymentProcessorId=' . $recur['payment_processor_id'] . '&is_test=' . $recur['is_test']);
         $extra['customerLink'] .= " | <a href='$customerLinkEdit'>Edit</a>";
         $processLink = CRM_Utils_System::url('civicrm/contact/iatsprocesslink',
-          'reset=1&cid='.$recur['contact_id'].'&customerCode='.$customer_code.'&paymentProcessorId='.$recur['payment_processor_id'].'&crid='.$crid.'&is_test='.$recur['is_test']);
+          'reset=1&cid=' . $recur['contact_id'] . '&customerCode=' . $customer_code . '&paymentProcessorId=' . $recur['payment_processor_id'] . '&crid=' . $crid . '&is_test=' . $recur['is_test']);
         $extra['customerLink'] .= " | <a href='$processLink'>Process</a>";
-        $expiry = str_split($dao->expiry,2);
-        $extra['expiry'] = '20'.implode('-',$expiry);
+        $expiry = str_split($dao->expiry, 2);
+        $extra['expiry'] = '20' . implode('-', $expiry);
       }
     }
     if (!empty($recur['invoice_id'])) {
-      // we may have the last 4 digits via the original request log, though they may no longer be accurate, but let's get it anyway if we can
-      $params = array(1 => array($recur['invoice_id'],'String'));
+      // We may have the last 4 digits via the original request log, though they may no longer be accurate, but let's get it anyway if we can.
+      $params = array(1 => array($recur['invoice_id'], 'String'));
       $dao = CRM_Core_DAO::executeQuery("SELECT cc FROM civicrm_iats_request_log WHERE invoice_num = %1", $params);
       if ($dao->fetch()) {
         $extra['cc'] = $dao->cc;
@@ -398,7 +409,7 @@ function iats_civicrm_pageRun_CRM_Contribute_Page_ContributionRecur($page) {
     return;
   }
   $template = CRM_Core_Smarty::singleton();
-  foreach($extra as $key => $value) {
+  foreach ($extra as $key => $value) {
     $template->assign($key, $value);
   }
   CRM_Core_Region::instance('page-body')->add(array(
@@ -408,8 +419,8 @@ function iats_civicrm_pageRun_CRM_Contribute_Page_ContributionRecur($page) {
 }
 
 /**
- * hook_civicrm_merge
- * Deal with contact merges - our custom iats customer code table contains contact id's as a check, it might need to be updated
+ * Hook_civicrm_merge
+ * Deal with contact merges - our custom iats customer code table contains contact id's as a check, it might need to be updated.
  */
 function iats_civicrm_merge($type, &$data, $mainId = NULL, $otherId = NULL, $tables = NULL) {
   if ('cidRefs' == $type) {
@@ -418,11 +429,10 @@ function iats_civicrm_merge($type, &$data, $mainId = NULL, $otherId = NULL, $tab
   }
 }
 
-
 /**
- * hook_civicrm_pre
+ * Hook_civicrm_pre.
  *
- * Handle special cases of creating contribution (regular and recurring) records when using IATS Payments
+ * Handle special cases of creating contribution (regular and recurring) records when using IATS Payments.
  *
  * 1. CiviCRM assumes all recurring contributions need to be confirmed using the IPN mechanism. This is not true for iATS recurring contributions.
  * So when creating a contribution that is part of a recurring series, test for status = 2, and set to status = 1 instead, unless we're using the fixed day feature
@@ -436,10 +446,10 @@ function iats_civicrm_merge($type, &$data, $mainId = NULL, $otherId = NULL, $tab
  * TODO: CiviCRM should have nicer ways to handle this.
  */
 function iats_civicrm_pre($op, $objectName, $objectId, &$params) {
-  // since this function gets called a lot, quickly determine if I care about the record being created
+  // Since this function gets called a lot, quickly determine if I care about the record being created.
   if (('create' == $op) && ('Contribution' == $objectName || 'ContributionRecur' == $objectName) && !empty($params['contribution_status_id'])) {
     // watchdog('iats_civicrm','hook_civicrm_pre for Contribution <pre>@params</pre>',array('@params' => print_r($params));
-    // figure out the payment processor id, not nice
+    // figure out the payment processor id, not nice.
     $version = CRM_Utils_System::version();
     $payment_processor_id = ('ContributionRecur' == $objectName) ? $params['payment_processor_id'] :
                               (!empty($params['payment_processor']) ? $params['payment_processor'] :
@@ -449,93 +459,106 @@ function iats_civicrm_pre($op, $objectName, $objectId, &$params) {
     if ($type = _iats_civicrm_is_iats($payment_processor_id)) {
       $settings = CRM_Core_BAO_Setting::getItem('iATS Payments Extension', 'iats_settings');
       $allow_days = empty($settings['days']) ? array('-1') : $settings['days'];
-      switch ($type.$objectName) {
-        case 'iATSServiceContribution': // cc contribution, test if it's been set to status 2 on a recurring contribution
+      switch ($type . $objectName) {
+        // Cc contribution, test if it's been set to status 2 on a recurring contribution.
+        case 'iATSServiceContribution':
         case 'iATSServiceSWIPEContribution':
-          // for civi version before 4.6.6, we had to force the status to 1
+          // For civi version before 4.6.6, we had to force the status to 1.
           if ((2 == $params['contribution_status_id'])
             && !empty($params['contribution_recur_id'])
             && (max($allow_days) <= 0)
             && (version_compare($version, '4.6.6') < 0)
           ) {
-            // but only for the first one
+            // But only for the first one.
             $count = civicrm_api3('Contribution', 'getcount', array('contribution_recur_id' => $params['contribution_recur_id']));
             if (
               (is_array($count) && empty($count['result']))
               || empty($count)
             ) {
-              // watchdog('iats_civicrm','hook_civicrm_pre updating status_id for objectName @id, count <pre>!count</pre>, params <pre>!params</pre>, ',array('@id' => $objectName, '!count' => print_r($count,TRUE),'!params' => print_r($params,TRUE)));
+              // watchdog('iats_civicrm','hook_civicrm_pre updating status_id for objectName @id, count <pre>!count</pre>, params <pre>!params</pre>, ',array('@id' => $objectName, '!count' => print_r($count,TRUE),'!params' => print_r($params,TRUE)));.
               $params['contribution_status_id'] = 1;
             }
           }
           break;
-        case 'iATSServiceContributionRecur': // cc/swipe/ACHEFT recurring contribution record
+
+        // cc/swipe/ACHEFT recurring contribution record.
+        case 'iATSServiceContributionRecur':
         case 'iATSServiceSWIPEContributionRecur':
         case 'iATSServiceACHEFTContributionRecur':
-          // the next scheduled contribution date field name is civicrm version dependent
+          // The next scheduled contribution date field name is civicrm version dependent.
           $field_name = _iats_civicrm_nscd_fid();
-          // when creating a recurring contribution record via a civicrm contribution form
+          // When creating a recurring contribution record via a civicrm contribution form
           // we've already taken the first payment, so calculate the next one (core assumes the intial contribution is pending)
           // we set this to 'in-progress' even for ACH/EFT if the first one hasn't been verified, because we still want to be attempting later ones
-          // this condition helps avoid mangling records being imported from a csv file
+          // this condition helps avoid mangling records being imported from a csv file.
           if (5 != $params['contribution_status_id'] && empty($params[$field_name])) {
             $params['contribution_status_id'] = 5;
-            $params['trxn_id'] = NULL; // civi wants to put the returned trxn_id in here
-            $next = strtotime('+'.$params['frequency_interval'].' '.$params['frequency_unit']);
-            $params[$field_name] = date('YmdHis',$next);
+            // Civi wants to put the returned trxn_id in here.
+            $params['trxn_id'] = NULL;
+            $next = strtotime('+' . $params['frequency_interval'] . ' ' . $params['frequency_unit']);
+            $params[$field_name] = date('YmdHis', $next);
           }
-          if ($type == 'iATSServiceACHEFT') { // fix the payment type for ACH/EFT
+          // Fix the payment type for ACH/EFT.
+          if ($type == 'iATSServiceACHEFT') {
             $params['payment_instrument_id'] = 2;
           }
           break;
+
         case 'iATSServiceACHEFTContribution':
-          // ach/eft contribution: update the payment instrument
+          // ach/eft contribution: update the payment instrument.
           $params['payment_instrument_id'] = 2;
-          // and push the status to 2 if civicrm thinks it's 1, i.e. for one-time contributions
-          // in other words, never create ach/eft contributions as complete, always push back to pending and verify
+          // And push the status to 2 if civicrm thinks it's 1, i.e. for one-time contributions
+          // in other words, never create ach/eft contributions as complete, always push back to pending and verify.
           if ($params['contribution_status_id'] == 1) {
             $params['contribution_status_id'] = 2;
           }
           break;
-        case 'iATSServiceUKDDContribution': // UK DD contribution: update the payment instrument, fix the receive date
+
+        // UK DD contribution: update the payment instrument, fix the receive date.
+        case 'iATSServiceUKDDContribution':
           $params['payment_instrument_id'] = 2;
           if ($start_date = strtotime($_POST['payer_validate_start_date'])) {
-            $params['receive_date'] = date('Ymd',$start_date).'120000';
+            $params['receive_date'] = date('Ymd', $start_date) . '120000';
           }
           break;
-        case 'iATSServiceUKDDContributionRecur': // UK DD recurring contribution record: update the payment instrument, fix the start_date
+
+        // UK DD recurring contribution record: update the payment instrument, fix the start_date.
+        case 'iATSServiceUKDDContributionRecur':
           $params['payment_instrument_id'] = 2;
           if ($start_date = strtotime($_POST['payer_validate_start_date'])) {
-            $params['start_date'] = date('Ymd',$start_date).'120000';
+            $params['start_date'] = date('Ymd', $start_date) . '120000';
           }
           break;
       }
       if ($type != 'iATSServiceUKDD' && $objectName == 'Contribution') {
-        // new, non-UKDD contribution records in a schedule are forced to comply with any restrictions
+        // new, non-UKDD contribution records in a schedule are forced to comply with any restrictions.
         if (0 < max($allow_days)) {
-          $from_time = _iats_contributionrecur_next(strtotime($params['receive_date']),$allow_days);
-          $params['receive_date'] = date('Ymd', $from_time).'030000';
+          $from_time = _iats_contributionrecur_next(strtotime($params['receive_date']), $allow_days);
+          $params['receive_date'] = date('Ymd', $from_time) . '030000';
         }
       }
     }
-    // watchdog('iats_civicrm','ignoring hook_civicrm_pre for objectName @id',array('@id' => $objectName));
+    // watchdog('iats_civicrm','ignoring hook_civicrm_pre for objectName @id',array('@id' => $objectName));.
   }
-  // if I've set fixed monthly recurring dates, force any iats (non uk dd) recurring contribution schedule records to comply
+  // If I've set fixed monthly recurring dates, force any iats (non uk dd) recurring contribution schedule records to comply
   // it's a bit draconian, and you likely want to give administrators the ability to modify these schedules
-  // this is separate from the above because I want to deal with both create and edit possibilities
+  // this is separate from the above because I want to deal with both create and edit possibilities.
   if (('ContributionRecur' == $objectName) && ('create' == $op || 'edit' == $op) && !empty($params['payment_processor_id'])) {
     if ($type = _iats_civicrm_is_iats($params['payment_processor_id'])) {
       if ($type != 'iATSServiceUKDD' && !empty($params['next_sched_contribution_date'])) {
         $settings = CRM_Core_BAO_Setting::getItem('iATS Payments Extension', 'iats_settings');
         $allow_days = empty($settings['days']) ? array('-1') : $settings['days'];
-        if (0 < max($allow_days)) { // force one of the fixed days, and set the cycle_day at the same time
+        // Force one of the fixed days, and set the cycle_day at the same time.
+        if (0 < max($allow_days)) {
           $init_time = ('create' == $op) ? time() : strtotime($params['next_sched_contribution_date']);
-          $from_time = _iats_contributionrecur_next($init_time,$allow_days);
+          $from_time = _iats_contributionrecur_next($init_time, $allow_days);
           $params['next_sched_contribution_date'] = date('YmdHis', $from_time);
-          $params['cycle_day'] = date('j', $from_time); // day of month without leading 0
+          // Day of month without leading 0.
+          $params['cycle_day'] = date('j', $from_time);
         }
       }
-      if (empty($params['installments'])) { // fix a civi bug while I'm here
+      // Fix a civi bug while I'm here.
+      if (empty($params['installments'])) {
         $params['installments'] = '0';
       }
     }
@@ -558,15 +581,15 @@ function _iats_civicrm_get_payment_processor_id($contribution_recur_id) {
   }
   if (empty($result['payment_processor_id'])) {
     return FALSE;
-    // TODO: log error
+    // TODO: log error.
   }
   return $result['payment_processor_id'];
 }
 
-/*
- * Utility function to see if a payment processor id is using one of the iATS payment processors
+/**
+ * Utility function to see if a payment processor id is using one of the iATS payment processors.
  *
- * This function relies on our naming convention for the iats payment processor classes, staring with the string Payment_iATSService
+ * This function relies on our naming convention for the iats payment processor classes, staring with the string Payment_iATSService.
  */
 function _iats_civicrm_is_iats($payment_processor_id) {
   if (empty($payment_processor_id)) {
@@ -583,26 +606,26 @@ function _iats_civicrm_is_iats($payment_processor_id) {
   }
   if (empty($result['class_name'])) {
     return FALSE;
-    // TODO: log error
+    // TODO: log error.
   }
-  $type = substr($result['class_name'],0,19);
-  $subtype = substr($result['class_name'],19);
-  return ('Payment_iATSService' == $type) ? 'iATSService'.$subtype  : FALSE;
+  $type = substr($result['class_name'], 0, 19);
+  $subtype = substr($result['class_name'], 19);
+  return ('Payment_iATSService' == $type) ? 'iATSService' . $subtype : FALSE;
 }
 
 /**
- * Internal utility function: return the id's of any iATS processors matching various conditions
+ * Internal utility function: return the id's of any iATS processors matching various conditions.
  *
- * processors: an array of payment processors indexed by id to filter by,
+ * Processors: an array of payment processors indexed by id to filter by,
  *             or if NULL, it searches through all
  * subtype: the iats service class name subtype
- * params: an array of additional params to pass to the api call
+ * params: an array of additional params to pass to the api call.
  */
 function iats_civicrm_processors($processors, $subtype = '', $params = array()) {
   $list = array();
-  $match_all = ('*' == $subtype)  ? TRUE : FALSE;
+  $match_all = ('*' == $subtype) ? TRUE : FALSE;
   if (!$match_all) {
-    $params['class_name'] = 'Payment_iATSService'. $subtype;
+    $params['class_name'] = 'Payment_iATSService' . $subtype;
   }
 
   // Set the domain id if not passed in.
@@ -612,10 +635,10 @@ function iats_civicrm_processors($processors, $subtype = '', $params = array()) 
 
   $result = civicrm_api3('PaymentProcessor', 'get', $params);
   if (0 == $result['is_error'] && count($result['values']) > 0) {
-    foreach($result['values'] as $paymentProcessor) {
+    foreach ($result['values'] as $paymentProcessor) {
       $id = $paymentProcessor['id'];
       if ((is_null($processors)) || !empty($processors[$id])) {
-        if (!$match_all || (0 === strpos($paymentProcessor['class_name'],'Payment_iATSService'))) {
+        if (!$match_all || (0 === strpos($paymentProcessor['class_name'], 'Payment_iATSService'))) {
           $list[$id] = $paymentProcessor;
         }
       }
@@ -624,8 +647,8 @@ function iats_civicrm_processors($processors, $subtype = '', $params = array()) 
   return $list;
 }
 
-/*
- * Customize direct debit billing blocks, per currency
+/**
+ * Customize direct debit billing blocks, per currency.
  *
  * Each country has different rules about direct debit, so only currencies that we explicitly handle will be
  * customized, others will get a warning.
@@ -636,11 +659,10 @@ function iats_civicrm_processors($processors, $subtype = '', $params = array()) 
  *
  * Each one also includes some javascript to move the new fields around on the DOM
  */
-
 function iats_acheft_form_customize($form) {
-  // currency is in a funny place for the Event registration form
+  // Currency is in a funny place for the Event registration form.
   $currency = iats_getcurrency($form);
-  $fname = 'iats_acheft_form_customize_'.$currency;
+  $fname = 'iats_acheft_form_customize_' . $currency;
   /* we always want these three fields to be required, in all currencies. As of 4.6.?, this is in core */
   if (empty($form->billingFieldSets['direct_debit']['fields']['account_holder']['is_required'])) {
     $form->addRule('account_holder', ts('%1 is a required field.', array(1 => ts('Name of Account Holder'))), 'required');
@@ -654,24 +676,28 @@ function iats_acheft_form_customize($form) {
   if (function_exists($fname)) {
     $fname($form);
   }
-  else { // I'm handling an unexpected currency
+  // I'm handling an unexpected currency.
+  else {
     CRM_Core_Region::instance('billing-block')->add(array(
-      'template' => 'CRM/iATS/BillingBlockDirectDebitExtra_Other.tpl'
+      'template' => 'CRM/iATS/BillingBlockDirectDebitExtra_Other.tpl',
     ));
   }
 }
 
+/**
+ *
+ */
 function iats_getcurrency($form) {
-  // currency can be in any one of three places:
-  // depending on event form vs contribution form and contribution first page load vs radio button pressed
+  // Currency can be in any one of three places:
+  // depending on event form vs contribution form and contribution first page load vs radio button pressed.
   $currency = isset($form->_values['event']['currency']) ? $form->_values['event']['currency'] : $form->_values['currency'];
   $currency = isset($currency) ? $currency : $form->getCurrency();
 
   return $currency;
 }
 
-/*
- * Customization for USD ACH-EFT billing block
+/**
+ * Customization for USD ACH-EFT billing block.
  */
 function iats_acheft_form_customize_USD($form) {
   $form->addElement('select', 'bank_account_type', ts('Account type'), array('CHECKING' => 'Checking', 'SAVING' => 'Saving'));
@@ -686,22 +712,22 @@ function iats_acheft_form_customize_USD($form) {
     $form->addRule('bank_identification_number', ts('%1 is a required field.', array(1 => ts('Bank Routing Number'))), 'required');
   }
   CRM_Core_Region::instance('billing-block')->add(array(
-    'template' => 'CRM/iATS/BillingBlockDirectDebitExtra_USD.tpl'
+    'template' => 'CRM/iATS/BillingBlockDirectDebitExtra_USD.tpl',
   ));
 }
 
-/*
- * Customization for CAD ACH-EFT billing block
+/**
+ * Customization for CAD ACH-EFT billing block.
  */
 function iats_acheft_form_customize_CAD($form) {
   $form->addElement('text', 'cad_bank_number', ts('Bank Number (3 digits)'));
   $form->addRule('cad_bank_number', ts('%1 is a required field.', array(1 => ts('Bank Number'))), 'required');
   $form->addRule('cad_bank_number', ts('%1 must contain only digits.', array(1 => ts('Bank Number'))), 'numeric');
-  $form->addRule('cad_bank_number', ts('%1 must be of length 3.', array(1 => ts('Bank Number'))), 'rangelength', array(3,3));
+  $form->addRule('cad_bank_number', ts('%1 must be of length 3.', array(1 => ts('Bank Number'))), 'rangelength', array(3, 3));
   $form->addElement('text', 'cad_transit_number', ts('Transit Number (5 digits)'));
   $form->addRule('cad_transit_number', ts('%1 is a required field.', array(1 => ts('Transit Number'))), 'required');
   $form->addRule('cad_transit_number', ts('%1 must contain only digits.', array(1 => ts('Transit Number'))), 'numeric');
-  $form->addRule('cad_transit_number', ts('%1 must be of length 5.', array(1 => ts('Transit Number'))), 'rangelength', array(5,5));
+  $form->addRule('cad_transit_number', ts('%1 must be of length 5.', array(1 => ts('Transit Number'))), 'rangelength', array(5, 5));
   $form->addElement('select', 'bank_account_type', ts('Account type'), array('CHECKING' => 'Chequing', 'SAVING' => 'Savings'));
   $form->addRule('bank_account_type', ts('%1 is a required field.', array(1 => ts('Account type'))), 'required');
   /* minor customization of labels + make them required */
@@ -714,52 +740,54 @@ function iats_acheft_form_customize_CAD($form) {
   $element = $form->getElement('bank_identification_number');
   $element->setLabel(ts('Bank Number + Transit Number'));
   CRM_Core_Region::instance('billing-block')->add(array(
-    'template' => 'CRM/iATS/BillingBlockDirectDebitExtra_CAD.tpl'
+    'template' => 'CRM/iATS/BillingBlockDirectDebitExtra_CAD.tpl',
   ));
 }
 
-/*
- * Contribution form customization for iATS secure swipe
+/**
+ * Contribution form customization for iATS secure swipe.
  */
 function iats_swipe_form_customize($form) {
- // remove two fields that are replaced by the swipe code data
- // we need to remove them from the _paymentFields as well or they'll sneak back in!
- $form->removeElement('credit_card_type',TRUE);
- $form->removeElement('cvv2',TRUE);
- unset($form->_paymentFields['credit_card_type']);
- unset($form->_paymentFields['cvv2']);
- // add a single text area to store/display the encrypted cc number that the swipe device will fill
- $form->addElement('textarea','encrypted_credit_card_number',ts('Encrypted'), array('cols' => '80', 'rows' => '8'));
- $form->addRule('encrypted_credit_card_number', ts('%1 is a required field.', array(1 => ts('Encrypted'))), 'required');
- CRM_Core_Region::instance('billing-block')->add(array(
-   'template' => 'CRM/iATS/BillingBlockSwipe.tpl'
- ));
+  // Remove two fields that are replaced by the swipe code data
+  // we need to remove them from the _paymentFields as well or they'll sneak back in!
+  $form->removeElement('credit_card_type', TRUE);
+  $form->removeElement('cvv2', TRUE);
+  unset($form->_paymentFields['credit_card_type']);
+  unset($form->_paymentFields['cvv2']);
+  // Add a single text area to store/display the encrypted cc number that the swipe device will fill.
+  $form->addElement('textarea', 'encrypted_credit_card_number', ts('Encrypted'), array('cols' => '80', 'rows' => '8'));
+  $form->addRule('encrypted_credit_card_number', ts('%1 is a required field.', array(1 => ts('Encrypted'))), 'required');
+  CRM_Core_Region::instance('billing-block')->add(array(
+    'template' => 'CRM/iATS/BillingBlockSwipe.tpl',
+  ));
 }
 
-/*
- * Customize direct debit billing block for UK Direct Debit
+/**
+ * Customize direct debit billing block for UK Direct Debit.
  *
- * This could be handled by iats_acheft_form_customize, except there's some tricky multi-page stuff for the payer validate step
+ * This could be handled by iats_acheft_form_customize, except there's some tricky multi-page stuff for the payer validate step.
  */
-
 function iats_ukdd_form_customize($form) {
   /* uk direct debits have to start 16 days after the initial request is made */
   if (!$form->elementExists('is_recur')) {
-    // todo generate an error on the page
+    // Todo generate an error on the page.
     return;
   }
-  define('IATS_UKDD_START_DELAY',16 * 24 * 60 * 60);
-  /* for batch efficiencies, restrict to a specific set of days of the month, less than 28 */
-  $start_days = array('1', '15'); // you can change these if you're sensible and careful
-  $start_dates = array(); // actual date options
+  define('IATS_UKDD_START_DELAY', 16 * 24 * 60 * 60);
+  /* For batch efficiencies, restrict to a specific set of days of the month, less than 28 */
+  // you can change these if you're sensible and careful.
+  $start_days = array('1', '15');
+  // Actual date options.
+  $start_dates = array();
   $start_date = time() + IATS_UKDD_START_DELAY;
   for ($j = 0; $j < count($start_days); $j++) {
-    $i = 0;  // so I don't get into an infinite loop somehow ..
-    while(($i++ < 60) && !in_array($dp['mday'],$start_days)) {
+    // So I don't get into an infinite loop somehow ..
+    $i = 0;
+    while (($i++ < 60) && !in_array($dp['mday'], $start_days)) {
       $start_date += (24 * 60 * 60);
       $dp = getdate($start_date);
     }
-    $start_dates[date('Y-m-d',$start_date)] = strftime('%B %e, %Y',$start_date);
+    $start_dates[date('Y-m-d', $start_date)] = strftime('%B %e, %Y', $start_date);
     $start_date += (24 * 60 * 60);
     $dp = getdate($start_date);
   }
@@ -794,28 +822,31 @@ function iats_ukdd_form_customize($form) {
   $form->addElement('textarea', 'payer_validate_address', ts('Name and full postal address of your Bank or Building Society'), array('rows' => '6', 'columns' => '30'));
   $form->addElement('text', 'payer_validate_service_user_number', ts('Service User Number'));
   $form->addElement('text', 'payer_validate_reference', ts('Reference'), array());
-  $form->addElement('text', 'payer_validate_date', ts('Today\'s Date'), array()); // date on which the validation happens, reference
-  $form->addElement('static', 'payer_validate_instruction', ts('Instruction to your Bank or Building Society'), ts('Please pay %1 Direct Debits from the account detailed in this instruction subject to the safeguards assured by the Direct Debit Guarantee. I understand that this instruction may remain with TestingTest and, if so, details will be passed electronically to my Bank / Building Society.',array('%1' => "<strong>$payee</strong>")));
+  // Date on which the validation happens, reference.
+  $form->addElement('text', 'payer_validate_date', ts('Today\'s Date'), array());
+  $form->addElement('static', 'payer_validate_instruction', ts('Instruction to your Bank or Building Society'), ts('Please pay %1 Direct Debits from the account detailed in this instruction subject to the safeguards assured by the Direct Debit Guarantee. I understand that this instruction may remain with TestingTest and, if so, details will be passed electronically to my Bank / Building Society.', array('%1' => "<strong>$payee</strong>")));
   // $form->addRule('bank_name', ts('%1 is a required field.', array(1 => ts('Bank Name'))), 'required');
-  //$form->addRule('bank_account_type', ts('%1 is a required field.', array(1 => ts('Account type'))), 'required');
+  // $form->addRule('bank_account_type', ts('%1 is a required field.', array(1 => ts('Account type'))), 'required');
   /* only allow recurring contributions, set date */
   $form->setDefaults(array(
     'is_recur' => 1,
     'payer_validate_date' => date('F j, Y'),
     'payer_validate_start_date' => current(array_keys($start_dates)),
     'payer_validate_service_user_number' => $service_user_number,
-  )); // make recurring contrib default to true
+  // Make recurring contrib default to true.
+  ));
   CRM_Core_Region::instance('billing-block')->add(array(
-    'template' => 'CRM/iATS/BillingBlockDirectDebitExtra_GBP.tpl'
+    'template' => 'CRM/iATS/BillingBlockDirectDebitExtra_GBP.tpl',
   ));
 }
 
-/* Modifications to a (public/frontend) contribution forms if iATS ACH/EFT or SWIPE is enabled
- *  1. set recurring to be the default, if enabled (ACH/EFT) [previously forced recurring, removed in 1.2.4]
- *  2. add extra fields/modify labels
+/**
+ * Modifications to a (public/frontend) contribution forms if iATS ACH/EFT or SWIPE is enabled
+ * 1. set recurring to be the default, if enabled (ACH/EFT) [previously forced recurring, removed in 1.2.4]
+ * 2. add extra fields/modify labels.
  */
 function iats_civicrm_buildForm_Contribution_Frontend(&$form) {
-  if (empty($form->_paymentProcessors) && $form->_paymentProcessor['id']==0) {
+  if (empty($form->_paymentProcessors) && $form->_paymentProcessor['id'] == 0) {
     return;
   }
 
@@ -831,15 +862,19 @@ function iats_civicrm_buildForm_Contribution_Frontend(&$form) {
         case 'Payment_iATSServiceACHEFT':
           $acheft[$id] = $processor;
           break;
+
         case 'Payment_iATSServiceSWIPE':
           $swipe[$id] = $processor;
           break;
+
         case 'Payment_iATSServiceUKDD':
           $ukdd[$id] = $processor;
           break;
       }
     }
-  } else { // we're on CRM_Financial_Form_Payment: figure out which iATS Payment Processor we have here:
+    // we're on CRM_Financial_Form_Payment: figure out which iATS Payment Processor we have here:
+  }
+  else {
     if ($form->_paymentProcessor['id']) {
       if ($form->_paymentProcessor['class_name'] == 'Payment_iATSServiceACHEFT') {
         $acheft = $form->_paymentProcessor;
@@ -853,38 +888,40 @@ function iats_civicrm_buildForm_Contribution_Frontend(&$form) {
     }
   }
 
-  // include the required javascripts for available customized selections
+  // Include the required javascripts for available customized selections
   // TODO: skip this if we're just loading a fragment of the page via ajax
-  // If a form allows ACH/EFT and enables recurring, set recurring to the default
+  // If a form allows ACH/EFT and enables recurring, set recurring to the default.
   if (0 < count($acheft)) {
     if (isset($form->_elementIndex['is_recur'])) {
-      $form->setDefaults(array('is_recur' => 1)); // make recurring contrib default to true
+      // Make recurring contrib default to true.
+      $form->setDefaults(array('is_recur' => 1));
     }
   }
   if (0 < count($swipe)) {
-    CRM_Core_Resources::singleton()->addScriptFile('com.iatspayments.civicrm', 'js/swipe.js',10);
+    CRM_Core_Resources::singleton()->addScriptFile('com.iatspayments.civicrm', 'js/swipe.js', 10);
   }
   if (0 < count($ukdd)) {
-    CRM_Core_Resources::singleton()->addScriptFile('com.iatspayments.civicrm', 'js/dd_uk.js',10);
+    CRM_Core_Resources::singleton()->addScriptFile('com.iatspayments.civicrm', 'js/dd_uk.js', 10);
     if (isset($form->_elementIndex['is_recur'])) {
-      $form->setDefaults(array('is_recur' => 1)); // make recurring contrib default to true
+      // Make recurring contrib default to true.
+      $form->setDefaults(array('is_recur' => 1));
     }
   }
   /* Mangle (in a currency-dependent way) the ajax-bit of the form if I've just selected an ach/eft option */
-  if (!empty($acheft[$form->_paymentProcessor['id']]) || ($form->_paymentProcessor['class_name']=='Payment_iATSServiceACHEFT')){
+  if (!empty($acheft[$form->_paymentProcessor['id']]) || ($form->_paymentProcessor['class_name'] == 'Payment_iATSServiceACHEFT')) {
     iats_acheft_form_customize($form);
-    // watchdog('iats_acheft',kprint_r($form,TRUE));
+    // watchdog('iats_acheft',kprint_r($form,TRUE));.
   }
 
   /* now something similar for swipe */
-  if (!empty($swipe[$form->_paymentProcessor['id']]) || ($form->_paymentProcessor['class_name']=='Payment_iATSServiceSWIPE')){
+  if (!empty($swipe[$form->_paymentProcessor['id']]) || ($form->_paymentProcessor['class_name'] == 'Payment_iATSServiceSWIPE')) {
     iats_swipe_form_customize($form);
   }
 
   /* UK Direct debit option */
-  if (!empty($ukdd[$form->_paymentProcessor['id']]) || ($form->_paymentProcessor['class_name']=='Payment_iATSServiceUKDD')){
+  if (!empty($ukdd[$form->_paymentProcessor['id']]) || ($form->_paymentProcessor['class_name'] == 'Payment_iATSServiceUKDD')) {
     iats_ukdd_form_customize($form);
-    // watchdog('iats_acheft',kprint_r($form,TRUE));
+    // watchdog('iats_acheft',kprint_r($form,TRUE));.
   }
 
   /* and finally, for most frontend forms, use the dpm.js script to use the DirectPost Method override
@@ -892,54 +929,56 @@ function iats_civicrm_buildForm_Contribution_Frontend(&$form) {
    * TODO: use it for swipe, never for ukdd?
    * NOTE: this is inactive code, isDPM is still always returning false.
    */
-  require_once("CRM/iATS/iATSService.php");
+  require_once "CRM/iATS/iATSService.php";
   if (iATS_Service_Request::isDPM($form->_paymentProcessor)) {
     CRM_Core_Region::instance('billing-block')->add(array(
-      'template' => 'CRM/iATS/BillingBlockDPM.tpl'
+      'template' => 'CRM/iATS/BillingBlockDPM.tpl',
     ));
-    $iats_domain = parse_url($form->_paymentProcessor['url_site'],PHP_URL_HOST);
+    $iats_domain = parse_url($form->_paymentProcessor['url_site'], PHP_URL_HOST);
     $dpm_url = iATS_Service_Request::dpm_url($iats_domain);
     _iats_civicrm_varset(array('dpmURL' => $dpm_url));
     CRM_Core_Resources::singleton()->addScriptFile('com.iatspayments.civicrm', 'js/dpm.js');
   }
 }
 
-/*  Fix the backend credit card contribution forms
- *  Includes CRM_Contribute_Form_Contribution, CRM_Event_Form_Participant, CRM_Member_Form_Membership
- *  1. Remove my ACH/EFT processors
- *     Now fixed in core for contribution forms: https://issues.civicrm.org/jira/browse/CRM-14442
- *  2. Force SWIPE (i.e. remove all others) if it's the default, and mangle the form accordingly.
- *     For now, this form doesn't refresh when you change payment processors, so I can't use swipe if it's not the default, so i have to remove it.
+/**
+ * Fix the backend credit card contribution forms
+ * Includes CRM_Contribute_Form_Contribution, CRM_Event_Form_Participant, CRM_Member_Form_Membership
+ * 1. Remove my ACH/EFT processors
+ * Now fixed in core for contribution forms: https://issues.civicrm.org/jira/browse/CRM-14442
+ * 2. Force SWIPE (i.e. remove all others) if it's the default, and mangle the form accordingly.
+ * For now, this form doesn't refresh when you change payment processors, so I can't use swipe if it's not the default, so i have to remove it.
  */
 function iats_civicrm_buildForm_CreditCard_Backend(&$form) {
-  // skip if i don't have any processors
+  // Skip if i don't have any processors.
   if (empty($form->_processors)) {
     return;
   }
-  // get all my swipe processors
-  $swipe = iats_civicrm_processors($form->_processors,'SWIPE');
-  // get all my ACH/EFT processors (should be 0, but I'm fixing old core bugs)
-  $acheft = iats_civicrm_processors($form->_processors,'ACHEFT');
-  // if an iATS SWIPE payment processor is enabled and default remove all other payment processors
+  // Get all my swipe processors.
+  $swipe = iats_civicrm_processors($form->_processors, 'SWIPE');
+  // Get all my ACH/EFT processors (should be 0, but I'm fixing old core bugs)
+  $acheft = iats_civicrm_processors($form->_processors, 'ACHEFT');
+  // If an iATS SWIPE payment processor is enabled and default remove all other payment processors.
   $swipe_id_default = 0;
   if (0 < count($swipe)) {
-    foreach($swipe as $id => $pp) {
+    foreach ($swipe as $id => $pp) {
       if ($pp['is_default']) {
         $swipe_id_default = $id;
         break;
       }
     }
   }
-  // find the available pp options form element (update this if we ever switch from quickform, uses a quickform internals)
-  // not all invocations of the form include this, so check for non-empty value first
+  // Find the available pp options form element (update this if we ever switch from quickform, uses a quickform internals)
+  // not all invocations of the form include this, so check for non-empty value first.
   if (!empty($form->_elementIndex['payment_processor_id'])) {
     $pp_form_id = $form->_elementIndex['payment_processor_id'];
-    // now cycle through them, either removing everything except the default swipe or just removing the ach/eft
+    // Now cycle through them, either removing everything except the default swipe or just removing the ach/eft.
     $element = $form->_elements[$pp_form_id]->_options;
-    foreach($element as $option_id => $option) {
-      $pp_id = $option['attr']['value']; // key is set to payment processor id
+    foreach ($element as $option_id => $option) {
+      // Key is set to payment processor id.
+      $pp_id = $option['attr']['value'];
       if ($swipe_id_default) {
-        // remove any that are not my swipe default pp
+        // Remove any that are not my swipe default pp.
         if ($pp_id != $swipe_id_default) {
           unset($form->_elements[$pp_form_id]->_options[$option_id]);
           unset($form->_processors[$pp_id]);
@@ -949,7 +988,7 @@ function iats_civicrm_buildForm_CreditCard_Backend(&$form) {
         }
       }
       elseif (!empty($acheft[$pp_id]) || !empty($swipe[$pp_id])) {
-        // remove my ach/eft and swipe, which both require form changes
+        // Remove my ach/eft and swipe, which both require form changes.
         unset($form->_elements[$pp_form_id]->_options[$option_id]);
         unset($form->_processors[$pp_id]);
         if (!empty($form->_recurPaymentProcessors[$pp_id])) {
@@ -959,35 +998,35 @@ function iats_civicrm_buildForm_CreditCard_Backend(&$form) {
     }
   }
 
-  // if i'm using swipe as default and I've got a billing section, then customize it
+  // If i'm using swipe as default and I've got a billing section, then customize it.
   if ($swipe_id_default) {
-    CRM_Core_Resources::singleton()->addScriptFile('com.iatspayments.civicrm', 'js/swipe.js',10);
+    CRM_Core_Resources::singleton()->addScriptFile('com.iatspayments.civicrm', 'js/swipe.js', 10);
     if (!empty($form->_elementIndex['credit_card_exp_date'])) {
       iats_swipe_form_customize($form);
     }
   }
 }
 
-/*
- *  Provide helpful links to backend-ish payment pages for ACH/EFT, since the backend credit card pages don't work/apply
- *  Could do the same for swipe?
+/**
+ * Provide helpful links to backend-ish payment pages for ACH/EFT, since the backend credit card pages don't work/apply
+ * Could do the same for swipe?
  */
 function iats_civicrm_buildForm_CRM_Contribute_Form_Search(&$form) {
-  // ignore invocations that aren't for a specific contact, e.g. the civicontribute dashboard
+  // Ignore invocations that aren't for a specific contact, e.g. the civicontribute dashboard.
   if (empty($form->_defaultValues['contact_id'])) {
     return;
   }
   $contactID = $form->_defaultValues['contact_id'];
-  $acheft = iats_civicrm_processors(NULL,'ACHEFT',array('is_active' => 1, 'is_test' => 0));
+  $acheft = iats_civicrm_processors(NULL, 'ACHEFT', array('is_active' => 1, 'is_test' => 0));
   $acheft_backoffice_links = array();
-  // for each ACH/EFT payment processor, try to provide a different mechanism for 'backoffice' type contributions
-  // note: only offer payment pages that provide iATS ACH/EFT exclusively
-  foreach(array_keys($acheft) as $pp_id) {
+  // For each ACH/EFT payment processor, try to provide a different mechanism for 'backoffice' type contributions
+  // note: only offer payment pages that provide iATS ACH/EFT exclusively.
+  foreach (array_keys($acheft) as $pp_id) {
     $params = array('is_active' => 1, 'payment_processor' => $pp_id);
     $result = civicrm_api3('ContributionPage', 'get', $params);
     if (0 == $result['is_error'] && count($result['values']) > 0) {
-      foreach($result['values'] as $page) {
-        $url = CRM_Utils_System::url('civicrm/contribute/transact','reset=1&cid='.$contactID.'&id='.$page['id']);
+      foreach ($result['values'] as $page) {
+        $url = CRM_Utils_System::url('civicrm/contribute/transact', 'reset=1&cid=' . $contactID . '&id=' . $page['id']);
         $acheft_backoffice_links[] = array('url' => $url, 'title' => $page['title']);
       }
     }
@@ -998,8 +1037,8 @@ function iats_civicrm_buildForm_CRM_Contribute_Form_Search(&$form) {
   }
 }
 
-/*
- * Modify the recurring contribution cancelation form to exclude the confusing message about sending the request to the backend
+/**
+ * Modify the recurring contribution cancelation form to exclude the confusing message about sending the request to the backend.
  */
 function iats_civicrm_buildForm_CRM_Contribute_Form_CancelSubscription(&$form) {
   if ($form->elementExists('send_cancel_request')) {
@@ -1007,67 +1046,68 @@ function iats_civicrm_buildForm_CRM_Contribute_Form_CancelSubscription(&$form) {
   }
 }
 
-/*
+/**
  * Modify the contribution Confirm screen for iATS UK DD
- *  1. display extra field data injected earlier for payer validation
+ * 1. display extra field data injected earlier for payer validation.
  */
 function iats_civicrm_buildForm_Contribution_Confirm_Payment_iATSServiceUKDD(&$form) {
   $form->addElement('textarea', 'payer_validate_address', ts('Name and full postal address of your Bank or Building Society'), array('rows' => '6', 'columns' => '30'));
   $form->addElement('text', 'payer_validate_service_user_number', ts('Service User Number'));
   $form->addElement('text', 'payer_validate_reference', ts('Reference'));
-  $form->addElement('text', 'payer_validate_date', ts('Today\'s Date'), array()); // date on which the validation happens, reference
+  // Date on which the validation happens, reference.
+  $form->addElement('text', 'payer_validate_date', ts('Today\'s Date'), array());
   $form->addElement('text', 'payer_validate_start_date', ts('Date of first collection'));
-  $form->addElement('static', 'payer_validate_instruction', ts('Instruction to your Bank or Building Society'), ts('Please pay %1 Direct Debits from the account detailed in this instruction subject to the safeguards assured by the Direct Debit Guarantee. I understand that this instruction may remain with TestingTest and, if so, details will be passed electronically to my Bank / Building Society.',array('%1' => "<strong>$payee</strong>")));
+  $form->addElement('static', 'payer_validate_instruction', ts('Instruction to your Bank or Building Society'), ts('Please pay %1 Direct Debits from the account detailed in this instruction subject to the safeguards assured by the Direct Debit Guarantee. I understand that this instruction may remain with TestingTest and, if so, details will be passed electronically to my Bank / Building Society.', array('%1' => "<strong>$payee</strong>")));
   $defaults = array(
     'payer_validate_date' => date('F j, Y'),
   );
-  foreach(array('address','service_user_number','reference','date','start_date') as $k) {
-    $key = 'payer_validate_'.$k;
+  foreach (array('address', 'service_user_number', 'reference', 'date', 'start_date') as $k) {
+    $key = 'payer_validate_' . $k;
     $defaults[$key] = $form->_params[$key];
   };
   $form->setDefaults($defaults);
   CRM_Core_Region::instance('contribution-confirm-billing-block')->add(array(
-    'template' => 'CRM/iATS/ContributeConfirmExtra_UKDD.tpl'
+    'template' => 'CRM/iATS/ContributeConfirmExtra_UKDD.tpl',
   ));
 }
 
-/*
- * Modify the contribution Thank You screen for iATS UK DD
+/**
+ * Modify the contribution Thank You screen for iATS UK DD.
  */
 function iats_civicrm_buildForm_Contribution_ThankYou_Payment_iATSServiceUKDD(&$form) {
-  foreach(array('address','service_user_number','reference','date','start_date') as $k) {
-    $key = 'payer_validate_'.$k;
+  foreach (array('address', 'service_user_number', 'reference', 'date', 'start_date') as $k) {
+    $key = 'payer_validate_' . $k;
     $form->addElement('static', $key, $key, $form->_params[$key]);
   };
   CRM_Core_Region::instance('contribution-thankyou-billing-block')->add(array(
-    'template' => 'CRM/iATS/ContributeThankYouExtra_UKDD.tpl'
+    'template' => 'CRM/iATS/ContributeThankYouExtra_UKDD.tpl',
   ));
 }
 
-/*
- * add some functionality to the update subscription form for recurring contributions
+/**
+ * Add some functionality to the update subscription form for recurring contributions.
  */
 function iats_civicrm_buildForm_CRM_Contribute_Form_UpdateSubscription(&$form) {
-  // only do this if the user is allowed to edit contributions. A more stringent permission might be smart.
+  // Only do this if the user is allowed to edit contributions. A more stringent permission might be smart.
   if (!CRM_Core_Permission::check('edit contributions')) {
     return;
   }
-  // only mangle this form for recurring contributions using iATS, (and not the UKDD version)
+  // Only mangle this form for recurring contributions using iATS, (and not the UKDD version)
   $payment_processor_type = $form->_paymentProcessor['class_name'];
-  if (0 !== strpos($payment_processor_type,'Payment_iATSService')) {
+  if (0 !== strpos($payment_processor_type, 'Payment_iATSService')) {
     return;
   }
   if ('Payment_iATSServiceUKDD' == $payment_processor_type) {
     return;
   }
   $settings = civicrm_api3('Setting', 'getvalue', array('name' => 'iats_settings'));
-  // don't do this if the site administrator has disabled it
+  // don't do this if the site administrator has disabled it.
   if (!empty($settings['no_edit_extra'])) {
     return;
   }
   $allow_days = empty($settings['days']) ? array('-1') : $settings['days'];
   if (0 < max($allow_days)) {
-    $userAlert = ts('Your next scheduled contribution date will automatically be updated to the next allowable day of the month: %1',array(1 => implode(',',$allow_days)));
+    $userAlert = ts('Your next scheduled contribution date will automatically be updated to the next allowable day of the month: %1', array(1 => implode(',', $allow_days)));
     CRM_Core_Session::setStatus($userAlert, ts('Warning'), 'alert');
   }
   $crid = CRM_Utils_Request::retrieve('crid', 'Integer', $form, FALSE);
@@ -1084,14 +1124,14 @@ function iats_civicrm_buildForm_CRM_Contribute_Form_UpdateSubscription(&$form) {
   catch (CiviCRM_API3_Exception $e) {
     return;
   }
-  // turn off default notification checkbox, most will want to hide it as well.
+  // Turn off default notification checkbox, most will want to hide it as well.
   $defaults = array('is_notify' => 0);
   $edit_fields = array(
     'contribution_status_id' => 'Status',
     'next_sched_contribution_date' => 'Next Scheduled Contribution',
     'start_date' => 'Start Date',
   );
-  foreach(array_keys($edit_fields) as $fid) {
+  foreach (array_keys($edit_fields) as $fid) {
     if ($form->elementExists($fid)) {
       unset($edit_fields[$fid]);
     }
@@ -1099,30 +1139,32 @@ function iats_civicrm_buildForm_CRM_Contribute_Form_UpdateSubscription(&$form) {
       $defaults[$fid] = $recur[$fid];
     }
   }
-  if (0 == count($edit_fields)) { // some other extension, or core, is exposing my fields, so quit
+  // Some other extension, or core, is exposing my fields, so quit.
+  if (0 == count($edit_fields)) {
     return;
   }
   // print_r($recur); die();
-  $form->addElement('static','contact',$contact['display_name']);
-  // $form->addElement('static','contact',$contact['display_name']);
+  $form->addElement('static', 'contact', $contact['display_name']);
+  // $form->addElement('static','contact',$contact['display_name']);.
   if ($edit_fields['contribution_status_id']) {
     $contributionStatus = CRM_Contribute_PseudoConstant::contributionStatus(NULL, 'name');
-    $form->addElement('select', 'contribution_status_id', ts('Status'),$contributionStatus);
+    $form->addElement('select', 'contribution_status_id', ts('Status'), $contributionStatus);
     unset($edit_fields['contribution_status_id']);
   }
-  foreach($edit_fields as $fid => $label) {
-    $form->addDateTime($fid,ts($label));
+  foreach ($edit_fields as $fid => $label) {
+    $form->addDateTime($fid, ts($label));
   }
   $form->setDefaults($defaults);
-  // now add some more fields for display only
-  $pp_label = $form->_paymentProcessor['name']; // get my pp
-  $form->addElement('static','payment_processor',$pp_label);
+  // Now add some more fields for display only
+  // get my pp.
+  $pp_label = $form->_paymentProcessor['name'];
+  $form->addElement('static', 'payment_processor', $pp_label);
   $label = CRM_Contribute_Pseudoconstant::financialType($recur['financial_type_id']);
-  $form->addElement('static','financial_type',$label);
+  $form->addElement('static', 'financial_type', $label);
   $labels = CRM_Contribute_Pseudoconstant::paymentInstrument();
   $label = $labels[$recur['payment_instrument_id']];
-  $form->addElement('static','payment_instrument',$label);
-  $form->addElement('static','failure_count',$recur['failure_count']);
+  $form->addElement('static', 'payment_instrument', $label);
+  $form->addElement('static', 'failure_count', $recur['failure_count']);
   CRM_Core_Region::instance('page-body')->add(array(
     'template' => 'CRM/iATS/Subscription.tpl',
   ));
@@ -1130,7 +1172,7 @@ function iats_civicrm_buildForm_CRM_Contribute_Form_UpdateSubscription(&$form) {
 }
 
 /**
- * Implementation of hook_civicrm_alterSettingsFolders
+ * Implementation of hook_civicrm_alterSettingsFolders.
  *
  * @link http://wiki.civicrm.org/confluence/display/CRMDOC/hook_civicrm_alterSettingsFolders
  */
@@ -1139,12 +1181,12 @@ function iats_civicrm_alterSettingsFolders(&$metaDataFolders = NULL) {
 }
 
 /**
- * For a recurring contribution, find a reasonable candidate for a template, where possible
+ * For a recurring contribution, find a reasonable candidate for a template, where possible.
  */
 function _iats_civicrm_getContributionTemplate($contribution) {
-  // Get the first contribution in this series that matches the same total_amount, if present
+  // Get the first contribution in this series that matches the same total_amount, if present.
   $template = array();
-  $get = array('contribution_recur_id' => $contribution['contribution_recur_id'], 'options'  => array('sort'  => ' id' , 'limit'  => 1));
+  $get = array('contribution_recur_id' => $contribution['contribution_recur_id'], 'options' => array('sort' => ' id', 'limit' => 1));
   if (!empty($contribution['total_amount'])) {
     $get['total_amount'] = $contribution['total_amount'];
   }
@@ -1157,9 +1199,9 @@ function _iats_civicrm_getContributionTemplate($contribution) {
     $get = array('entity_table' => 'civicrm_contribution', 'entity_id' => $contribution_ids[0]);
     $result = civicrm_api3('LineItem', 'get', $get);
     if (!empty($result['values'])) {
-      foreach($result['values'] as $initial_line_item) {
+      foreach ($result['values'] as $initial_line_item) {
         $line_item = array();
-        foreach(array('price_field_id','qty','line_total','unit_price','label','price_field_value_id','financial_type_id') as $key) {
+        foreach (array('price_field_id', 'qty', 'line_total', 'unit_price', 'label', 'price_field_value_id', 'financial_type_id') as $key) {
           $line_item[$key] = $initial_line_item[$key];
         }
         $template['line_items'][] = $line_item;
@@ -1169,80 +1211,84 @@ function _iats_civicrm_getContributionTemplate($contribution) {
   return $template;
 }
 
-/*
- * function _iats_contributionrecur_next
+/**
+ * Function _iats_contributionrecur_next.
  *
  * @param $from_time: a unix time stamp, the function returns values greater than this
  * @param $days: an array of allowable days of the month
  *
- * A utility function to calculate the next available allowable day, starting from $from_time.
- * Strategy: increment the from_time by one day until the day of the month matches one of my available days of the month.
+ *   A utility function to calculate the next available allowable day, starting from $from_time.
+ *   Strategy: increment the from_time by one day until the day of the month matches one of my available days of the month.
  */
 function _iats_contributionrecur_next($from_time, $allow_mdays) {
   $dp = getdate($from_time);
-  $i = 0;  // so I don't get into an infinite loop somehow
-  while(($i++ < 60) && !in_array($dp['mday'],$allow_mdays)) {
+  // So I don't get into an infinite loop somehow.
+  $i = 0;
+  while (($i++ < 60) && !in_array($dp['mday'], $allow_mdays)) {
     $from_time += (24 * 60 * 60);
     $dp = getdate($from_time);
   }
   return $from_time;
 }
 
-/*
- * function _iats_contribution_payment
+/**
+ * Function _iats_contribution_payment.
  *
  * @param $contribution an array of a contribution to be created
  * @param $options must include customer code, subtype and iats_domain, may include a membership id
  *
- * A high-level utility function for making a contribution payment from an existing recurring schedule
- * Used in the Iatsrecurringcontributions.php job and the one-time ('card on file') form.
+ *   A high-level utility function for making a contribution payment from an existing recurring schedule
+ *   Used in the Iatsrecurringcontributions.php job and the one-time ('card on file') form.
  */
 function _iats_process_contribution_payment(&$contribution, $options, $original_contribution_id) {
-  // first create the pending contribution, and save its id
-  // we'll first try to use the repeattransaction api if we trust it, otherwise just create it naively
+  // First create the pending contribution, and save its id
+  // we'll first try to use the repeattransaction api if we trust it, otherwise just create it naively.
   $contribution_id = NULL;
   $used_repeattransaction = FALSE;
   if (_iats_civicrm_use_repeattransaction()) {
     try {
-     // KG repeattransaction requires the original contribution ID:
-     $pending = civicrm_api3('Contribution', 'repeattransaction', array(
-       'original_contribution_id' => $original_contribution_id,
-       'contribution_status_id' => $contribution['contribution_status_id'],
+      // KG repeattransaction requires the original contribution ID:
+      $pending = civicrm_api3('Contribution', 'repeattransaction', array(
+        'original_contribution_id' => $original_contribution_id,
+        'contribution_status_id' => $contribution['contribution_status_id'],
         'receive_date' => $contribution['receive_date'],
-        //'campaign_id' => $contribution['campaign_id'],
-        //'financial_type_id' => $contribution['financial_type_id'],
+        // 'campaign_id' => $contribution['campaign_id'],
+        // 'financial_type_id' => $contribution['financial_type_id'],.
         'payment_processor_id' => $contribution['payment_processor'],
-        'contribution_recur_id' => $contribution['contribution_recur_id']
+        'contribution_recur_id' => $contribution['contribution_recur_id'],
       ));
 
-      // watchdog('iats_civicrm','repeat transaction result <pre>@params</pre>',array('@params' => print_r($pending,TRUE)));
+      // watchdog('iats_civicrm','repeat transaction result <pre>@params</pre>',array('@params' => print_r($pending,TRUE)));.
       $contribution_id = $pending['id'];
       $used_repeattransaction = TRUE;
     }
     catch (Exception $e) {
-      // give up
+      // Give up.
     }
   }
-  if (empty($contribution_id)) { // repeattransaction isn't working or didn't work above
-    $contributionResult = civicrm_api3('contribution','create', $contribution);
+  // Repeattransaction isn't working or didn't work above.
+  if (empty($contribution_id)) {
+    $contributionResult = civicrm_api3('contribution', 'create', $contribution);
     $contribution_id = CRM_Utils_Array::value('id', $contributionResult);
   }
-  // connect to a membership if requested
+  // Connect to a membership if requested.
   if (!$used_repeattransaction && !empty($options['membership_id'])) {
     try {
-      civicrm_api3('MembershipPayment','create', array('contribution_id' => $contribution_id, 'membership_id' => $options['membership_id']));
+      civicrm_api3('MembershipPayment', 'create', array('contribution_id' => $contribution_id, 'membership_id' => $options['membership_id']));
     }
     catch (Exception $e) {
-      // ignore
+      // Ignore.
     }
   }
-  // now try to get the money, and then do one of: update the contribution to failed, complete the transaction, or update a pending ach/eft with it's transaction id
-  require_once("CRM/iATS/iATSService.php");
-  switch($options['subtype']) {
+  // Now try to get the money, and then do one of: update the contribution to failed, complete the transaction, or update a pending ach/eft with it's transaction id.
+  require_once "CRM/iATS/iATSService.php";
+  switch ($options['subtype']) {
     case 'ACHEFT':
       $method = 'acheft_with_customer_code';
-      $contribution_status_id = 2; // will not complete
+      // Will not complete.
+      $contribution_status_id = 2;
       break;
+
     default:
       $method = 'cc_with_customer_code';
       $contribution_status_id = 1;
@@ -1251,7 +1297,7 @@ function _iats_process_contribution_payment(&$contribution, $options, $original_
   $credentials = iATS_Service_Request::credentials($contribution['payment_processor'], $contribution['is_test']);
   $iats_service_params = array('method' => $method, 'type' => 'process', 'iats_domain' => $credentials['domain']);
   $iats = new iATS_Service_Request($iats_service_params);
-  // build the request array
+  // Build the request array.
   $request = array(
     'customerCode' => $options['customer_code'],
     'invoiceNum' => $contribution['invoice_id'],
@@ -1259,22 +1305,24 @@ function _iats_process_contribution_payment(&$contribution, $options, $original_
   );
   $request['customerIPAddress'] = (function_exists('ip_address') ? ip_address() : $_SERVER['REMOTE_ADDR']);
 
-  // make the soap request
-  $response = $iats->request($credentials,$request);
-  // process the soap response into a readable result
+  // Make the soap request.
+  $response = $iats->request($credentials, $request);
+  // Process the soap response into a readable result.
   $result = $iats->result($response);
-  $contribution['id'] = $contribution_id; // pass this back indirectly since I'm calling by reference
-  if (empty($result['status'])) { // a failure of some kind
+  // Pass this back indirectly since I'm calling by reference.
+  $contribution['id'] = $contribution_id;
+  // A failure of some kind.
+  if (empty($result['status'])) {
     /* update the contribution record in civicrm  */
     /* with the failed transaction status or pending if I had a server issue */
     /* and include the reason in the source field */
     /* and save the iATS-specific code as well */
     $contribution['contribution_status_id'] = $contribution_status_id = empty($result['auth_result']) ? 2 : 4;
-    $complete = array('id' => $contribution_id, 'source' => $contribution['source'].' '.$result['reasonMessage'], 'contribution_status_id' => $contribution_status_id);
+    $complete = array('id' => $contribution_id, 'source' => $contribution['source'] . ' ' . $result['reasonMessage'], 'contribution_status_id' => $contribution_status_id);
     $contributionResult = civicrm_api3('contribution', 'create', $complete);
-    // save my reject code here for processing by the calling function (a bit lame)
+    // Save my reject code here for processing by the calling function (a bit lame)
     $contribution['iats_reject_code'] = $result['auth_result'];
-    return ts('Failed to process recurring contribution id %1: ', array(1 => $contribution['contribution_recur_id'])).$result['reasonMessage'];
+    return ts('Failed to process recurring contribution id %1: ', array(1 => $contribution['contribution_recur_id'])) . $result['reasonMessage'];
   }
   elseif ($contribution_status_id == 1) {
     /* success, done */
@@ -1287,16 +1335,17 @@ function _iats_process_contribution_payment(&$contribution, $options, $original_
     catch (Exception $e) {
       // Don't throw an exception here, or else I won't have updated my next contribution date for example.
       // throw new API_Exception('Failed to complete transaction: ' . $e->getMessage() . "\n" . $e->getTraceAsString());
-      $contribution['source'] .= ' [with unexpected api.completetransaction error: '. $e->getMessage().']';
+      $contribution['source'] .= ' [with unexpected api.completetransaction error: ' . $e->getMessage() . ']';
     }
-    // restore my source field that ipn irritatingly overwrites, and make sure that the trxn_id is set also
-    civicrm_api3('contribution','setvalue', array('id' => $contribution_id, 'value' => $contribution['source'], 'field' => 'source'));
-    civicrm_api3('contribution','setvalue', array('id' => $contribution_id, 'value' => $trxn_id, 'field' => 'trxn_id'));
-    return ts('Successfully processed recurring contribution in series id %1: ', array(1 => $contribution['contribution_recur_id'])).$result['auth_result'];
+    // Restore my source field that ipn irritatingly overwrites, and make sure that the trxn_id is set also.
+    civicrm_api3('contribution', 'setvalue', array('id' => $contribution_id, 'value' => $contribution['source'], 'field' => 'source'));
+    civicrm_api3('contribution', 'setvalue', array('id' => $contribution_id, 'value' => $trxn_id, 'field' => 'trxn_id'));
+    return ts('Successfully processed recurring contribution in series id %1: ', array(1 => $contribution['contribution_recur_id'])) . $result['auth_result'];
   }
-  else { // success, but just update the transaction id, wait for completion
+  // success, but just update the transaction id, wait for completion.
+  else {
     $complete = array('id' => $contribution_id, 'trxn_id' => trim($result['remote_id']) . ':' . time());
     $contributionResult = civicrm_api3('contribution', 'create', $complete);
-    return ts('Successfully processed pending recurring contribution in series id %1: ', array(1 => $contribution['contribution_recur_id'])).$result['auth_result'];
+    return ts('Successfully processed pending recurring contribution in series id %1: ', array(1 => $contribution['contribution_recur_id'])) . $result['auth_result'];
   }
 }

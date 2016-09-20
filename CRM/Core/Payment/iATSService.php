@@ -1,5 +1,7 @@
 <?php
-/* Copyright iATS Payments (c) 2014
+
+/**
+ * @file Copyright iATS Payments (c) 2014.
  * @author Alan Dixon
  *
  * This file is a part of CiviCRM published extension.
@@ -17,13 +19,16 @@
  * License with this program; if not, see http://www.gnu.org/licenses/
  *
  * This code provides glue between CiviCRM payment model and the iATS Payment model encapsulated in the iATS_Service_Request object
+ */
+
+/**
  *
  */
 class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
 
   /**
    * We only need one instance of this object. So we use the singleton
-   * pattern and cache the instance in this variable
+   * pattern and cache the instance in this variable.
    *
    * @var object
    * @static
@@ -33,7 +38,8 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
   /**
    * Constructor.
    *
-   * @param string $mode the mode of operation: live or test
+   * @param string $mode
+   *   the mode of operation: live or test.
    *
    * @param array $paymentProcessor
    */
@@ -41,15 +47,18 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
     $this->_paymentProcessor = $paymentProcessor;
     $this->_processorName = ts('iATS Payments');
 
-    // get merchant data from config
+    // Get merchant data from config.
     $config = CRM_Core_Config::singleton();
-    // live or test
+    // Live or test.
     $this->_profile['mode'] = $mode;
-    // we only use the domain of the configured url, which is different for NA vs. UK
+    // We only use the domain of the configured url, which is different for NA vs. UK.
     $this->_profile['iats_domain'] = parse_url($this->_paymentProcessor['url_site'], PHP_URL_HOST);
   }
 
-  static function &singleton($mode, &$paymentProcessor, &$paymentForm = NULL, $force = FALSE) {
+  /**
+   *
+   */
+  static public function &singleton($mode, &$paymentProcessor, &$paymentForm = NULL, $force = FALSE) {
     $processorName = $paymentProcessor['name'];
     if (self::$_singleton[$processorName] === NULL) {
       self::$_singleton[$processorName] = new CRM_Core_Payment_iATSService($mode, $paymentProcessor);
@@ -57,13 +66,16 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
     return self::$_singleton[$processorName];
   }
 
-  function doDirectPayment(&$params) {
+  /**
+   *
+   */
+  public function doDirectPayment(&$params) {
 
     if (!$this->_profile) {
       return self::error('Unexpected error, missing profile');
     }
-    // use the iATSService object for interacting with iATS. Recurring contributions go through a more complex process.
-    require_once("CRM/iATS/iATSService.php");
+    // Use the iATSService object for interacting with iATS. Recurring contributions go through a more complex process.
+    require_once "CRM/iATS/iATSService.php";
     $isRecur = CRM_Utils_Array::value('is_recur', $params) && $params['contributionRecurID'];
     $methodType = $isRecur ? 'customer' : 'process';
     $method = $isRecur ? 'create_credit_card_customer' : 'cc';
@@ -76,16 +88,17 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
     );
     // Get the API endpoint URL for the method's transaction mode.
     // TODO: enable override of the default url in the request object
-    // $url = $this->_paymentProcessor['url_site'];
-
-    // make the soap request
+    // $url = $this->_paymentProcessor['url_site'];.
+    // Make the soap request.
     $response = $iats->request($credentials, $request);
     if (!$isRecur) {
-      // process the soap response into a readable result, logging any credit card transactions
+      // Process the soap response into a readable result, logging any credit card transactions.
       $result = $iats->result($response);
       if ($result['status']) {
-        $params['contribution_status_id'] = 1; // success
-        $params['payment_status_id'] = 1; // for versions >= 4.6.6, the proper key
+        // Success.
+        $params['contribution_status_id'] = 1;
+        // For versions >= 4.6.6, the proper key.
+        $params['payment_status_id'] = 1;
         $params['trxn_id'] = trim($result['remote_id']) . ':' . time();
         $params['gross_amount'] = $params['amount'];
         return $params;
@@ -94,8 +107,8 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
         return self::error($result['reasonMessage']);
       }
     }
-    else { 
-      // save the client info in my custom table, then (maybe) run the transaction
+    else {
+      // Save the client info in my custom table, then (maybe) run the transaction.
       $customer = $iats->result($response, FALSE);
       // print_r($customer);
       if ($customer['status']) {
@@ -124,7 +137,8 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
           (customer_code, ip, expiry, cid, email, recur_id) VALUES (%1, %2, %3, %4, %5, %6)", $query_params);
         $settings = CRM_Core_BAO_Setting::getItem('iATS Payments Extension', 'iats_settings');
         $allow_days = empty($settings['days']) ? array('-1') : $settings['days'];
-        if (max($allow_days) <= 0) { // run the transaction immediately
+        // Run the transaction immediately.
+        if (max($allow_days) <= 0) {
           $iats = new iATS_Service_Request(array('type' => 'process', 'method' => 'cc_with_customer_code', 'iats_domain' => $this->_profile['iats_domain'], 'currencyID' => $params['currencyID']));
           $request = array('invoiceNum' => $params['invoiceID']);
           $request['total'] = sprintf('%01.2f', CRM_Utils_Rule::cleanMoney($params['amount']));
@@ -133,8 +147,10 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
           $response = $iats->request($credentials, $request);
           $result = $iats->result($response);
           if ($result['status']) {
-            $params['contribution_status_id'] = 1; // success
-            $params['payment_status_id'] = 1; // for versions >= 4.6.6, the proper key
+            // Success.
+            $params['contribution_status_id'] = 1;
+            // For versions >= 4.6.6, the proper key.
+            $params['payment_status_id'] = 1;
             $params['trxn_id'] = trim($result['remote_id']) . ':' . time();
             $params['gross_amount'] = $params['amount'];
             $params['next_sched_contribution'] = strtotime('+' . $params['frequency_interval'] . ' ' . $params['frequency_unit']);
@@ -144,11 +160,14 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
             return self::error($result['reasonMessage']);
           }
         }
-        else { // I've got a schedule to adhere to!
-          $params['contribution_status_id'] = 2; // pending
-          $params['payment_status_id'] = 2; // for versions >= 4.6.6, the proper key
-          $from_time = _iats_contributionrecur_next(time(),$allow_days);
-          $params['next_sched_contribution'] = $params['receive_date'] = date('Ymd', $from_time).'030000';
+        // I've got a schedule to adhere to!
+        else {
+          // Pending.
+          $params['contribution_status_id'] = 2;
+          // For versions >= 4.6.6, the proper key.
+          $params['payment_status_id'] = 2;
+          $from_time = _iats_contributionrecur_next(time(), $allow_days);
+          $params['next_sched_contribution'] = $params['receive_date'] = date('Ymd', $from_time) . '030000';
           return $params;
         }
         return self::error('Unexpected error');
@@ -159,19 +178,28 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
     }
   }
 
-  function changeSubscriptionAmount(&$message = '', $params = array()) {
+  /**
+   *
+   */
+  public function changeSubscriptionAmount(&$message = '', $params = array()) {
     $userAlert = ts('You have updated the amount of this recurring contribution.');
     CRM_Core_Session::setStatus($userAlert, ts('Warning'), 'alert');
     return TRUE;
   }
 
-  function cancelSubscription(&$message = '', $params = array()) {
+  /**
+   *
+   */
+  public function cancelSubscription(&$message = '', $params = array()) {
     $userAlert = ts('You have cancelled this recurring contribution.');
     CRM_Core_Session::setStatus($userAlert, ts('Warning'), 'alert');
     return TRUE;
   }
 
-  function &error($error = NULL) {
+  /**
+   *
+   */
+  public function &error($error = NULL) {
     $e = CRM_Core_Error::singleton();
     if (is_object($error)) {
       $e->push($error->getResponseCode(),
@@ -252,7 +280,7 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
     }
     $request['creditCardExpiry'] = sprintf('%02d/%02d', $params['month'], ($params['year'] % 100));
     $request['total'] = sprintf('%01.2f', CRM_Utils_Rule::cleanMoney($params['amount']));
-    // place for ugly hacks
+    // Place for ugly hacks.
     switch ($method) {
       case 'cc_create_customer_code':
         $request['ccNum'] = $request['creditCardNum'];
@@ -260,8 +288,9 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
         $request['ccExp'] = $request['creditCardExpiry'];
         unset($request['creditCardExpiry']);
         break;
+
       case 'cc_with_customer_code':
-        foreach(array('creditCardNum','creditCardExpiry','mop') as $key) {
+        foreach (array('creditCardNum', 'creditCardExpiry', 'mop') as $key) {
           if (isset($request[$key])) {
             unset($request[$key]);
           }
@@ -282,4 +311,3 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
   }
 
 }
-

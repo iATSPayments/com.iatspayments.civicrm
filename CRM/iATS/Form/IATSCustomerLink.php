@@ -1,9 +1,13 @@
 <?php
 
+/**
+ * @file
+ */
+
 require_once 'CRM/Core/Form.php';
 
 /**
- * Form controller class
+ * Form controller class.
  *
  * @see http://wiki.civicrm.org/confluence/display/CRMDOC43/QuickForm+Reference
  */
@@ -11,7 +15,7 @@ class CRM_iATS_Form_IATSCustomerLink extends CRM_Core_Form {
 
   /**
    * Get the field names and labels expected by iATS CustomerLink,
-   * and the corresponding fields in CiviCRM
+   * and the corresponding fields in CiviCRM.
    *
    * @return array
    */
@@ -27,20 +31,21 @@ class CRM_iATS_Form_IATSCustomerLink extends CRM_Core_Form {
       'creditCardExpiry' => 'credit_card_expiry',
       'mop' => 'credit_card_type',
     );
-    // when querying using CustomerLink
+    // When querying using CustomerLink.
     $iats_fields = array(
-      'creditCardCustomerName' => 'CSTN', // FLN
+    // FLN.
+      'creditCardCustomerName' => 'CSTN',
       'address' => 'ADD',
       'city' => 'CTY',
       'state' => 'ST',
       'zipCode' => 'ZC',
       'creditCardNum' => 'CCN',
       'creditCardExpiry' => 'EXP',
-      'mop' => 'MP'
+      'mop' => 'MP',
     );
     $labels = array(
-      //'firstName' => 'First Name',
-      // 'lastName' => 'Last Name',
+      // 'firstName' => 'First Name',
+      // 'lastName' => 'Last Name',.
       'creditCardCustomerName' => 'Name on Card',
       'address' => 'Street Address',
       'city' => 'City',
@@ -53,27 +58,35 @@ class CRM_iATS_Form_IATSCustomerLink extends CRM_Core_Form {
     return array($civicrm_fields, $iats_fields, $labels);
   }
 
+  /**
+   *
+   */
   protected function getCustomerCodeDetail($params) {
-    require_once("CRM/iATS/iATSService.php");
+    require_once "CRM/iATS/iATSService.php";
     $credentials = iATS_Service_Request::credentials($params['paymentProcessorId'], $params['is_test']);
     $iats_service_params = array('type' => 'customer', 'iats_domain' => $credentials['domain'], 'method' => 'get_customer_code_detail');
     $iats = new iATS_Service_Request($iats_service_params);
     // print_r($iats); die();
     $request = array('customerCode' => $params['customerCode']);
-    // make the soap request
-    $response = $iats->request($credentials,$request);
-    $customer = $iats->result($response, FALSE); // note: don't log this to the iats_response table
+    // Make the soap request.
+    $response = $iats->request($credentials, $request);
+    // note: don't log this to the iats_response table.
+    $customer = $iats->result($response, FALSE);
     if (empty($customer['ac1'])) {
       $alert = ts('Unable to retrieve card details from iATS.<br />%1', array(1 => $customer['AUTHORIZATIONRESULT']));
       throw new Exception($alert);
     }
-    $ac1 = $customer['ac1']; // this is a SimpleXMLElement Object
+    // This is a SimpleXMLElement Object.
+    $ac1 = $customer['ac1'];
     $card = get_object_vars($ac1->CC);
     return $customer + $card;
   }
 
+  /**
+   *
+   */
   protected function updateCreditCardCustomer($params) {
-    require_once("CRM/iATS/iATSService.php");
+    require_once "CRM/iATS/iATSService.php";
     $credentials = iATS_Service_Request::credentials($params['paymentProcessorId'], $params['is_test']);
     unset($params['paymentProcessorId']);
     unset($params['is_test']);
@@ -81,24 +94,28 @@ class CRM_iATS_Form_IATSCustomerLink extends CRM_Core_Form {
     $iats_service_params = array('type' => 'customer', 'iats_domain' => $credentials['domain'], 'method' => 'update_credit_card_customer');
     $iats = new iATS_Service_Request($iats_service_params);
     // print_r($iats); die();
-    $params['updateCreditCardNum'] = (0 < strlen($params['creditCardNum']) && (FALSE === strpos($params['creditCardNum'],'*'))) ? 1 : 0;
+    $params['updateCreditCardNum'] = (0 < strlen($params['creditCardNum']) && (FALSE === strpos($params['creditCardNum'], '*'))) ? 1 : 0;
     if (empty($params['updateCreditCardNum'])) {
       unset($params['creditCardNum']);
       unset($params['updateCreditCardNum']);
     }
     $params['customerIPAddress'] = (function_exists('ip_address') ? ip_address() : $_SERVER['REMOTE_ADDR']);
-    foreach(array('qfKey','entryURL','firstName','lastName','_qf_default','_qf_IATSCustomerLink_submit') as $key) {
+    foreach (array('qfKey', 'entryURL', 'firstName', 'lastName', '_qf_default', '_qf_IATSCustomerLink_submit') as $key) {
       if (isset($params[$key])) {
         unset($params[$key]);
       }
     }
-    // make the soap request
-    $response = $iats->request($credentials,$params);
-    $result = $iats->result($response, TRUE); // note: don't log this to the iats_response table
+    // Make the soap request.
+    $response = $iats->request($credentials, $params);
+    // note: don't log this to the iats_response table.
+    $result = $iats->result($response, TRUE);
     return $result;
-  }   
+  }
 
-  function buildQuickForm() {
+  /**
+   *
+   */
+  public function buildQuickForm() {
 
     list($civicrm_fields, $iats_fields, $labels) = $this->getFields();
     $cid = CRM_Utils_Request::retrieve('cid', 'Integer');
@@ -111,28 +128,30 @@ class CRM_iATS_Form_IATSCustomerLink extends CRM_Core_Form {
       'paymentProcessorId' => $paymentProcessorId,
       'is_test' => $is_test,
     );
-    if (empty($_POST)) { // get my current values from iATS as defaults
+    // Get my current values from iATS as defaults.
+    if (empty($_POST)) {
       try {
         $customer = $this->getCustomerCodeDetail($defaults);
-      } catch (Exception $e) {
+      }
+      catch (Exception $e) {
         CRM_Core_Session::setStatus($e->getMessage(), ts('Warning'), 'alert');
         return;
       }
-      foreach(array_keys($labels) as $name) {
+      foreach (array_keys($labels) as $name) {
         $iats_field = $iats_fields[$name];
         if (is_string($customer[$iats_field])) {
           $defaults[$name] = $customer[$iats_field];
         }
       }
-    } 
-    // I don't need cid, but it allows the back button to work
-    $this->add('hidden','cid');
-    foreach($labels as $name => $label) {
+    }
+    // I don't need cid, but it allows the back button to work.
+    $this->add('hidden', 'cid');
+    foreach ($labels as $name => $label) {
       $this->add('text', $name, $label);
     }
-    $this->add('hidden','customerCode');
-    $this->add('hidden','paymentProcessorId');
-    $this->add('hidden','is_test');
+    $this->add('hidden', 'customerCode');
+    $this->add('hidden', 'paymentProcessorId');
+    $this->add('hidden', 'is_test');
     $this->setDefaults($defaults);
     $this->addButtons(array(
       array(
@@ -142,24 +161,28 @@ class CRM_iATS_Form_IATSCustomerLink extends CRM_Core_Form {
       ),
       array(
         'type' => 'cancel',
-        'name' => ts('Back')
-      )
+        'name' => ts('Back'),
+      ),
     ));
-    // export form elements
+    // Export form elements.
     $this->assign('elementNames', $this->getRenderableElementNames());
     parent::buildQuickForm();
   }
 
-  function postProcess() {
+  /**
+   *
+   */
+  public function postProcess() {
     $values = $this->exportValues();
-    // send update to iATS
+    // Send update to iATS
     // print_r($values); die();
     $result = $this->updateCreditCardCustomer($values);
-    $message = '<pre>'.print_r($result,TRUE).'</pre>';
-    CRM_Core_Session::setStatus($message, 'Customer Updated'); // , $type, $options);
+    $message = '<pre>' . print_r($result, TRUE) . '</pre>';
+    // , $type, $options);.
+    CRM_Core_Session::setStatus($message, 'Customer Updated');
     if ($result['AUTHORIZATIONRESULT'] == 'OK') {
-      // update my copy of the expiry date
-      list($month,$year) = explode('/',$values['creditCardExpiry']);
+      // Update my copy of the expiry date.
+      list($month, $year) = explode('/', $values['creditCardExpiry']);
       $exp = sprintf('%02d%02d', $year, $month);
       $query_params = array(
         1 => array($values['customerCode'], 'String'),
@@ -175,7 +198,7 @@ class CRM_iATS_Form_IATSCustomerLink extends CRM_Core_Form {
    *
    * @return array (string)
    */
-  function getRenderableElementNames() {
+  public function getRenderableElementNames() {
     // The _elements list includes some items which should not be
     // auto-rendered in the loop -- such as "qfKey" and "buttons".  These
     // items don't have labels.  We'll identify renderable by filtering on
@@ -189,4 +212,5 @@ class CRM_iATS_Form_IATSCustomerLink extends CRM_Core_Form {
     }
     return $elementNames;
   }
+
 }

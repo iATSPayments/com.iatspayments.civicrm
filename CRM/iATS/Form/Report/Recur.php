@@ -1,36 +1,37 @@
 <?php
-/*
- +--------------------------------------------------------------------+
- | CiviCRM version 4.4                                                |
- +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2013                                |
- +--------------------------------------------------------------------+
- | This file is a part of CiviCRM.                                    |
- |                                                                    |
- | CiviCRM is free software; you can copy, modify, and distribute it  |
- | under the terms of the GNU Affero General Public License           |
- | Version 3, 19 November 2007 and the CiviCRM Licensing Exception.   |
- |                                                                    |
- | CiviCRM is distributed in the hope that it will be useful, but     |
- | WITHOUT ANY WARRANTY; without even the implied warranty of         |
- | MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.               |
- | See the GNU Affero General Public License for more details.        |
- |                                                                    |
- | You should have received a copy of the GNU Affero General Public   |
- | License and the CiviCRM Licensing Exception along                  |
- | with this program; if not, contact CiviCRM LLC                     |
- | at info[AT]civicrm[DOT]org. If you have questions about the        |
- | GNU Affero General Public License or the licensing of CiviCRM,     |
- | see the CiviCRM license FAQ at http://civicrm.org/licensing        |
- +--------------------------------------------------------------------+
-*/
+
+/**
+ * @file
+ * +--------------------------------------------------------------------+
+ * | CiviCRM version 4.4                                                |
+ * +--------------------------------------------------------------------+
+ * | Copyright CiviCRM LLC (c) 2004-2013                                |
+ * +--------------------------------------------------------------------+
+ * | This file is a part of CiviCRM.                                    |
+ * |                                                                    |
+ * | CiviCRM is free software; you can copy, modify, and distribute it  |
+ * | under the terms of the GNU Affero General Public License           |
+ * | Version 3, 19 November 2007 and the CiviCRM Licensing Exception.   |
+ * |                                                                    |
+ * | CiviCRM is distributed in the hope that it will be useful, but     |
+ * | WITHOUT ANY WARRANTY; without even the implied warranty of         |
+ * | MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.               |
+ * | See the GNU Affero General Public License for more details.        |
+ * |                                                                    |
+ * | You should have received a copy of the GNU Affero General Public   |
+ * | License and the CiviCRM Licensing Exception along                  |
+ * | with this program; if not, contact CiviCRM LLC                     |
+ * | at info[AT]civicrm[DOT]org. If you have questions about the        |
+ * | GNU Affero General Public License or the licensing of CiviCRM,     |
+ * | see the CiviCRM license FAQ at http://civicrm.org/licensing        |
+ * +--------------------------------------------------------------------+.
+ */
 
 /**
  *
  * @package CRM
  * @copyright CiviCRM LLC (c) 2004-2013
  * $Id$
- *
  */
 class CRM_iATS_Form_Report_Recur extends CRM_Report_Form {
 
@@ -43,7 +44,10 @@ class CRM_iATS_Form_Report_Recur extends CRM_Report_Form {
   static private $prefixes = array();
   static private $contributionStatus = array();
 
-  function __construct() {
+  /**
+   *
+   */
+  public function __construct() {
 
     self::$nscd_fid = _iats_civicrm_nscd_fid();
     self::$version = _iats_civicrm_domain_info('version');
@@ -53,13 +57,13 @@ class CRM_iATS_Form_Report_Recur extends CRM_Report_Form {
       self::$contributionStatus = CRM_Contribute_PseudoConstant::contributionStatus();
     }
     else {
-      self::$prefixes =  CRM_Contact_BAO_Contact::buildOptions('individual_prefix_id');
+      self::$prefixes = CRM_Contact_BAO_Contact::buildOptions('individual_prefix_id');
       self::$contributionStatus = CRM_Contribute_BAO_Contribution::buildOptions('contribution_status_id');
     }
 
     $params = array('version' => 3, 'sequential' => 1, 'is_test' => 0, 'return.name' => 1);
     $result = civicrm_api('PaymentProcessor', 'get', $params);
-    foreach($result['values'] as $pp) {
+    foreach ($result['values'] as $pp) {
       self::$processors[$pp['id']] = $pp['name'];
     }
     $this->_columns = array(
@@ -120,7 +124,7 @@ class CRM_iATS_Form_Report_Recur extends CRM_Report_Form {
         'dao' => 'CRM_Contribute_DAO_Contribution',
         'fields' => array(
           'id' => array(
-            //'no_display' => TRUE,
+            // 'no_display' => TRUE,.
             'title' => ts('Contribution ID(s)'),
             'required' => TRUE,
             'dbAlias' => "GROUP_CONCAT(contribution_civireport.id SEPARATOR ', ')",
@@ -129,7 +133,7 @@ class CRM_iATS_Form_Report_Recur extends CRM_Report_Form {
             'title' => ts('Amount Contributed to date'),
             'required' => TRUE,
             'statistics' => array(
-              'sum' => ts("Total Amount contributed")
+              'sum' => ts("Total Amount contributed"),
             ),
           ),
         ),
@@ -193,7 +197,7 @@ class CRM_iATS_Form_Report_Recur extends CRM_Report_Form {
         ),
         'fields' => array(
           'id' => array(
-            //'no_display' => TRUE,
+            // 'no_display' => TRUE,.
             'required' => TRUE,
             'title' => ts("Series ID"),
           ),
@@ -206,7 +210,7 @@ class CRM_iATS_Form_Report_Recur extends CRM_Report_Form {
             'default' => FALSE,
           ),
           'currency' => array(
-            'title' => ts("Currency")
+            'title' => ts("Currency"),
           ),
           'amount' => array(
             'title' => ts('Amount'),
@@ -288,7 +292,7 @@ class CRM_iATS_Form_Report_Recur extends CRM_Report_Form {
           'frequency_unit' => array(
             'title' => ts('Frequency Unit'),
             'operatorType' => CRM_Report_Form::OP_MULTISELECT,
-            'options' =>  CRM_Core_OptionGroup::values('recur_frequency_units'),
+            'options' => CRM_Core_OptionGroup::values('recur_frequency_units'),
           ),
           self::$nscd_fid  => array(
             'title' => ts('Next Scheduled Contribution Date'),
@@ -369,11 +373,18 @@ class CRM_iATS_Form_Report_Recur extends CRM_Report_Form {
     }
     parent::__construct();
   }
-  function getTemplateName() {
-    return 'CRM/Report/Form.tpl' ;
+
+  /**
+   *
+   */
+  public function getTemplateName() {
+    return 'CRM/Report/Form.tpl';
   }
 
-  function from() {
+  /**
+   *
+   */
+  public function from() {
     $this->_from = "
       FROM civicrm_contact  {$this->_aliases['civicrm_contact']}
         INNER JOIN civicrm_contribution_recur   {$this->_aliases['civicrm_contribution_recur']}
@@ -401,13 +412,19 @@ class CRM_iATS_Form_Report_Recur extends CRM_Report_Form {
         ON ({$this->_aliases['civicrm_iats_customer_codes']}.recur_id = {$this->_aliases['civicrm_contribution_recur']}.id)";
   }
 
-  function groupBy() {
+  /**
+   *
+   */
+  public function groupBy() {
     $this->_groupBy = "GROUP BY " . $this->_aliases['civicrm_contribution_recur'] . ".id";
   }
 
-  function alterDisplay(&$rows) {
+  /**
+   *
+   */
+  public function alterDisplay(&$rows) {
     foreach ($rows as $rowNum => $row) {
-      // convert display name to links
+      // Convert display name to links.
       if (array_key_exists('civicrm_contact_sort_name', $row) &&
         CRM_Utils_Array::value('civicrm_contact_sort_name', $rows[$rowNum]) &&
         array_key_exists('civicrm_contact_id', $row)
@@ -420,7 +437,7 @@ class CRM_iATS_Form_Report_Recur extends CRM_Report_Form {
         $rows[$rowNum]['civicrm_contact_sort_name_hover'] = ts('View Contact Summary for this Contact.');
       }
 
-      // Link to recurring series
+      // Link to recurring series.
       if (($value = CRM_Utils_Array::value('civicrm_contribution_recur_id', $row)) &&
         CRM_Core_Permission::check('access CiviContribute')
       ) {
@@ -435,7 +452,7 @@ class CRM_iATS_Form_Report_Recur extends CRM_Report_Form {
         $entryFound = TRUE;
       }
 
-      // handle expiry date
+      // Handle expiry date.
       if ($value = CRM_Utils_Array::value('civicrm_iats_customer_codes_expiry', $row)) {
         if ($rows[$rowNum]['civicrm_iats_customer_codes_expiry'] == '0000') {
           $rows[$rowNum]['civicrm_iats_customer_codes_expiry'] = ' ';
@@ -445,15 +462,15 @@ class CRM_iATS_Form_Report_Recur extends CRM_Report_Form {
         }
       }
 
-      // handle contribution status id
+      // Handle contribution status id.
       if ($value = CRM_Utils_Array::value('civicrm_contribution_recur_contribution_status_id', $row)) {
         $rows[$rowNum]['civicrm_contribution_recur_contribution_status_id'] = self::$contributionStatus[$value];
       }
-      // handle processor id
+      // Handle processor id.
       if ($value = CRM_Utils_Array::value('civicrm_contribution_recur_payment_processor_id', $row)) {
         $rows[$rowNum]['civicrm_contribution_recur_payment_processor_id'] = self::$processors[$value];
       }
-      // handle address country and province id => value conversion
+      // Handle address country and province id => value conversion.
       if ($value = CRM_Utils_Array::value('civicrm_address_country_id', $row)) {
         $rows[$rowNum]['civicrm_address_country_id'] = CRM_Core_PseudoConstant::country($value, FALSE);
       }
@@ -465,5 +482,5 @@ class CRM_iATS_Form_Report_Recur extends CRM_Report_Form {
       }
     }
   }
-}
 
+}

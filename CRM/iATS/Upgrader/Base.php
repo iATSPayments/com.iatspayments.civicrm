@@ -1,14 +1,17 @@
 <?php
 
-// AUTO-GENERATED FILE -- Civix may overwrite any changes made to this file
+/**
+ * @file
+ * AUTO-GENERATED FILE -- Civix may overwrite any changes made to this file.
+ */
 
 /**
- * Base class which provides helpers to execute upgrade logic
+ * Base class which provides helpers to execute upgrade logic.
  */
 class CRM_iATS_Upgrader_Base {
 
   /**
-   * @var varies, subclass of htis
+   * @var variessubclassofhtis
    */
   static $instance;
 
@@ -18,29 +21,29 @@ class CRM_iATS_Upgrader_Base {
   protected $ctx;
 
   /**
-   * @var string, eg 'com.example.myextension'
+   * @var stringegcomexamplemyextension
    */
   protected $extensionName;
 
   /**
-   * @var string, full path to the extension's source tree
+   * @var stringfullpathtotheextensionssourcetree
    */
   protected $extensionDir;
 
   /**
-   * @var array(revisionNumber) sorted numerically
+   * @var arrayrevisionNumbersortednumerically
    */
   private $revisions;
 
   /**
-   * Obtain a refernece to the active upgrade handler
+   * Obtain a refernece to the active upgrade handler.
    */
   static public function instance() {
-    if (! self::$instance) {
-      // FIXME auto-generate
+    if (!self::$instance) {
+      // FIXME auto-generate.
       self::$instance = new CRM_iATS_Upgrader(
         'com.iatspayments.civicrm',
-        realpath(__DIR__ .'/../../../')
+        realpath(__DIR__ . '/../../../')
       );
     }
     return self::$instance;
@@ -65,17 +68,21 @@ class CRM_iATS_Upgrader_Base {
     return call_user_func_array(array($instance, $method), $args);
   }
 
+  /**
+   *
+   */
   public function __construct($extensionName, $extensionDir) {
     $this->extensionName = $extensionName;
     $this->extensionDir = $extensionDir;
   }
 
-  // ******** Task helpers ********
-
+  // ******** Task helpers ********.
   /**
-   * Run a CustomData file
+   * Run a CustomData file.
    *
-   * @param string $relativePath the CustomData XML file path (relative to this extension's dir)
+   * @param string $relativePath
+   *   the CustomData XML file path (relative to this extension's dir)
+   *
    * @return bool
    */
   public function executeCustomDataFile($relativePath) {
@@ -84,9 +91,11 @@ class CRM_iATS_Upgrader_Base {
   }
 
   /**
-   * Run a CustomData file
+   * Run a CustomData file.
    *
-   * @param string $xml_file  the CustomData XML file path (absolute path)
+   * @param string $xml_file
+   *   the CustomData XML file path (absolute path)
+   *
    * @return bool
    */
   protected static function executeCustomDataFileByAbsPath($xml_file) {
@@ -97,9 +106,11 @@ class CRM_iATS_Upgrader_Base {
   }
 
   /**
-   * Run a SQL file
+   * Run a SQL file.
    *
-   * @param string $relativePath the SQL file path (relative to this extension's dir)
+   * @param string $relativePath
+   *   the SQL file path (relative to this extension's dir)
+   *
    * @return bool
    */
   public function executeSqlFile($relativePath) {
@@ -111,14 +122,14 @@ class CRM_iATS_Upgrader_Base {
   }
 
   /**
-   * Run one SQL query
+   * Run one SQL query.
    *
    * This is just a wrapper for CRM_Core_DAO::executeSql, but it
    * provides syntatic sugar for queueing several tasks that
-   * run different queries
+   * run different queries.
    */
   public function executeSql($query, $params = array()) {
-    // FIXME verify that we raise an exception on error
+    // FIXME verify that we raise an exception on error.
     CRM_Core_DAO::executeSql($query, $params);
     return TRUE;
   }
@@ -142,10 +153,10 @@ class CRM_iATS_Upgrader_Base {
     return $this->queue->createItem($task, array('weight' => -1));
   }
 
-  // ******** Revision-tracking helpers ********
-
-  /**
-   * Determine if there are any pending revisions
+  // ******** Revision-tracking helpers ********.
+  
+/**
+   * Determine if there are any pending revisions.
    *
    * @return bool
    */
@@ -164,7 +175,7 @@ class CRM_iATS_Upgrader_Base {
   }
 
   /**
-   * Add any pending revisions to the queue
+   * Add any pending revisions to the queue.
    */
   public function enqueuePendingRevisions(CRM_Queue_Queue $queue) {
     $this->queue = $queue;
@@ -177,8 +188,7 @@ class CRM_iATS_Upgrader_Base {
           2 => $revision,
         ));
 
-        // note: don't use addTask() because it sets weight=-1
-
+        // note: don't use addTask() because it sets weight=-1.
         $task = new CRM_Queue_Task(
           array(get_class($this), '_queueAdapter'),
           array('upgrade_' . $revision),
@@ -197,12 +207,12 @@ class CRM_iATS_Upgrader_Base {
   }
 
   /**
-   * Get a list of revisions
+   * Get a list of revisions.
    *
    * @return array(revisionNumbers) sorted numerically
    */
   public function getRevisions() {
-    if (! is_array($this->revisions)) {
+    if (!is_array($this->revisions)) {
       $this->revisions = array();
 
       $clazz = new ReflectionClass(get_class($this));
@@ -218,25 +228,31 @@ class CRM_iATS_Upgrader_Base {
     return $this->revisions;
   }
 
+  /**
+   *
+   */
   public function getCurrentRevision() {
-    // return CRM_Core_BAO_Extension::getSchemaVersion($this->extensionName);
+    // Return CRM_Core_BAO_Extension::getSchemaVersion($this->extensionName);.
     $key = $this->extensionName . ':version';
     return CRM_Core_BAO_Setting::getItem('Extension', $key);
   }
 
+  /**
+   *
+   */
   public function setCurrentRevision($revision) {
     // We call this during hook_civicrm_install, but the underlying SQL
     // UPDATE fails because the extension record hasn't been INSERTed yet.
     // Instead, track revisions in our own namespace.
-    // CRM_Core_BAO_Extension::setSchemaVersion($this->extensionName, $revision);
-
+    // CRM_Core_BAO_Extension::setSchemaVersion($this->extensionName, $revision);.
     $key = $this->extensionName . ':version';
     CRM_Core_BAO_Setting::setItem($revision, 'Extension', $key);
     return TRUE;
   }
 
-  // ******** Hook delegates ********
-
+  /**
+   * Hook delegates ********.
+   */
   public function onInstall() {
     foreach (glob($this->extensionDir . '/sql/*_install.sql') as $file) {
       CRM_Utils_File::sourceSQLFile(CIVICRM_DSN, $file);
@@ -253,6 +269,9 @@ class CRM_iATS_Upgrader_Base {
     }
   }
 
+  /**
+   *
+   */
   public function onUninstall() {
     if (is_callable(array($this, 'uninstall'))) {
       $this->uninstall();
@@ -263,27 +282,39 @@ class CRM_iATS_Upgrader_Base {
     $this->setCurrentRevision(NULL);
   }
 
+  /**
+   *
+   */
   public function onEnable() {
-    // stub for possible future use
+    // Stub for possible future use.
     if (is_callable(array($this, 'enable'))) {
       $this->enable();
     }
   }
 
+  /**
+   *
+   */
   public function onDisable() {
-    // stub for possible future use
+    // Stub for possible future use.
     if (is_callable(array($this, 'disable'))) {
       $this->disable();
     }
   }
 
+  /**
+   *
+   */
   public function onUpgrade($op, CRM_Queue_Queue $queue = NULL) {
-    switch($op) {
+    switch ($op) {
       case 'check':
         return array($this->hasPendingRevisions());
+
       case 'enqueue':
         return $this->enqueuePendingRevisions($queue);
+
       default:
     }
   }
+
 }
