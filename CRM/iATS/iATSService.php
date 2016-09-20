@@ -74,7 +74,7 @@ class iATS_Service_Request {
     $this->_wsdl_url_ns = 'https://www.iatspayments.com/NetGate/';
     $this->options = $options;
     $this->options['log'] = _iats_civicrm_domain_info('userFrameworkLogging') && function_exists('watchdog');
-    $this->options['debug'] = _iats_civicrm_domain_info('debug');
+    $this->options['debug'] = _iats_civicrm_domain_info('debug_enabled');
     // Check for valid currencies with domain/method combinations.
     if (isset($options['currencyID'])) {
       $valid = FALSE;
