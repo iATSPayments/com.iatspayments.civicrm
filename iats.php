@@ -185,23 +185,52 @@ function iats_civicrm_managed(&$entities) {
 /**
  * Utility function to get domain info.
  *
- * Get values from the civicrm_domain table.
+ * Get values from the civicrm_domain table, or a domain setting.
+ * May be called multiple times, so be efficient.
  */
 function _iats_civicrm_domain_info($key) {
-  static $domain;
+  static $domain, $settings;
   if (empty($domain)) {
     $domain = civicrm_api3('Domain', 'getsingle', array('current_domain' => TRUE));
+  }
+  if (!isset($settings)) {
+    $settings = array();
   }
   switch ($key) {
     case 'version':
       return explode('.', $domain['version']);
 
     default:
-      if (!empty($domain[$key])) {
+      if (isset($domain[$key])) {
         return $domain[$key];
       }
-      $config_backend = unserialize($domain['config_backend']);
-      return $config_backend[$key];
+      elseif (isset($settings[$key])) {
+        return $settings[$key];
+      }
+      else {
+        try{
+          $setting = civicrm_api3('Setting', 'getvalue', array('name' => $key));
+          if (is_string($setting)) {
+            $settings[$key] = $setting;
+            return $setting;
+          }
+        }
+        catch (CiviCRM_API3_Exception $e) {
+          // ignore errors
+        }
+        // This remaining code is now very legacy, from earlier Civi versions and should soon be retired.
+        if (!empty($domain['config_backend'])) {
+          $config_backend = unserialize($domain['config_backend']);
+          if (!empty($config_backend[$key])) {
+            $settings[$key] = $config_backend[$key];
+            return $config_backend[$key];
+          }
+        }
+      }
+      // Uncomment one or more of these lines to find out what it was we were looking for and didn't find.
+      // CRM_Core_Error::debug_var('domain', $domain);
+      // CRM_Core_Error::debug_var($key, $settings);
+      // CRM_Core_Error::debug_var($key, $setting);
   }
 }
 
@@ -1247,7 +1276,7 @@ function _iats_process_contribution_payment(&$contribution, $options, $original_
   $used_repeattransaction = FALSE;
   if (_iats_civicrm_use_repeattransaction()) {
     try {
-      // KG repeattransaction requires the original contribution ID:
+      // repeattransaction requires the original contribution id
       $pending = civicrm_api3('Contribution', 'repeattransaction', array(
         'original_contribution_id' => $original_contribution_id,
         'contribution_status_id' => $contribution['contribution_status_id'],
