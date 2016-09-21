@@ -701,11 +701,11 @@ function iats_acheft_form_customize($form) {
   if (empty($form->billingFieldSets['direct_debit']['fields']['bank_name']['is_required'])) {
     $form->addRule('bank_name', ts('%1 is a required field.', array(1 => ts('Bank Name'))), 'required');
   }
-  if (function_exists($fname)) {
+  if ($currency && function_exists($fname)) {
     $fname($form);
   }
   // I'm handling an unexpected currency.
-  else {
+  elseif ($currency) {
     CRM_Core_Region::instance('billing-block')->add(array(
       'template' => 'CRM/iATS/BillingBlockDirectDebitExtra_Other.tpl',
     ));
@@ -735,7 +735,10 @@ function iats_getCurrency($form) {
       break;
   }
   if (empty($currency)) {
-    CRM_Core_Error::fatal('Unable to determine currency for form %class', array('%class' => $form_class));
+    // The financial form payment may be called without a currency in some cases, and that's okay.
+    if ('CRM_Financial_Form_Payment' != $form_class) {
+      CRM_Core_Error::fatal(ts('Unable to determine currency for form %class', array('%class' => $form_class)));
+    }
   }
   return $currency;
 }
@@ -946,18 +949,19 @@ function iats_civicrm_buildForm_Contribution_Frontend(&$form) {
     }
   }
   /* Mangle (in a currency-dependent way) the ajax-bit of the form if I've just selected an ach/eft option */
-  if (!empty($acheft[$form->_paymentProcessor['id']])) {
+  $id = $form->_paymentProcessor['id'];
+  if (!empty($acheft[$id])) {
     iats_acheft_form_customize($form);
     // watchdog('iats_acheft',kprint_r($form,TRUE));.
   }
 
   /* now something similar for swipe */
-  if (!empty($swipe[$form->_paymentProcessor['id']])) {
+  if (!empty($swipe[$id])) {
     iats_swipe_form_customize($form);
   }
 
   /* UK Direct debit option */
-  if (!empty($ukdd[$form->_paymentProcessor['id']])) {
+  if (!empty($ukdd[$id])) {
     iats_ukdd_form_customize($form);
     // watchdog('iats_acheft',kprint_r($form,TRUE));.
   }
