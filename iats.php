@@ -735,10 +735,9 @@ function iats_getCurrency($form) {
       break;
   }
   if (empty($currency)) {
-    // The financial form payment may be called without a currency in some cases, and that's okay.
-    if ('CRM_Financial_Form_Payment' != $form_class) {
-      CRM_Core_Error::fatal(ts('Unable to determine currency for form %class', array('%class' => $form_class)));
-    }
+    // This may occur in edge cases, so don't break, though the form won't be rendered correctly.
+    // See comment on civicrm core commit f61437d
+    CRM_Core_Error::debug_var($form_class, $form);
   }
   return $currency;
 }
@@ -948,22 +947,23 @@ function iats_civicrm_buildForm_Contribution_Frontend(&$form) {
       $form->setDefaults(array('is_recur' => 1));
     }
   }
-  /* Mangle (in a currency-dependent way) the ajax-bit of the form if I've just selected an ach/eft option */
-  $id = $form->_paymentProcessor['id'];
-  if (!empty($acheft[$id])) {
-    iats_acheft_form_customize($form);
-    // watchdog('iats_acheft',kprint_r($form,TRUE));.
-  }
-
-  /* now something similar for swipe */
-  if (!empty($swipe[$id])) {
-    iats_swipe_form_customize($form);
-  }
-
-  /* UK Direct debit option */
-  if (!empty($ukdd[$id])) {
-    iats_ukdd_form_customize($form);
-    // watchdog('iats_acheft',kprint_r($form,TRUE));.
+  
+  /* Mangle the ajax bit of the form (if any) by processor type */
+  if (!empty($form->_paymentProcessor['id'])) {
+    $id = $form->_paymentProcessor['id'];
+    /* Note that Ach/Eft is currency dependent */
+    if (!empty($acheft[$id])) {
+      iats_acheft_form_customize($form);
+      // watchdog('iats_acheft',kprint_r($form,TRUE));.
+    }
+    elseif (!empty($swipe[$id])) {
+      iats_swipe_form_customize($form);
+    }
+    /* UK Direct debit option */
+    elseif (!empty($ukdd[$id])) {
+      iats_ukdd_form_customize($form);
+      // watchdog('iats_acheft',kprint_r($form,TRUE));.
+    }
   }
 
 }
