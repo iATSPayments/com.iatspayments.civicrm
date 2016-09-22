@@ -241,7 +241,7 @@ function _iats_civicrm_domain_info($key) {
  */
 function _iats_civicrm_use_repeattransaction() {
   $version = CRM_Utils_System::version();
-  return (version_compare($version, '4.7.12') < 0) ? FALSE : TRUE;
+  return (version_compare($version, '4.7.11') < 0) ? FALSE : TRUE;
 }
 
 /**
@@ -1296,19 +1296,32 @@ function _iats_process_contribution_payment(&$contribution, $options, $original_
   if ($use_repeattransaction) {
     // We processed it successflly and I can try to use repeattransaction. 
     // Requires the original contribution id.
+    // Issues with this api call:
+    // 1. Always triggers and email and doesn't include trxn.
+    // 2. Date is wrong.
     try {
+      $status = $result['contribution_status_id'] == 1 ? 'Completed' : 'Pending';
       $contributionResult = civicrm_api3('Contribution', 'repeattransaction', array(
         'original_contribution_id' => $original_contribution_id,
-        'contribution_status_id' => 'Pending', 
+        'contribution_status_id' => $status,
         ///'receive_date' => $contribution['receive_date'],
         // 'campaign_id' => $contribution['campaign_id'],
         // 'financial_type_id' => $contribution['financial_type_id'],.
-        'payment_processor_id' => $contribution['payment_processor'],
+        // 'payment_processor_id' => $contribution['payment_processor'],
         'contribution_recur_id' => $contribution['contribution_recur_id'],
       ));
 
       // watchdog('iats_civicrm','repeat transaction result <pre>@params</pre>',array('@params' => print_r($pending,TRUE)));.
       $contribution['id'] = CRM_Utils_Array::value('id', $contributionResult);
+      // Restore various fields that ipn irritatingly overwrites.
+      civicrm_api3('contribution', 'create', array('id' => $contribution['id'], 
+        'source' => $contribution['source'],
+        'receive_date' => $contribution['receive_date'],
+        'payment_instrument_id' => $contribution['payment_instrument_id'],
+        // '' => $contribution['receive_date'],
+      ));
+      // Save my status in the contribution array that was passed in.
+      $contribution['contribution_status_id'] = $result['contribution_status_id'];
     }
     catch (Exception $e) {
     }
@@ -1317,8 +1330,8 @@ function _iats_process_contribution_payment(&$contribution, $options, $original_
       $use_repeattransaction = FALSE;
     }
     else {
-      // If I succeded.
-      if ($result['contribution_status_id'] == 1) {
+      // If I succeded. This code won't execute, waiting until repeattransaction is fixed.
+      if (FALSE && $result['contribution_status_id'] == 1) {
         // My transaction completed, so record that fact in CiviCRM.
         try {
           civicrm_api3('Contribution', 'completetransaction', array(
