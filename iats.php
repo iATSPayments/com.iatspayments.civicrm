@@ -241,7 +241,7 @@ function _iats_civicrm_domain_info($key) {
  */
 function _iats_civicrm_use_repeattransaction() {
   $version = CRM_Utils_System::version();
-  return (version_compare($version, '4.7.11') < 0) ? FALSE : TRUE;
+  return (version_compare($version, '4.7.12') < 0) ? FALSE : TRUE;
 }
 
 /**
@@ -1304,6 +1304,7 @@ function _iats_process_contribution_payment(&$contribution, $options, $original_
       $contributionResult = civicrm_api3('Contribution', 'repeattransaction', array(
         'original_contribution_id' => $original_contribution_id,
         'contribution_status_id' => $status,
+        'is_email_receipt' => (empty($options['is_email_receipt']) ? 0 : 1),
         ///'receive_date' => $contribution['receive_date'],
         // 'campaign_id' => $contribution['campaign_id'],
         // 'financial_type_id' => $contribution['financial_type_id'],.
