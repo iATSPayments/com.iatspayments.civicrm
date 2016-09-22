@@ -1300,11 +1300,11 @@ function _iats_process_contribution_payment(&$contribution, $options, $original_
     // 1. Always triggers and email and doesn't include trxn.
     // 2. Date is wrong.
     try {
-      $status = $result['contribution_status_id'] == 1 ? 'Completed' : 'Pending';
+      // $status = $result['contribution_status_id'] == 1 ? 'Completed' : 'Pending';
       $contributionResult = civicrm_api3('Contribution', 'repeattransaction', array(
         'original_contribution_id' => $original_contribution_id,
-        'contribution_status_id' => $status,
-        'is_email_receipt' => (empty($options['is_email_receipt']) ? 0 : 1),
+        'contribution_status_id' => 'Pending',
+        'is_email_receipt' => 0,
         ///'receive_date' => $contribution['receive_date'],
         // 'campaign_id' => $contribution['campaign_id'],
         // 'financial_type_id' => $contribution['financial_type_id'],.
@@ -1314,7 +1314,17 @@ function _iats_process_contribution_payment(&$contribution, $options, $original_
 
       // watchdog('iats_civicrm','repeat transaction result <pre>@params</pre>',array('@params' => print_r($pending,TRUE)));.
       $contribution['id'] = CRM_Utils_Array::value('id', $contributionResult);
-      // Restore various fields that ipn irritatingly overwrites.
+    }
+    catch (Exception $e) {
+      // Ignore this, though perhaps I should log it.
+    }
+    if (empty($contribution['id'])) {
+      // Assume I failed completely and I'll fall back to doing it the manual way.
+      $use_repeattransaction = FALSE;
+    }
+    else {
+      // If repeattransaction succeded.
+      // First restore various fields that ipn code (sometimes) irritatingly overwrites.
       civicrm_api3('contribution', 'create', array('id' => $contribution['id'], 
         'source' => $contribution['source'],
         'receive_date' => $contribution['receive_date'],
@@ -1323,31 +1333,18 @@ function _iats_process_contribution_payment(&$contribution, $options, $original_
       ));
       // Save my status in the contribution array that was passed in.
       $contribution['contribution_status_id'] = $result['contribution_status_id'];
-    }
-    catch (Exception $e) {
-    }
-    if (empty($contribution['id'])) {
-      // Assume I failed completely and I'll do it the manual way.
-      $use_repeattransaction = FALSE;
-    }
-    else {
-      // If I succeded. This code won't execute, waiting until repeattransaction is fixed.
-      if (FALSE && $result['contribution_status_id'] == 1) {
-        // My transaction completed, so record that fact in CiviCRM.
+      if ($result['contribution_status_id'] == 1) {
+        // My transaction completed, so record that fact in CiviCRM, potentially sending an invoice.
         try {
           civicrm_api3('Contribution', 'completetransaction', array(
             'id' => $contribution['id'],
+            'is_email_receipt' => (empty($options['is_email_receipt']) ? 0 : 1),
             'trxn_id' => $contribution['trxn_id'],
             'receive_date' => $contribution['receive_date'],
           ));
-          // Restore my source field that ipn irritatingly overwrites.
-          civicrm_api3('contribution', 'setvalue', array('id' => $contribution['id'], 'value' => $contribution['source'], 'field' => 'source'));
-          // Save my status in the contribution array that was passed in.
-          $contribution['contribution_status_id'] = 1;
         }
         catch (Exception $e) {
           // log the error and continue
-          // $contribution['source'] .= ' [with unexpected api.completetransaction error: ' . $e->getMessage() . ']';
           CRM_Core_Error::debug_var('Unexpected Exception', $e);
         }
       }
