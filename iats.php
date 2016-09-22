@@ -1266,19 +1266,41 @@ function _iats_contributionrecur_next($from_time, $allow_mdays) {
  *
  *   A high-level utility function for making a contribution payment from an existing recurring schedule
  *   Used in the Iatsrecurringcontributions.php job and the one-time ('card on file') form.
+ *   
+ *   Since 4.7.12, we can are using the new repeattransaction api.
  */
 function _iats_process_contribution_payment(&$contribution, $options, $original_contribution_id) {
-  // First create the pending contribution, and save its id
-  // we'll first try to use the repeattransaction api if we trust it, otherwise just create it naively.
-  $contribution_id = NULL;
-  $used_repeattransaction = FALSE;
-  if (_iats_civicrm_use_repeattransaction()) {
+  // By default, don't use repeattransaction
+  $use_repeattransaction = FALSE;
+  // First try and get the money with iATS Payments, using my cover function.
+  // TODO: convert this into an api job?
+  $result =  _iats_process_transaction($contribution, $options);
+
+  // Handle any case of a failure of some kind, either the card failed, or the system failed.
+  if (empty($result['status'])) {
+    /* set the failed transaction status, or pending if I had a server issue */
+    $contribution['contribution_status_id'] = empty($result['auth_result']) ? 2 : 4;
+    /* and include the reason in the source field */
+    $contribution['source'] .= ' ' . $result['reasonMessage'];
+    // Save my reject code here for processing by the calling function (a bit lame)
+    $contribution['iats_reject_code'] = $result['auth_result'];
+  }
+  else {
+    // I have a transaction id.
+    $trxn_id = $contribution['trxn_id'] = trim($result['remote_id']) . ':' . time();
+    // Initialize the status to pending
+    $contribution['contribution_status_id'] = 2;
+    // We'll use the repeattransaction api for successful transactions, if we trust it
+    $use_repeattransaction = _iats_civicrm_use_repeattransaction();
+  }
+  if ($use_repeattransaction) {
+    // We processed it successflly and I can try to use repeattransaction. 
+    // Requires the original contribution id.
     try {
-      // repeattransaction requires the original contribution id
-      $pending = civicrm_api3('Contribution', 'repeattransaction', array(
+      $contributionResult = civicrm_api3('Contribution', 'repeattransaction', array(
         'original_contribution_id' => $original_contribution_id,
-        'contribution_status_id' => $contribution['contribution_status_id'],
-        'receive_date' => $contribution['receive_date'],
+        'contribution_status_id' => 'Pending', 
+        ///'receive_date' => $contribution['receive_date'],
         // 'campaign_id' => $contribution['campaign_id'],
         // 'financial_type_id' => $contribution['financial_type_id'],.
         'payment_processor_id' => $contribution['payment_processor'],
@@ -1286,28 +1308,92 @@ function _iats_process_contribution_payment(&$contribution, $options, $original_
       ));
 
       // watchdog('iats_civicrm','repeat transaction result <pre>@params</pre>',array('@params' => print_r($pending,TRUE)));.
-      $contribution_id = $pending['id'];
-      $used_repeattransaction = TRUE;
+      $contribution['id'] = CRM_Utils_Array::value('id', $contributionResult);
     }
     catch (Exception $e) {
-      // Give up.
+    }
+    if (empty($contribution['id'])) {
+      // Assume I failed completely and I'll do it the manual way.
+      $use_repeattransaction = FALSE;
+    }
+    else {
+      // If I succeded.
+      if ($result['contribution_status_id'] == 1) {
+        // My transaction completed, so record that fact in CiviCRM.
+        try {
+          civicrm_api3('Contribution', 'completetransaction', array(
+            'id' => $contribution['id'],
+            'trxn_id' => $contribution['trxn_id'],
+            'receive_date' => $contribution['receive_date'],
+          ));
+          // Restore my source field that ipn irritatingly overwrites.
+          civicrm_api3('contribution', 'setvalue', array('id' => $contribution['id'], 'value' => $contribution['source'], 'field' => 'source'));
+          // Save my status in the contribution array that was passed in.
+          $contribution['contribution_status_id'] = 1;
+        }
+        catch (Exception $e) {
+          // log the error and continue
+          // $contribution['source'] .= ' [with unexpected api.completetransaction error: ' . $e->getMessage() . ']';
+          CRM_Core_Error::debug_var('Unexpected Exception', $e);
+        }
+      }
     }
   }
-  // Repeattransaction isn't working or didn't work above.
-  if (empty($contribution_id)) {
+  if (!$use_repeattransaction) {
+    /* If I'm not using repeattransaction for any reason, I'll create the contribution manually */
+    // This code assumes that the contribution_status_id has been set properly above, either pending or failed.
     $contributionResult = civicrm_api3('contribution', 'create', $contribution);
-    $contribution_id = CRM_Utils_Array::value('id', $contributionResult);
-  }
-  // Connect to a membership if requested.
-  if (!$used_repeattransaction && !empty($options['membership_id'])) {
-    try {
-      civicrm_api3('MembershipPayment', 'create', array('contribution_id' => $contribution_id, 'membership_id' => $options['membership_id']));
+    // Pass back the created id indirectly since I'm calling by reference.
+    $contribution['id'] = CRM_Utils_Array::value('id', $contributionResult);
+    // Connect to a membership if requested.
+    if (!empty($options['membership_id'])) {
+      try {
+        civicrm_api3('MembershipPayment', 'create', array('contribution_id' => $contribution['id'], 'membership_id' => $options['membership_id']));
+      }
+      catch (Exception $e) {
+        // Ignore.
+      }
     }
-    catch (Exception $e) {
-      // Ignore.
+    /* And then I'm done unless it completed */
+    if ($result['contribution_status_id'] == 1 && !empty($result['status'])) {
+      /* success, and the transaction has completed */
+      $complete = array('id' => $contribution['id'], 'trxn_id' => $trxn_id, 'receive_date' => $contribution['receive_date']);
+      $complete['is_email_receipt'] = empty($options['is_email_receipt']) ? 0 : 1;
+      try {
+        $contributionResult = civicrm_api3('contribution', 'completetransaction', $complete);
+      }
+      catch (Exception $e) {
+        // Don't throw an exception here, or else I won't have updated my next contribution date for example.
+        $contribution['source'] .= ' [with unexpected api.completetransaction error: ' . $e->getMessage() . ']';
+      }
+      // Restore my source field that ipn code irritatingly overwrites, and make sure that the trxn_id is set also.
+      civicrm_api3('contribution', 'setvalue', array('id' => $contribution['id'], 'value' => $contribution['source'], 'field' => 'source'));
+      civicrm_api3('contribution', 'setvalue', array('id' => $contribution['id'], 'value' => $trxn_id, 'field' => 'trxn_id'));
+      return ts('Successfully processed recurring contribution in series id %1: ', array(1 => $contribution['contribution_recur_id'])) . $result['auth_result'];
     }
   }
-  // Now try to get the money, and then do one of: update the contribution to failed, complete the transaction, or update a pending ach/eft with it's transaction id.
+  // Now return the appropriate message. 
+  if (empty($result['status'])) {
+    return ts('Failed to process recurring contribution id %1: ', array(1 => $contribution['contribution_recur_id'])) . $result['reasonMessage'];
+  }
+  elseif ($result['contribution_status_id'] == 1) {
+    return ts('Successfully processed recurring contribution in series id %1: ', array(1 => $contribution['contribution_recur_id'])) . $result['auth_result'];
+  }
+  else {
+    // I'm using ACH/EFT or a processor that doesn't complete.
+    return ts('Successfully processed pending recurring contribution in series id %1: ', array(1 => $contribution['contribution_recur_id'])) . $result['auth_result'];
+  }
+}
+
+/**
+ * Function _iats_process_transaction.
+ *
+ * @param $contribution an array of properties of a contribution to be processed
+ * @param $options must include customer code, subtype and iats_domain
+ *
+ *   A low-level utility function for triggering a transaction on iATS.
+ */
+function _iats_process_transaction($contribution, $options) {
   require_once "CRM/iATS/iATSService.php";
   switch ($options['subtype']) {
     case 'ACHEFT':
@@ -1336,43 +1422,7 @@ function _iats_process_contribution_payment(&$contribution, $options, $original_
   $response = $iats->request($credentials, $request);
   // Process the soap response into a readable result.
   $result = $iats->result($response);
-  // Pass this back indirectly since I'm calling by reference.
-  $contribution['id'] = $contribution_id;
-  // A failure of some kind.
-  if (empty($result['status'])) {
-    /* update the contribution record in civicrm  */
-    /* with the failed transaction status or pending if I had a server issue */
-    /* and include the reason in the source field */
-    /* and save the iATS-specific code as well */
-    $contribution['contribution_status_id'] = $contribution_status_id = empty($result['auth_result']) ? 2 : 4;
-    $complete = array('id' => $contribution_id, 'source' => $contribution['source'] . ' ' . $result['reasonMessage'], 'contribution_status_id' => $contribution_status_id);
-    $contributionResult = civicrm_api3('contribution', 'create', $complete);
-    // Save my reject code here for processing by the calling function (a bit lame)
-    $contribution['iats_reject_code'] = $result['auth_result'];
-    return ts('Failed to process recurring contribution id %1: ', array(1 => $contribution['contribution_recur_id'])) . $result['reasonMessage'];
-  }
-  elseif ($contribution_status_id == 1) {
-    /* success, done */
-    $trxn_id = trim($result['remote_id']) . ':' . time();
-    $complete = array('id' => $contribution_id, 'trxn_id' => $trxn_id, 'receive_date' => $contribution['receive_date']);
-    $complete['is_email_receipt'] = empty($options['is_email_receipt']) ? 0 : 1;
-    try {
-      $contributionResult = civicrm_api3('contribution', 'completetransaction', $complete);
-    }
-    catch (Exception $e) {
-      // Don't throw an exception here, or else I won't have updated my next contribution date for example.
-      // throw new API_Exception('Failed to complete transaction: ' . $e->getMessage() . "\n" . $e->getTraceAsString());
-      $contribution['source'] .= ' [with unexpected api.completetransaction error: ' . $e->getMessage() . ']';
-    }
-    // Restore my source field that ipn irritatingly overwrites, and make sure that the trxn_id is set also.
-    civicrm_api3('contribution', 'setvalue', array('id' => $contribution_id, 'value' => $contribution['source'], 'field' => 'source'));
-    civicrm_api3('contribution', 'setvalue', array('id' => $contribution_id, 'value' => $trxn_id, 'field' => 'trxn_id'));
-    return ts('Successfully processed recurring contribution in series id %1: ', array(1 => $contribution['contribution_recur_id'])) . $result['auth_result'];
-  }
-  // success, but just update the transaction id, wait for completion.
-  else {
-    $complete = array('id' => $contribution_id, 'trxn_id' => trim($result['remote_id']) . ':' . time());
-    $contributionResult = civicrm_api3('contribution', 'create', $complete);
-    return ts('Successfully processed pending recurring contribution in series id %1: ', array(1 => $contribution['contribution_recur_id'])) . $result['auth_result'];
-  }
+  // pass back the anticipated status_id based on the method (i.e. 1 for CC, 2 for ACH/EFT)
+  $result['contribution_status_id'] = $contribution_status_id;
+  return $result;
 }
