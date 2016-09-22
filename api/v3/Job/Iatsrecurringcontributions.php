@@ -60,7 +60,7 @@ function _civicrm_api3_job_iatsrecurringcontributions_spec(&$spec) {
  */
 function civicrm_api3_job_iatsrecurringcontributions($params) {
   // Running this job in parallell could generate bad duplicate contributions.
-  $lock = new CRM_Core_Lock('civimail.job.IatsRecurringContributions');
+  $lock = new CRM_Core_Lock('civicrm.job.IatsRecurringContributions');
 
   if (!$lock->acquire()) {
     return civicrm_api3_create_success(ts('Failed to acquire lock. No contribution records were processed.'));
