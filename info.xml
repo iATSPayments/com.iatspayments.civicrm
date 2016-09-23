@@ -21,7 +21,7 @@
     <ver>4.6</ver>
     <ver>4.7</ver>
   </compatibility>
-  <comments>This is a pre-release for CiviCDRM 4.7 compatibility.
+  <comments>This is a pre-release for CiviCRM 4.7 compatibility.
 </comments>
   <civix>
     <namespace>CRM/iATS</namespace>
