@@ -118,7 +118,8 @@ class CRM_iATS_Form_IATSOneTimeCharge extends CRM_Core_Form {
       'subtype' => $subtype,
     );
     // Now all the hard work in this function, recycled from the original recurring payment job.
-    $result = _iats_process_contribution_payment($contribution, $options);
+    $original_contribution_id = $contribution_template['original_contribution_id'];
+    $result = _iats_process_contribution_payment($contribution, $options, $original_contribution_id);
     return $result;
   }
 
