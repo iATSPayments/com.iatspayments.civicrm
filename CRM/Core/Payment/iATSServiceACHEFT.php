@@ -186,7 +186,16 @@ class CRM_Core_Payment_iATSServiceACHEFT extends CRM_Core_Payment {
     return $e;
   }
 
-  /**
+ /** 
+   * Are back office payments supported.
+   *
+   * @return bool
+   */
+  protected function supportsBackOffice() {
+    return TRUE;
+  }
+    
+ /**
    * This function checks to see if we have the right config values.
    *
    * @param string $mode
