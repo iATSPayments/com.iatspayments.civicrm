@@ -85,7 +85,8 @@ class CRM_iATS_Form_IATSOneTimeCharge extends CRM_Core_Form {
    *
    */
   protected function processCreditCardCustomer($values) {
-    // Generate another recurring contribution, matching our recurring template with submitted value.
+    // Generate another (possibly) recurring contribution, matching our recurring template with submitted value.
+    $is_recurrence = !empty($values['is_recurrence']);
     $total_amount = $values['amount'];
     $contribution_template = _iats_civicrm_getContributionTemplate(array('contribution_recur_id' => $values['crid']));
     $contact_id = $values['cid'];
@@ -94,7 +95,6 @@ class CRM_iATS_Form_IATSOneTimeCharge extends CRM_Core_Form {
     $payment_processor_id = $values['paymentProcessorId'];
     $type = _iats_civicrm_is_iats($payment_processor_id);
     $subtype = substr($type, 11);
-    $source = "iATS Payments $subtype Recurring Contribution (id=$contribution_recur_id)";
     // i.e. now.
     $receive_date = date("YmdHis", time());
     $contribution = array(
@@ -104,7 +104,6 @@ class CRM_iATS_Form_IATSOneTimeCharge extends CRM_Core_Form {
       'total_amount'       => $total_amount,
       'contribution_recur_id'  => $contribution_recur_id,
       'invoice_id'       => $hash,
-      'source'         => $source,
       'contribution_status_id' => 2, /* initialize as pending, so we can run completetransaction after taking the money */
       'payment_processor'   => $payment_processor_id,
       'is_test'        => $values['is_test'], /* propagate the is_test value from the form */
@@ -117,8 +116,16 @@ class CRM_iATS_Form_IATSOneTimeCharge extends CRM_Core_Form {
       'customer_code' => $values['customerCode'],
       'subtype' => $subtype,
     );
+    if ($is_recurrence) {
+      $contribution['source'] = "iATS Payments $subtype Recurring Contribution (id=$contribution_recur_id)";
+      $original_contribution_id = $contribution_template['original_contribution_id'];
+    }
+    else {
+      $original_contribution_id = NULL;
+      unset($contribution['contribution_recur_id']);
+      $contribution['source'] = "iATS Payments $subtype One-Time Contribution (using id=$contribution_recur_id)";
+    }
     // Now all the hard work in this function, recycled from the original recurring payment job.
-    $original_contribution_id = $contribution_template['original_contribution_id'];
     $result = _iats_process_contribution_payment($contribution, $options, $original_contribution_id);
     return $result;
   }
@@ -139,12 +146,14 @@ class CRM_iATS_Form_IATSOneTimeCharge extends CRM_Core_Form {
     $customerCode = CRM_Utils_Request::retrieve('customerCode', 'String');
     $paymentProcessorId = CRM_Utils_Request::retrieve('paymentProcessorId', 'Positive');
     $is_test = CRM_Utils_Request::retrieve('is_test', 'Integer');
+    $is_recurrence = CRM_Utils_Request::retrieve('is_recurrence', 'Integer');
     $defaults = array(
       'cid' => $cid,
       'crid' => $crid,
       'customerCode' => $customerCode,
       'paymentProcessorId' => $paymentProcessorId,
       'is_test' => $is_test,
+      'is_recurrence' => 1,
     );
     $this->setDefaults($defaults);
     /* always show lots of detail about the card about to be charged or just charged */
@@ -177,6 +186,13 @@ class CRM_iATS_Form_IATSOneTimeCharge extends CRM_Core_Form {
       'is_email_receipt',
       ts('Automated email receipt for this contribution.')
     );
+    $this->add(
+    // Field type.
+      'checkbox',
+    // Field name.
+      'is_recurrence',
+      ts('Create this as a contribution in the recurring series.')
+    );
     $this->addButtons(array(
       array(
         'type' => 'submit',
@@ -191,10 +207,11 @@ class CRM_iATS_Form_IATSOneTimeCharge extends CRM_Core_Form {
 
     // Export form elements.
     $this->assign('elementNames', $this->getRenderableElementNames());
-    // Warn the user about the nature of what they are about to do.
-    $message = ts('The contribution created by this form will be saved as a recurring contribution.');
-    // , $type, $options);.
-    CRM_Core_Session::setStatus($message, 'One-Time Charge');
+    // If necessary, warn the user about the nature of what they are about to do.
+    if (0 !== $is_recurrence) { // this if is not working!
+      $message = ts('The contribution created by this form will be saved as contribution in the existing recurring series unless you uncheck the corresponding setting.'); // , $type, $options);.
+      CRM_Core_Session::setStatus($message, 'One-Time Charge');
+    }
     parent::buildQuickForm();
   }
 

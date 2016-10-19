@@ -1272,6 +1272,7 @@ function _iats_contributionrecur_next($from_time, $allow_mdays) {
 function _iats_process_contribution_payment(&$contribution, $options, $original_contribution_id) {
   // By default, don't use repeattransaction
   $use_repeattransaction = FALSE;
+  $is_recurrence = !empty($original_contribution_id);
   // First try and get the money with iATS Payments, using my cover function.
   // TODO: convert this into an api job?
   $result =  _iats_process_transaction($contribution, $options);
@@ -1290,8 +1291,8 @@ function _iats_process_contribution_payment(&$contribution, $options, $original_
     $trxn_id = $contribution['trxn_id'] = trim($result['remote_id']) . ':' . time();
     // Initialize the status to pending
     $contribution['contribution_status_id'] = 2;
-    // We'll use the repeattransaction api for successful transactions, if we trust it
-    $use_repeattransaction = _iats_civicrm_use_repeattransaction();
+    // We'll use the repeattransaction api for successful transactions, if we trust it, and if we want it
+    $use_repeattransaction = $is_recurrence && _iats_civicrm_use_repeattransaction();
   }
   if ($use_repeattransaction) {
     // We processed it successflly and I can try to use repeattransaction. 
@@ -1380,7 +1381,8 @@ function _iats_process_contribution_payment(&$contribution, $options, $original_
       // Restore my source field that ipn code irritatingly overwrites, and make sure that the trxn_id is set also.
       civicrm_api3('contribution', 'setvalue', array('id' => $contribution['id'], 'value' => $contribution['source'], 'field' => 'source'));
       civicrm_api3('contribution', 'setvalue', array('id' => $contribution['id'], 'value' => $trxn_id, 'field' => 'trxn_id'));
-      return ts('Successfully processed recurring contribution in series id %1: ', array(1 => $contribution['contribution_recur_id'])) . $result['auth_result'];
+      $message = $is_recurrence ? ts('Successfully processed contribution in recurring series id %1: ', array(1 => $contribution['contribution_recur_id'])) : ts('Successfully processed one-time contribution: ');
+      return $message . $result['auth_result'];
     }
   }
   // Now return the appropriate message. 
