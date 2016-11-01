@@ -560,8 +560,9 @@ function iats_civicrm_pre($op, $objectName, $objectId, &$params) {
           break;
       }
       if ($type != 'iATSServiceUKDD' && $objectName == 'Contribution') {
-        // new, non-UKDD contribution records in a schedule are forced to comply with any restrictions.
-        if (0 < max($allow_days)) {
+        // new, non-UKDD contribution records that are recurring and in a
+        // schedule are forced to comply with any restrictions.
+        if (!empty($params['contribution_recur_id']) && 0 < max($allow_days)) {
           $from_time = _iats_contributionrecur_next(strtotime($params['receive_date']), $allow_days);
           $params['receive_date'] = date('Ymd', $from_time) . '030000';
         }
