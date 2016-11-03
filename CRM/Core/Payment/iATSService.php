@@ -179,16 +179,16 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
   }
 
   /**
-   *
+   * support corresponding CiviCRM method
    */
   public function changeSubscriptionAmount(&$message = '', $params = array()) {
-    $userAlert = ts('You have updated the amount of this recurring contribution.');
-    CRM_Core_Session::setStatus($userAlert, ts('Warning'), 'alert');
+    // $userAlert = ts('You have modified this recurring contribution.');
+    // CRM_Core_Session::setStatus($userAlert, ts('Warning'), 'alert');
     return TRUE;
   }
 
   /**
-   *
+   * support corresponding CiviCRM method
    */
   public function cancelSubscription(&$message = '', $params = array()) {
     $userAlert = ts('You have cancelled this recurring contribution.');
