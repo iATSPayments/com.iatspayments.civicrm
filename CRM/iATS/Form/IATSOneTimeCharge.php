@@ -118,7 +118,8 @@ class CRM_iATS_Form_IATSOneTimeCharge extends CRM_Core_Form {
     );
     if ($is_recurrence) {
       $contribution['source'] = "iATS Payments $subtype Recurring Contribution (id=$contribution_recur_id)";
-      $original_contribution_id = $contribution_template['original_contribution_id'];
+      // We'll use the repeattransaction if the total amount is the same
+      $original_contribution_id = ($contribution_template['total_amount'] == $total_amount) ? $contribution_template['original_contribution_id'] : NULL;
     }
     else {
       $original_contribution_id = NULL;
