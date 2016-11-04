@@ -197,6 +197,30 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
   }
 
   /**
+   * Set additional fields when editing the schedule.
+   *
+   * Note: this doesn't completely replace the form hook, which is still 
+   * in use for additional changes, and to support 4.6.
+   * e.g. the commented out fields below don't work properly here.
+   */
+  public function getEditableRecurringScheduleFields() {
+    return array('amount',
+         'installments',
+         'next_sched_contribution_date',
+//         'contribution_status_id',
+//         'start_date',
+//         'is_email_receipt',
+       );
+  }
+
+  /*
+   * Set a useful message at the top of the schedule editing form
+   */
+  public function getRecurringScheduleUpdateHelpText() {
+    return 'Use this form to change the amount or number of installments for this recurring contribution. You can not change the contribution frequency.<br />You can also modify the next scheduled contribution date, and whether or not the recipient will get email receipts for each contribution.<br />You have an option to notify the donor of these changes.';
+  }
+
+  /**
    *
    */
   public function &error($error = NULL) {
