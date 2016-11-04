@@ -3,14 +3,16 @@
  can move the rows where they belong
 *}
 <table id="contributionrecur-extra">
-<tr><td class="label">{$form.contribution_status_id.label}</td>
+<tr class="contribution-status-id"><td class="label">{$form.contribution_status_id.label}</td>
         <td class="content">{$form.contribution_status_id.html}</td></tr>
-<tr><td class="label">{$form.payment_processor_id.label}</td>
+<tr class="payment-processor-id"><td class="label">{$form.payment_processor_id.label}</td>
         <td class="content">{$form.payment_processor_id.html}</td></tr>
-<tr><td class="label">{$form.start_date.label}</td>
+<tr class="start-date"><td class="label">{$form.start_date.label}</td>
         <td class="content">{$form.start_date.html}</td></tr>
-<tr><td class="label">{$form.next_sched_contribution_date.label}</td>
+<tr class="next-sched-contribution-date"><td class="label">{$form.next_sched_contribution_date.label}</td>
         <td class="content">{$form.next_sched_contribution_date.html}</td></tr>
+<tr class="is-email-receipt"><td class="label">{$form.is_email_receipt.label}</td>
+        <td class="content">{$form.is_email_receipt.html}</td></tr>
 </table>
 <table id="contributionrecur-info">
 <tr><td class="label">Contact Name</td>

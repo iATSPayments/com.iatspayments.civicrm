@@ -1116,6 +1116,9 @@ function iats_civicrm_buildForm_Contribution_ThankYou_Payment_iATSServiceUKDD(&$
  * Add some functionality to the update subscription form for recurring contributions.
  */
 function iats_civicrm_buildForm_CRM_Contribute_Form_UpdateSubscription(&$form) {
+
+  /* For 4.7, we implement getEditableRecurringScheduleFields but still need this for additional niceness */
+
   // Only do this if the user is allowed to edit contributions. A more stringent permission might be smart.
   if (!CRM_Core_Permission::check('edit contributions')) {
     return;
@@ -1152,38 +1155,47 @@ function iats_civicrm_buildForm_CRM_Contribute_Form_UpdateSubscription(&$form) {
   catch (CiviCRM_API3_Exception $e) {
     return;
   }
-  // Turn off default notification checkbox, most will want to hide it as well.
+  // Turn off default notification checkbox, because that's a better default.
   $defaults = array('is_notify' => 0);
   $edit_fields = array(
     'contribution_status_id' => 'Status',
     'next_sched_contribution_date' => 'Next Scheduled Contribution',
     'start_date' => 'Start Date',
+    'is_email_receipt' => 'Send email receipts after each contribution.',
   );
+  $dupe_fields = array();
+  // To be a good citizen, I check if core or another extension hasn't already added these fields 
+  // and remove them if they have.
   foreach (array_keys($edit_fields) as $fid) {
     if ($form->elementExists($fid)) {
       unset($edit_fields[$fid]);
+      $dupe_fields[] = str_replace('_','-',$fid);
     }
     else {
       $defaults[$fid] = $recur[$fid];
     }
   }
-  // Some other extension, or core, is exposing my fields, so quit.
-  if (0 == count($edit_fields)) {
-    return;
-  }
-  // print_r($recur); die();
-  $form->addElement('static', 'contact', $contact['display_name']);
-  // $form->addElement('static','contact',$contact['display_name']);.
-  if ($edit_fields['contribution_status_id']) {
-    $contributionStatus = CRM_Contribute_PseudoConstant::contributionStatus(NULL, 'name');
-    $form->addElement('select', 'contribution_status_id', ts('Status'), $contributionStatus);
-    unset($edit_fields['contribution_status_id']);
-  }
+  // Use this in my js to identify which fields need to be removed from the tpl I inject below
+  _iats_civicrm_varset(array('dupeSubscriptionFields' => $dupe_fields));
   foreach ($edit_fields as $fid => $label) {
-    $form->addDateTime($fid, ts($label));
+    switch($fid) {
+      case 'contribution_status_id':
+        $contributionStatus = CRM_Contribute_PseudoConstant::contributionStatus(NULL, 'name');
+        $form->addElement('select', 'contribution_status_id', ts('Status'), $contributionStatus);
+        break;
+      case 'is_email_receipt':
+        $receiptStatus = array('0' => 'No', '1' => 'Yes');
+        $form->addElement('select', $fid, ts($label), $receiptStatus);
+        break;
+      default:
+        $form->addDateTime($fid, ts($label));
+        break;
+    }
   }
   $form->setDefaults($defaults);
   // Now add some more fields for display only
+  /* Add in the contact's name */
+  $form->addElement('static', 'contact', $contact['display_name']);
   // get my pp.
   $pp_label = $form->_paymentProcessor['name'];
   $form->addElement('static', 'payment_processor', $pp_label);
