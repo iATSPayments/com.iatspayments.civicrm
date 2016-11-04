@@ -1339,6 +1339,7 @@ function _iats_process_contribution_payment(&$contribution, $options, $original_
     else {
       // If repeattransaction succeded.
       // First restore various fields that ipn code (sometimes) irritatingly overwrites.
+      // TODO - fix this in core to allow these to be set above.
       civicrm_api3('contribution', 'create', array('id' => $contribution['id'], 
         'source' => $contribution['source'],
         'receive_date' => $contribution['receive_date'],
@@ -1352,6 +1353,7 @@ function _iats_process_contribution_payment(&$contribution, $options, $original_
         try {
           civicrm_api3('Contribution', 'completetransaction', array(
             'id' => $contribution['id'],
+            'payment_processor_id' => $contribution['payment_processor'],
             'is_email_receipt' => (empty($options['is_email_receipt']) ? 0 : 1),
             'trxn_id' => $contribution['trxn_id'],
             'receive_date' => $contribution['receive_date'],
@@ -1382,7 +1384,11 @@ function _iats_process_contribution_payment(&$contribution, $options, $original_
     /* And then I'm done unless it completed */
     if ($result['contribution_status_id'] == 1 && !empty($result['status'])) {
       /* success, and the transaction has completed */
-      $complete = array('id' => $contribution['id'], 'trxn_id' => $trxn_id, 'receive_date' => $contribution['receive_date']);
+      $complete = array('id' => $contribution['id'], 
+        'payment_processor_id' => $contribution['payment_processor'],
+        'trxn_id' => $trxn_id, 
+        'receive_date' => $contribution['receive_date']
+      );
       $complete['is_email_receipt'] = empty($options['is_email_receipt']) ? 0 : 1;
       try {
         $contributionResult = civicrm_api3('contribution', 'completetransaction', $complete);
