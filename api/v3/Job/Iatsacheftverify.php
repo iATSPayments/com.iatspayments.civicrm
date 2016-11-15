@@ -2,10 +2,11 @@
 
 /**
  * @file
+ * Contains the ACH/EFT Verification API Job.
  */
 
 /**
- * Job.IatsACHEFTVerify API specification (optional)
+ * Job.IatsACHEFTVerify API specification (optional).
  * This is used for documentation and validation.
  *
  * @param array $spec description of fields supported by this API call
@@ -13,10 +14,6 @@
  * @return void
  *
  * @see http://wiki.civicrm.org/confluence/display/CRM/API+Architecture+Standards
- */
-
-/**
- *
  */
 function _civicrm_api3_job_iatsacheftverify_spec(&$spec) {
   // Todo - call this job with optional parameters?
@@ -43,18 +40,20 @@ function _civicrm_api3_job_iatsacheftverify_spec(&$spec) {
 function civicrm_api3_job_iatsacheftverify($iats_service_params) {
 
   $settings = CRM_Core_BAO_Setting::getItem('iATS Payments Extension', 'iats_settings');
-  $receipt_recurring = empty($settings['receipt_recurring']) ? 0 : 1;
+  $receipt_recurring = $settings['receipt_recurring'];
   define('IATS_VERIFY_DAYS', 30);
   // I've added an extra 2 days when getting candidates from CiviCRM to be sure i've got them all.
   $civicrm_verify_days = IATS_VERIFY_DAYS + 2;
   // Get all the pending direct debit contributions that still need approval within the last civicrm_verify_days.
-  $select = 'SELECT id, trxn_id, invoice_id, contact_id, contribution_recur_id, receive_date
-      FROM civicrm_contribution
+  $select = 'SELECT c.id, c.trxn_id, c.invoice_id, c.contact_id, c.contribution_recur_id, c.receive_date, cr.is_email_receipt
+      FROM civicrm_contribution c
+      LEFT JOIN civicrm_contribution_recur cr ON c.contribution_recur_id = cr.id
       WHERE
-        contribution_status_id = 2
-        AND payment_instrument_id = 2
-        AND receive_date > %1
-        AND is_test = 0';
+        c.contribution_status_id = 2
+        AND NOT(ISNULL(c.trxn_id))
+        AND c.payment_instrument_id = 2
+        AND c.receive_date > %1
+        AND c.is_test = 0';
   $args = array(
     1 => array(date('c', strtotime('-' . $civicrm_verify_days . ' days')), 'String'),
   );
@@ -64,7 +63,7 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
     /* we assume that the iATS transaction id is a unique field for matching, and that it is stored as the first part of the civicrm transaction */
     /* this is not unreasonable, assuming that the site doesn't have other active direct debit payment processors with similar patterns */
     $key = current(explode(':', $dao->trxn_id, 2));
-    $acheft_pending[$key] = array('id' => $dao->id, 'trxn_id' => $dao->trxn_id, 'invoice_id' => $dao->invoice_id, 'contact_id' => $dao->contact_id, 'contribution_recur_id' => $dao->contribution_recur_id, 'receive_date' => $dao->receive_date);
+    $acheft_pending[$key] = array('id' => $dao->id, 'trxn_id' => $dao->trxn_id, 'invoice_id' => $dao->invoice_id, 'contact_id' => $dao->contact_id, 'contribution_recur_id' => $dao->contribution_recur_id, 'receive_date' => $dao->receive_date, 'is_email_receipt' => $dao->is_email_receipt);
   }
   // And some recent UK DD recurring contributions.
   $select = 'SELECT c.id, c.contribution_status_id, c.trxn_id, c.invoice_id, icc.customer_code
@@ -146,9 +145,11 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
           );
           break;
 
-        // Box journals only go up to the end of yesterday.
+        // Box journals only go up to the end of yesterday, and we need to set start/end indices.
         default:
           $request = array(
+            'startIndex' => 0,
+            'endIndex' => 499,
             'fromDate' => date('Y-m-d', strtotime('-' . IATS_VERIFY_DAYS . ' days')) . 'T00:00:00+00:00',
             'toDate' => date('Y-m-d', strtotime('-1 day')) . 'T23:59:59+00:00',
             'customerIPAddress' => (function_exists('ip_address') ? ip_address() : $_SERVER['REMOTE_ADDR']),
@@ -159,35 +160,27 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
       $response = $iats->request($credentials, $request);
       $transactions = $iats->getCSV($response, $method);
 
-      if ($method == 'acheft_journal_csv') {
-        // Also grab yesterday + day before yesterday + day before that + the day before that if it (in case of stat holiday - long weekend)
-        $request = array(
-          'date' => date('Y-m-d', strtotime('-1 day')) . 'T23:59:59+00:00',
-          'customerIPAddress' => (function_exists('ip_address') ? ip_address() : $_SERVER['REMOTE_ADDR']),
-        );
-        $response = $iats->request($credentials, $request);
-        $transactions = array_merge($transactions, $iats->getCSV($response, $method));
-
-        $request = array(
-          'date' => date('Y-m-d', strtotime('-2 days')) . 'T23:59:59+00:00',
-          'customerIPAddress' => (function_exists('ip_address') ? ip_address() : $_SERVER['REMOTE_ADDR']),
-        );
-        $response = $iats->request($credentials, $request);
-        $transactions = array_merge($transactions, $iats->getCSV($response, $method));
-
-        $request = array(
-          'date' => date('Y-m-d', strtotime('-3 days')) . 'T23:59:59+00:00',
-          'customerIPAddress' => (function_exists('ip_address') ? ip_address() : $_SERVER['REMOTE_ADDR']),
-        );
-        $response = $iats->request($credentials, $request);
-        $transactions = array_merge($transactions, $iats->getCSV($response, $method));
-
-        $request = array(
-          'date' => date('Y-m-d', strtotime('-4 days')) . 'T23:59:59+00:00',
-          'customerIPAddress' => (function_exists('ip_address') ? ip_address() : $_SERVER['REMOTE_ADDR']),
-        );
-        $response = $iats->request($credentials, $request);
-        $transactions = array_merge($transactions, $iats->getCSV($response, $method));
+      // special case followups per method
+      switch($method) {
+        case 'acheft_journal_csv':
+          // Also pull the previous 4 days for e.g. cases of stat holidays + long weekends
+          for ($days_before = -1; $days_before > -5; $days_before--) {
+            $request['date'] = date('Y-m-d', strtotime($days_before.' day')) . 'T23:59:59+00:00';
+            $response = $iats->request($credentials, $request);
+            $transactions = array_merge($transactions, $iats->getCSV($response, $method));
+          }
+          break;
+        default: // pulling box journals only 100 at a time, get more if necessary.
+          $max_pulls = 100; // Don't pull more than 100 x 500 = 50,000 approvals or rejections over the past 30 days.
+          $last = $transactions;
+          while((0 < $max_pulls--) && (count($last) == 500)) {
+            $request['startIndex'] = count($transactions);
+            $request['endIndex'] = $request['startIndex'] + 499;
+            $response = $iats->request($credentials, $request);
+            $last = $iats->getCSV($response, $method);
+            $transactions = array_merge($transactions, $last);
+          }
+          break;
       }
 
       $processed[$method] += count($transactions);
@@ -209,7 +202,8 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
             $trxn_id = $transaction_id . ':' . time();
             $complete = array('version' => 3, 'id' => $contribution['id'], 'trxn_id' => $transaction_id . ':' . time(), 'receive_date' => $contribution['receive_date']);
             if ($is_recur) {
-              $complete['is_email_receipt'] = $receipt_recurring; /* use my saved setting for recurring completions */
+              // For email receipting, use either my iats extension global, or the specific setting for this schedule.
+              $complete['is_email_receipt'] = ($receipt_recurring < 2) ? $receipt_recurring : $contribution['is_email_receipt'];
             }
             try {
               $contributionResult = civicrm_api3('contribution', 'completetransaction', $complete);
