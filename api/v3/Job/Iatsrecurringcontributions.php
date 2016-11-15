@@ -201,7 +201,7 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
   $error_count  = 0;
   $output  = array();
   $settings = CRM_Core_BAO_Setting::getItem('iATS Payments Extension', 'iats_settings');
-  $receipt_recurring = empty($settings['receipt_recurring']) ? 0 : 1;
+  $receipt_recurring = $settings['receipt_recurring'];
   $email_failure_report = empty($settings['email_recurring_failure_report']) ? '' : $settings['email_recurring_failure_report'];
   // By default, after 3 failures move the next scheduled contribution date forward.
   $failure_threshhold = empty($settings['recurring_failure_threshhold']) ? 3 : (int) $settings['recurring_failure_threshhold'];
@@ -295,7 +295,7 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
     else {
       // Assign basic options.
       $options = array(
-        'is_email_receipt' => $receipt_recurring,
+        'is_email_receipt' => (($receipt_recurring < 2) ? $receipt_recurring : $dao->is_email_receipt),
         'customer_code' => $dao->customer_code,
         'subtype' => $subtype,
       );
