@@ -35,12 +35,14 @@ class CRM_iATS_Form_IatsSettings extends CRM_Core_Form {
       ts('When failure count is equal to or greater than this number, push the next scheduled date forward.')
     );
     $this->addRule('recurring_failure_threshhold', ts('Threshhold must be a positive integer.'), 'integer');
+    $receipt_recurring_options =  array('0' => 'Never', '1' => 'Always', '2' => 'Use per-recurring-schedule value');
     $this->add(
     // Field type.
-      'checkbox',
+      'select',
     // Field name.
       'receipt_recurring',
-      ts('Enable email receipting for each recurring contribution.')
+      ts('Email receipting for each recurring contribution.'),
+      $receipt_recurring_options
     );
 
     $this->add(
