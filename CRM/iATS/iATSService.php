@@ -141,6 +141,14 @@ class iATS_Service_Request {
           $request_params['recurring'] = '0';
         }
         break;
+     case 'GetACHEFTApprovedDateRangeCSV':
+     case 'GetACHEFTRejectDateRangeCSV':
+        if (!isset($request_params['startIndex'])) {
+          $request_params['startIndex'] = '0';
+        }
+        if (!isset($request_params['endIndex'])) {
+          $request_params['endIndex'] = '199';
+        }
     }
     $message = $this->method['message'];
     $response = $this->method['response'];
