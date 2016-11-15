@@ -359,7 +359,7 @@ class iATS_Service_Request {
       // watchdog('civicrm_iatspayments_com', 'data: <pre>!data</pre>', array('!data' => print_r($box,TRUE)), WATCHDOG_NOTICE);.
       if (1 < count($box)) {
         // Data is an array of rows, the first of which is the column headers.
-        $headers = array_flip(str_getcsv($box[0]));
+        $headers = array_flip(array_map('trim',str_getcsv($box[0])));
         for ($i = 1; $i < count($box); $i++) {
           if (empty($box[$i])) {
             continue;
