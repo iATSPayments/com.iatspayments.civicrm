@@ -1364,6 +1364,19 @@ function _iats_process_contribution_payment(&$contribution, $options, $original_
           CRM_Core_Error::debug_var('Unexpected Exception', $e);
         }
       }
+      else {
+        // just save my trxn_id for ACH/EFT verification later
+        try {
+          civicrm_api3('Contribution', 'create', array(
+            'id' => $contribution['id'],
+            'trxn_id' => $contribution['trxn_id'],
+          ));
+        }
+        catch (Exception $e) {
+          // log the error and continue
+          CRM_Core_Error::debug_var('Unexpected Exception', $e);
+        }
+      }
     }
   }
   if (!$use_repeattransaction) {
