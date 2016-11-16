@@ -1311,7 +1311,7 @@ function _iats_process_contribution_payment(&$contribution, $options, $original_
     // We processed it successflly and I can try to use repeattransaction. 
     // Requires the original contribution id.
     // Issues with this api call:
-    // 1. Always triggers and email and doesn't include trxn.
+    // 1. Always triggers an email and doesn't include trxn.
     // 2. Date is wrong.
     try {
       // $status = $result['contribution_status_id'] == 1 ? 'Completed' : 'Pending';
@@ -1319,6 +1319,7 @@ function _iats_process_contribution_payment(&$contribution, $options, $original_
         'original_contribution_id' => $original_contribution_id,
         'contribution_status_id' => 'Pending',
         'is_email_receipt' => 0,
+        // 'invoice_id' => $contribution['invoice_id'],
         ///'receive_date' => $contribution['receive_date'],
         // 'campaign_id' => $contribution['campaign_id'],
         // 'financial_type_id' => $contribution['financial_type_id'],.
@@ -1338,9 +1339,10 @@ function _iats_process_contribution_payment(&$contribution, $options, $original_
     }
     else {
       // If repeattransaction succeded.
-      // First restore various fields that ipn code (sometimes) irritatingly overwrites.
+      // First restore/add various fields that the repeattransaction api may overwrite or ignore.
       // TODO - fix this in core to allow these to be set above.
       civicrm_api3('contribution', 'create', array('id' => $contribution['id'], 
+        'invoice_id' => $contribution['invoice_id'],
         'source' => $contribution['source'],
         'receive_date' => $contribution['receive_date'],
         'payment_instrument_id' => $contribution['payment_instrument_id'],
