@@ -50,7 +50,7 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
       LEFT JOIN civicrm_contribution_recur cr ON c.contribution_recur_id = cr.id
       WHERE
         c.contribution_status_id = 2
-        AND NOT(ISNULL(c.trxn_id))
+        AND NOT(ISNULL(c.invoice_id))
         AND c.payment_instrument_id = 2
         AND c.receive_date > %1
         AND c.is_test = 0';
@@ -60,9 +60,8 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
   $dao = CRM_Core_DAO::executeQuery($select, $args);
   $acheft_pending = array();
   while ($dao->fetch()) {
-    /* we assume that the iATS transaction id is a unique field for matching, and that it is stored as the first part of the civicrm transaction */
-    /* this is not unreasonable, assuming that the site doesn't have other active direct debit payment processors with similar patterns */
-    $key = current(explode(':', $dao->trxn_id, 2));
+    /* We index in the invoice_id which (now) is stored in iATS */
+    $key = $dao->invoice_id;
     $acheft_pending[$key] = array('id' => $dao->id, 'trxn_id' => $dao->trxn_id, 'invoice_id' => $dao->invoice_id, 'contact_id' => $dao->contact_id, 'contribution_recur_id' => $dao->contribution_recur_id, 'receive_date' => $dao->receive_date, 'is_email_receipt' => $dao->is_email_receipt);
   }
   // And some recent UK DD recurring contributions.
@@ -125,7 +124,7 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
   $dao = CRM_Core_DAO::executeQuery($select, $args);
   // watchdog('civicrm_iatspayments_com', 'pending: <pre>!pending</pre>', array('!pending' => print_r($iats_acheft_recur_pending,TRUE)), WATCHDOG_NOTICE);.
   while ($dao->fetch()) {
-    /* get approvals from yesterday, approvals from previous days, and then rejections for this payment processor */
+    /* get approvals from the 4 most recent full days, then approvals from other previous days, and then rejections for this payment processor */
     $iats_service_params = array('type' => 'report', 'iats_domain' => parse_url($dao->url_site, PHP_URL_HOST)) + $iats_service_params;
     /* the is_test below should always be 0, but I'm leaving it in, in case eventually we want to be verifying tests */
     $credentials = iATS_Service_Request::credentials($dao->id, $dao->is_test);
@@ -138,6 +137,7 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
       // I'm now using the new v2 version of the payment_box_journal, so a previous hack here is now removed.
       switch ($method) {
         // Special case to get today's transactions, so we're as real-time as we can be.
+        // We actually also do this for the four previous days as well as a followup.
         case 'acheft_journal_csv':
           $request = array(
             'date' => date('Y-m-d') . 'T23:59:59+00:00',
@@ -146,7 +146,8 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
           break;
 
         // Box journals only go up to the end of yesterday, and we need to set start/end indices.
-        default:
+        case 'acheft_payment_box_journal_csv':
+        case 'acheft_payment_box_reject_csv':
           $request = array(
             'startIndex' => 0,
             'endIndex' => 499,
@@ -154,6 +155,9 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
             'toDate' => date('Y-m-d', strtotime('-1 day')) . 'T23:59:59+00:00',
             'customerIPAddress' => (function_exists('ip_address') ? ip_address() : $_SERVER['REMOTE_ADDR']),
           );
+          break;
+        default:
+          throw new API_Exception('Unexpected method: '.$method);
           break;
       }
       // Make the soap request, should return a csv file.
@@ -186,21 +190,26 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
       $processed[$method] += count($transactions);
       // watchdog('civicrm_iatspayments_com', 'transactions: <pre>!trans</pre>', array('!trans' => print_r($transactions,TRUE)), WATCHDOG_NOTICE);.
       foreach ($transactions as $transaction_id => $transaction) {
+        // skip any transactions that don't have a (civicrm-possible) invoice, they (shouldn't) ever match one of our pending transactions
+        if (empty($transaction->invoice) || (32 != strlen($transaction->invoice))) {
+          continue;
+        }
+        $invoice_id = $transaction->invoice;
+        // CRM_Core_Error::debug_var('transaction',$transaction);
         // Use this later to trigger an activity if it's not NULL.
         $contribution = NULL;
-        // First deal with acheft_pending, [and possibly the corresponding recur sequence ? no? ].
-        if (!empty($acheft_pending[$transaction_id])) {
-          /* update the contribution status */
-          /* todo: additional sanity testing? We're assuming the uniqueness of the iATS transaction id here */
+        // First deal with acheft_pending, [and the corresponding recur sequence ? no].
+        if (!empty($acheft_pending[$invoice_id])) {
+          /* found a matching pending contribution in CiviCRM, update the contribution to complete or failed accordingly */
           $is_recur = ('quick client' != strtolower($transaction->customer_code));
           $found[$is_recur ? 'recur' : 'quick']++;
-          $contribution = $acheft_pending[$transaction_id];
+          $contribution = $acheft_pending[$invoice_id];
           // Updating a contribution status to complete needs some extra bookkeeping.
           if (1 == $contribution_status_id) {
             // Note that I'm updating the timestamp portion of the transaction id here, since this might be useful at some point
             // should I update the receive date to when it was actually received? Would that confuse membership dates?
             $trxn_id = $transaction_id . ':' . time();
-            $complete = array('version' => 3, 'id' => $contribution['id'], 'trxn_id' => $transaction_id . ':' . time(), 'receive_date' => $contribution['receive_date']);
+            $complete = array('version' => 3, 'id' => $contribution['id'], 'trxn_id' => $trxn_id, 'receive_date' => $contribution['receive_date']);
             if ($is_recur) {
               // For email receipting, use either my iats extension global, or the specific setting for this schedule.
               $complete['is_email_receipt'] = ($receipt_recurring < 2) ? $receipt_recurring : $contribution['is_email_receipt'];
@@ -212,14 +221,18 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
               throw new API_Exception('Failed to complete transaction: ' . $e->getMessage() . "\n" . $e->getTraceAsString());
             }
 
-            // Restore my source field that ipn irritatingly overwrites, and make sure that the trxn_id is set also.
-            civicrm_api3('contribution', 'setvalue', array('version' => 3, 'id' => $contribution['id'], 'value' => $contribution['source'], 'field' => 'source'));
-            civicrm_api3('contribution', 'setvalue', array('version' => 3, 'id' => $contribution['id'], 'value' => $trxn_id, 'field' => 'trxn_id'));
+            // Restore source field and trxn_id that completetransaction overwrites
+            civicrm_api3('contribution', 'create', array(
+              'id' => $contribution['id'], 
+              'source' => $contribution['source'],
+              'trxn_id' => $trxn_id
+            ));
           }
-          else {
-            $params = array('version' => 3, 'sequential' => 1, 'contribution_status_id' => $contribution_status_id, 'id' => $contribution['id']);
-            // Update the contribution.
-            $result = civicrm_api3('Contribution', 'create', $params);
+          else { // the other option is 4 == failed, just update the contribution status.
+            civicrm_api3('Contribution', 'create', array(
+              'id' => $contribution['id'],
+              'contribution_status_id' => $contribution_status_id
+            ));
           }
           // Always log these requests in my cutom civicrm table for auditing type purposes
           // watchdog('civicrm_iatspayments_com', 'contribution: <pre>!contribution</pre>', array('!contribution' => print_r($query_params,TRUE)), WATCHDOG_NOTICE);.
