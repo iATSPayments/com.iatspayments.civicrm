@@ -24,7 +24,7 @@ class CRM_iATS_Form_IatsSettings extends CRM_Core_Form {
       'text',
     // Field name.
       'email_recurring_failure_report',
-      ts('Email this address with recurring failure reports.')
+      ts('Email Recurring Contribution failure reports to this Email address')
     );
     $this->addRule('email_recurring_failure_report', ts('Email address is not a valid format.'), 'email');
     $this->add(
@@ -32,16 +32,16 @@ class CRM_iATS_Form_IatsSettings extends CRM_Core_Form {
       'text',
     // Field name.
       'recurring_failure_threshhold',
-      ts('When failure count is equal to or greater than this number, push the next scheduled date forward.')
+      ts('When failure count is equal to or greater than this number, push the next scheduled contribution date forward')
     );
     $this->addRule('recurring_failure_threshhold', ts('Threshhold must be a positive integer.'), 'integer');
-    $receipt_recurring_options =  array('0' => 'Never', '1' => 'Always', '2' => 'Use per-recurring-schedule value');
+    $receipt_recurring_options =  array('0' => 'Never', '1' => 'Always', '2' => 'As set for a specific Contribution Series');
     $this->add(
     // Field type.
       'select',
     // Field name.
       'receipt_recurring',
-      ts('Email receipting for each recurring contribution.'),
+      ts('Email receipt for a Contribution in a Recurring Series'),
       $receipt_recurring_options
     );
 
@@ -50,7 +50,7 @@ class CRM_iATS_Form_IatsSettings extends CRM_Core_Form {
       'checkbox',
     // Field name.
       'no_edit_extra',
-      ts('Disable extra edit fields for recurring contributions.')
+      ts('Disable extra edit fields for Recurring Contributions')
     );
 
     $days = array('-1' => 'disabled');
@@ -67,7 +67,7 @@ class CRM_iATS_Form_IatsSettings extends CRM_Core_Form {
       'select',
     // Field name.
       'days',
-      ts('Restrict allowable days of the month for recurring contributions.'),
+      ts('Restrict allowable days of the month for Recurring Contributions'),
       $days,
       FALSE,
       $attr
