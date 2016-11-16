@@ -1161,7 +1161,7 @@ function iats_civicrm_buildForm_CRM_Contribute_Form_UpdateSubscription(&$form) {
     'contribution_status_id' => 'Status',
     'next_sched_contribution_date' => 'Next Scheduled Contribution',
     'start_date' => 'Start Date',
-    'is_email_receipt' => 'Send email receipts after each contribution.',
+    'is_email_receipt' => 'Email receipt for each Contribution in this Recurring Series',
   );
   $dupe_fields = array();
   // To be a good citizen, I check if core or another extension hasn't already added these fields 
