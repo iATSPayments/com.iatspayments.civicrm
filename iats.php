@@ -1211,6 +1211,12 @@ function iats_civicrm_buildForm_CRM_Contribute_Form_UpdateSubscription(&$form) {
   CRM_Core_Resources::singleton()->addScriptFile('com.iatspayments.civicrm', 'js/subscription.js');
 }
 
+function iats_civicrm_buildForm_CRM_Contribute_Form_UpdateBilling(&$form) {
+
+  $form->addElement('hidden', 'crid', $_GET['crid']);
+
+}
+
 /**
  * Implementation of hook_civicrm_alterSettingsFolders.
  *

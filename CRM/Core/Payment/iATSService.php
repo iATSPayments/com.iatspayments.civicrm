@@ -334,4 +334,26 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
     return $request;
   }
 
+  public function updateSubscriptionBillingInfo(&$message = '', $params = array()) {
+    require_once('CRM/iATS/Form/IATSCustomerUpdateBillingInfo.php');
+
+    $fakeForm = new IATSCustomerUpdateBillingInfo();
+    $fakeForm->updatedBillingInfo = $params;
+    $fakeForm->postProcess();
+
+    $status = CRM_Core_Session::singleton()->getStatus(TRUE);
+    $matches = array();
+    preg_match('/\[AUTHORIZATIONRESULT\]\s*?=>\s(\d*)(.*)/', $status[0]['text'], $matches);
+
+    if ($matches[2] == 'OK') {
+      return TRUE;
+    }
+    $message = $matches[2];
+
+    $e = CRM_Core_Error::singleton();
+    $e->push($matches[1] ?: 0, 0, array(), $matches[2]);
+
+    return $e;
+  }
+
 }
