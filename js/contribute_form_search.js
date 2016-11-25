@@ -11,6 +11,7 @@ cj(function ($) {
   $('#crm-main-content-wrapper').crmSnippet().on('crmLoad', function(e, data) {
     var backofficeLinks = (typeof CRM.vars.iatspayments != 'undefined') ? CRM.vars.iatspayments.backofficeLinks : CRM.iatspayments.backofficeLinks;
     if (0 < backofficeLinks.length 
+        && typeof data != 'undefined'
         && data.title == 'Contributions'
         && 0 == $('form.CRM_Contribute_Form_Search #help .acheft-backend-link').length
         && 0 < $('form.CRM_Contribute_Form_Search #help').filter(':visible').length
