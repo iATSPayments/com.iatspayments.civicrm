@@ -39,7 +39,6 @@ class IATSCustomerUpdateBillingInfo extends CRM_iATS_Form_IATSCustomerLink {
       'mop' => $mop[$ubi['credit_card_type']],
     );
 
-    watchdog('iats', print_r($values, true));
     return $values;
 
   }
