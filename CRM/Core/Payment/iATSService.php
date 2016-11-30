@@ -67,6 +67,26 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
   }
 
   /**
+   * Override the default way of testing if a method is supported to enable admin configuration of certain
+   * functions.
+   * Where certain functions currently only means updateSubscriptionBillingInfo.
+   *
+   * Core says this method is now deprecated, so I might need to change this in the future, but this is how it is used now.
+   */
+  public function isSupported($method) {
+    switch($method) {
+      case 'updateSubscriptionBillingInfo':
+        $settings = civicrm_api3('Setting', 'getvalue', array('name' => 'iats_settings'));
+        // only enable if the admin has allowed it
+        if (empty($settings['enable_update_subscription_billing_info'])) {
+          return FALSE;
+        }
+        break;
+    }
+    return method_exists(CRM_Utils_System::getClassName($this), $method);
+  }
+
+  /**
    *
    */
   public function doDirectPayment(&$params) {
@@ -334,6 +354,12 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
     return $request;
   }
 
+  /*
+   * Implement the ability to update the billing info for recurring contributions,
+   * This functionality will apply to back-end and front-end,
+   * so it's only enabled when configured as on via the iATS admin settings.
+   * The default isSupported method is overridden above to achieve this.
+   */
   public function updateSubscriptionBillingInfo(&$message = '', $params = array()) {
     require_once('CRM/iATS/Form/IATSCustomerUpdateBillingInfo.php');
 
