@@ -1211,6 +1211,29 @@ function iats_civicrm_buildForm_CRM_Contribute_Form_UpdateSubscription(&$form) {
   CRM_Core_Resources::singleton()->addScriptFile('com.iatspayments.civicrm', 'js/subscription.js');
 }
 
+function iats_civicrm_buildForm_CRM_Contribute_Form_UpdateBilling(&$form) {
+  // add hidden form field for the contribution recur ID taken from URL
+  // if not specified directly, look it up via a membership ID
+  $crid = CRM_Utils_Array::value('crid', $_GET);
+  if (!$crid) {
+    $mid = CRM_Utils_Array::value('mid', $_GET);
+    if ($mid) {
+      try {
+        $crid = civicrm_api3('Membership', 'getvalue', array(
+          'id' => $mid,
+          'return' => 'contribution_recur_id',
+        ));
+      }
+      catch (CiviCRM_API3_Exception $e) {
+        $crid = 0;
+      }
+    }
+  }
+  if ($crid) {
+    $form->addElement('hidden', 'crid', $crid);
+  }
+}
+
 /**
  * Implementation of hook_civicrm_alterSettingsFolders.
  *
