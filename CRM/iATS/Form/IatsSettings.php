@@ -53,6 +53,14 @@ class CRM_iATS_Form_IatsSettings extends CRM_Core_Form {
       ts('Disable extra edit fields for Recurring Contributions')
     );
 
+    $this->add(
+    // Field type.
+      'checkbox',
+    // Field name.
+      'enable_update_subscription_billing_info',
+      ts('Enable self-service updates to recurring contribution Contact Billing Info.')
+    );
+
     $days = array('-1' => 'disabled');
     for ($i = 1; $i <= 28; $i++) {
       $days["$i"] = "$i";
