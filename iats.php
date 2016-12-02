@@ -133,6 +133,7 @@ function iats_civicrm_managed(&$entities) {
       'url_recur_test_default' => 'https://www.iatspayments.com/NetGate/ProcessLinkv2.asmx?WSDL',
       'is_recur' => 1,
       'payment_type' => 2,
+      'payment_instrument_id' => '5', /* default EFT key */
     ),
   );
   $entities[] = array(
@@ -177,6 +178,7 @@ function iats_civicrm_managed(&$entities) {
       'url_recur_test_default' => 'https://www.uk.iatspayments.com/NetGate/ProcessLink.asmx?WSDL',
       'is_recur' => 1,
       'payment_type' => 2,
+      'payment_instrument_id' => '5', /* default EFT */
     ),
   );
   return _iats_civix_civicrm_managed($entities);
@@ -528,14 +530,16 @@ function iats_civicrm_pre($op, $objectName, $objectId, &$params) {
             $params[$field_name] = date('YmdHis', $next);
           }
           // Fix the payment type for ACH/EFT.
-          if ($type == 'iATSServiceACHEFT') {
+          if ($type == 'iATSServiceACHEFT' && ($params['payment_instrument_id'] <= 1)) {
             $params['payment_instrument_id'] = 2;
           }
           break;
 
         case 'iATSServiceACHEFTContribution':
-          // ach/eft contribution: update the payment instrument.
-          $params['payment_instrument_id'] = 2;
+          // ach/eft contribution: update the payment instrument if it's still showing cc or empty
+          if ($params['payment_instrument_id'] <= 1) {
+            $params['payment_instrument_id'] = 2;
+          }
           // And push the status to 2 if civicrm thinks it's 1, i.e. for one-time contributions
           // in other words, never create ach/eft contributions as complete, always push back to pending and verify.
           if ($params['contribution_status_id'] == 1) {
@@ -545,7 +549,9 @@ function iats_civicrm_pre($op, $objectName, $objectId, &$params) {
 
         // UK DD contribution: update the payment instrument, fix the receive date.
         case 'iATSServiceUKDDContribution':
-          $params['payment_instrument_id'] = 2;
+          if ($params['payment_instrument_id'] <= 1) {
+            $params['payment_instrument_id'] = 2;
+          }
           if ($start_date = strtotime($_POST['payer_validate_start_date'])) {
             $params['receive_date'] = date('Ymd', $start_date) . '120000';
           }
@@ -553,7 +559,9 @@ function iats_civicrm_pre($op, $objectName, $objectId, &$params) {
 
         // UK DD recurring contribution record: update the payment instrument, fix the start_date.
         case 'iATSServiceUKDDContributionRecur':
-          $params['payment_instrument_id'] = 2;
+          if ($params['payment_instrument_id'] <= 1) {
+            $params['payment_instrument_id'] = 2;
+          }
           if ($start_date = strtotime($_POST['payer_validate_start_date'])) {
             $params['start_date'] = date('Ymd', $start_date) . '120000';
           }
