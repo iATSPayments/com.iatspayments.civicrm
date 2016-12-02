@@ -133,7 +133,7 @@ function iats_civicrm_managed(&$entities) {
       'url_recur_test_default' => 'https://www.iatspayments.com/NetGate/ProcessLinkv2.asmx?WSDL',
       'is_recur' => 1,
       'payment_type' => 2,
-      'payment_instrument_id' => '5', /* default EFT key */
+      'payment_instrument_id' => '2', /* "Debit Card"  */
     ),
   );
   $entities[] = array(
@@ -178,7 +178,7 @@ function iats_civicrm_managed(&$entities) {
       'url_recur_test_default' => 'https://www.uk.iatspayments.com/NetGate/ProcessLink.asmx?WSDL',
       'is_recur' => 1,
       'payment_type' => 2,
-      'payment_instrument_id' => '5', /* default EFT */
+      'payment_instrument_id' => '2', /* "Debit Card" */
     ),
   );
   return _iats_civix_civicrm_managed($entities);
