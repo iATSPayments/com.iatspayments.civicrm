@@ -14,14 +14,13 @@
     <author>Alan Dixon</author>
     <email>iats@blackflysolutions.ca</email>
   </maintainer>
-  <releaseDate>2016-09-22</releaseDate>
-  <version>1.5.4-alpha</version>
+  <releaseDate>2016-12-01</releaseDate>
+  <version>1.5.4-beta</version>
   <develStage>stable</develStage>
   <compatibility>
-    <ver>4.6</ver>
     <ver>4.7</ver>
   </compatibility>
-  <comments>This is a pre-release for CiviCRM 4.7 compatibility.
+  <comments>This is a CiviCRM 4.7 (only) release.
 </comments>
   <civix>
     <namespace>CRM/iATS</namespace>

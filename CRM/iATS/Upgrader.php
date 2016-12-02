@@ -85,6 +85,15 @@ class CRM_iATS_Upgrader extends CRM_iATS_Upgrader_Base {
     return TRUE;
   }
 
+  public function upgrade_1_5_003() {
+    // populate the new payment instrument id fields in the payment_processor and payment_processor_type fields
+    $version = CRM_Utils_System::version();
+    if (version_compare($version, '4.7') >= 0) {
+      $this->executeSqlFile('sql/upgrade_1_5_003.sql');
+    }
+    return TRUE;
+  }
+
   /**
    * Example: Run an external SQL script
    *
