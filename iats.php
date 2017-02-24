@@ -1495,6 +1495,11 @@ function _iats_process_transaction($contribution, $options) {
     'total' => $contribution['total_amount'],
   );
   $request['customerIPAddress'] = (function_exists('ip_address') ? ip_address() : $_SERVER['REMOTE_ADDR']);
+  // remove the customerIPAddress if it's the internal loopback to prevent
+  // being locked out due to velocity checks
+  if ('127.0.0.1' == $request['customerIPAddress']) {
+     $request['customerIPAddress'] = '';
+  }
 
   // Make the soap request.
   $response = $iats->request($credentials, $request);
