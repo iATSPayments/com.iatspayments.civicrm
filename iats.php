@@ -1074,11 +1074,21 @@ function iats_civicrm_buildForm_CRM_Contribute_Form_Search(&$form) {
 }
 
 /**
- * Modify the recurring contribution cancelation form to exclude the confusing message about sending the request to the backend.
+ * If this recurring contribution sequence is using an iATS payment processor,
+ * modify the recurring contribution cancelation form to exclude the confusing message about sending the request to the backend.
  */
 function iats_civicrm_buildForm_CRM_Contribute_Form_CancelSubscription(&$form) {
-  if ($form->elementExists('send_cancel_request')) {
-    $form->removeElement('send_cancel_request');
+  $crid = CRM_Utils_Request::retrieve('crid', 'Integer', $form, FALSE);
+  try {
+    $recur = civicrm_api3('ContributionRecur', 'getsingle', array('id' => $crid));
+  }
+  catch (CiviCRM_API3_Exception $e) {
+    return;
+  }
+  if (_iats_civicrm_is_iats($recur['payment_processor_id'])) {
+    if ($form->elementExists('send_cancel_request')) {
+      $form->removeElement('send_cancel_request');
+    }
   }
 }
 
