@@ -76,10 +76,12 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
   public function isSupported($method) {
     switch($method) {
       case 'updateSubscriptionBillingInfo':
-        $settings = civicrm_api3('Setting', 'getvalue', array('name' => 'iats_settings'));
-        // only enable if the admin has allowed it
-        if (empty($settings['enable_update_subscription_billing_info'])) {
-          return FALSE;
+        if (!CRM_Core_Permission::check('access CiviContribution')) {
+          // only enable self-service update of billing info if the admin has allowed it
+          $settings = civicrm_api3('Setting', 'getvalue', array('name' => 'iats_settings'));
+          if (empty($settings['enable_update_subscription_billing_info'])) {
+            return FALSE;
+          }
         }
         break;
     }
