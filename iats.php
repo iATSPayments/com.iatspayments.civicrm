@@ -901,7 +901,7 @@ function iats_ukdd_form_customize($form) {
  * 2. add extra fields/modify labels.
  * 
  * We're handling event, contribution, and financial payment class forms here. 
- * The new 4.7 financial payment class form is used when switching payment processors.
+ * The new 4.7 financial payment class form is used when switching payment processors (sometimes).
  */
 function iats_civicrm_buildForm_Contribution_Frontend(&$form) {
 
@@ -915,9 +915,17 @@ function iats_civicrm_buildForm_Contribution_Frontend(&$form) {
   else { 
     // Handle the event and contribution page forms
     if (empty($form->_paymentProcessors)) {
-      return;
+      if (empty($form->_paymentProcessorIDs)) {
+        return;
+      }
+      else {
+        $form_payment_processors = array_fill_keys($form->_paymentProcessorIDs,1);
+      }
     }
-    $iats_processors = iats_civicrm_processors($form->_paymentProcessors, '*');
+    else {
+      $form_payment_processors = $form->_paymentProcessors;
+    }
+    $iats_processors = iats_civicrm_processors($form_payment_processors, '*');
   }
   if (empty($iats_processors)) {
     return;
