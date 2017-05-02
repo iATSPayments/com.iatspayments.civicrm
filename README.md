@@ -1,14 +1,16 @@
 com.iatspayments.civicrm
 ===============
 
-CiviCRM Extension for iATS Web Services Payment Processor - Date: July 16, 2015, version 1.5.3
+CiviCRM Extension for iATS Web Services Payment Processor - Date: May 2, 2017. 
+Version 1.5.3 for 4.6.x and below.
+Version 1.6.0 for 4.7.x.
 
 This README.md contains information specific to system administrators/developers. Information for users/implementors can be found in the Documentation Wiki: https://github.com/iATSPayments/com.iatspayments.civicrm/wiki/Documentation
 
 Requirements
 ------------
 
-1. CiviCRM latest 4.4.x, 4.5.x, or 4.6.x
+1. CiviCRM latest 4.4.x, 4.5.x, 4.6.x or 4.7.x.
 
 2. Your PHP needs to include the SOAP extension (php.net/manual/en/soap.setup.php).
 
