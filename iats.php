@@ -157,30 +157,6 @@ function iats_civicrm_managed(&$entities) {
       'payment_type' => 1,
     ),
   );
-  // TODO: Confirm with Stephen if UK endpoints have also been updated - if they also require a v2:
-  $entities[] = array(
-    'module' => 'com.iatspayments.civicrm',
-    'name' => 'iATS Payments UK Direct Debit',
-    'entity' => 'PaymentProcessorType',
-    'params' => array(
-      'version' => 3,
-      'name' => 'iATS Payments UK Direct Debit',
-      'title' => 'iATS Payments UK Direct Debit',
-      'description' => 'iATS UK Direct Debit payment processor using the web services interface.',
-      'class_name' => 'Payment_iATSServiceUKDD',
-      'billing_mode' => 'form',
-      'user_name_label' => 'Agent Code',
-      'password_label' => 'Password',
-      'signature_label' => 'Service User Number',
-      'url_site_default' => 'https://www.uk.iatspayments.com/NetGate/ProcessLink.asmx?WSDL',
-      'url_recur_default' => 'https://www.uk.iatspayments.com/NetGate/ProcessLink.asmx?WSDL',
-      'url_site_test_default' => 'https://www.uk.iatspayments.com/NetGate/ProcessLink.asmx?WSDL',
-      'url_recur_test_default' => 'https://www.uk.iatspayments.com/NetGate/ProcessLink.asmx?WSDL',
-      'is_recur' => 1,
-      'payment_type' => 2,
-      'payment_instrument_id' => '2', /* "Debit Card" */
-    ),
-  );
   return _iats_civix_civicrm_managed($entities);
 }
 
