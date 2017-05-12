@@ -67,6 +67,23 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
   }
 
   /**
+   * Get the iATS configuration values or value.
+   */
+  public static function getSettings($key = '') {
+    static $settings = array();
+    if (!empty($settings)) {
+      try {
+        $settings = civicrm_api3('Setting', 'getvalue', array('name' => 'iats_settings'));
+      }
+      catch (CiviCRM_API3_Exception $e) {
+        // Assume no settings exist, use safest fallback.
+        $settings = array();
+      }
+    }
+    return (empty($key) ? $settings : (empty($settings[$key]) ? '' : $settings[$key]));
+  }
+
+  /**
    * Override the default way of testing if a method is supported to enable admin configuration of certain
    * functions.
    * Where certain functions currently only means updateSubscriptionBillingInfo.
@@ -77,20 +94,14 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
     switch($method) {
       case 'updateSubscriptionBillingInfo':
         if (!CRM_Core_Permission::check('access CiviContribution')) {
-          // only enable self-service update of billing info if the admin has allowed it
-          try {
-            $settings = civicrm_api3('Setting', 'getvalue', array('name' => 'iats_settings'));
-          }
-          catch (CiviCRM_API3_Exception $e) {
-            // Assume no settings exist, use safest fallback.
-            $settings = array();
-          }
-          if (empty($settings['enable_update_subscription_billing_info'])) {
+          // disable self-service update of billing info if the admin has not allowed it
+          if (FALSE == $this->getSettings('enable_update_subscription_billing_info')) {
             return FALSE;
           }
         }
         break;
     }
+    // this is the default method
     return method_exists(CRM_Utils_System::getClassName($this), $method);
   }
   /**
@@ -173,8 +184,8 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
         CRM_Core_DAO::executeQuery("INSERT INTO civicrm_iats_customer_codes
           (customer_code, ip, expiry, cid, email, recur_id) VALUES (%1, %2, %3, %4, %5, %6)", $query_params);
         // Test for admin setting that limits allowable transaction days
-        $settings = CRM_Core_BAO_Setting::getItem('iATS Payments Extension', 'iats_settings');
-        $allow_days = empty($settings['days']) ? array('-1') : $settings['days'];
+        $allow_days = $this->getSettings('days');
+        $allow_days = empty($allow_days) ? array('-1') : $allow_days;
         // Also test for a specific recieve date request that is not today.
         $receive_date_request = CRM_Utils_Array::value('receive_date', $params);
         $today = date('Ymd');
