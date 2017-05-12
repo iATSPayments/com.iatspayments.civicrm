@@ -209,37 +209,7 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
         }
         // I've got a schedule to adhere to!
         else {
-          // Set the payment status to pending.
-          $params['contribution_status_id'] = 2;
-          // For versions >= 4.6.6, the proper key.
-          $params['payment_status_id'] = 2;
-          // Note that the admin general setting restricting allowable days will overwrite any specific request.
-          if (max($allow_days) > 0) {
-            $from_time = _iats_contributionrecur_next(time(), $allow_days);
-            $params['receive_date'] = date('Ymd', $from_time) . '030000';
-          }
-          // For now, this doesn't do anything, commented out.
-          // $params['next_sched_contribution'] = $params['receive_date'];
-          // Instead, if the recurring record already exists, let's fix the next contribution and start dates
-          // in case core isn't paying attention.
-          if (!empty($params['contributionRecurID'])) {
-            $recur_id = $params['contributionRecurID'];
-            try {
-              $result = civicrm_api3('ContributionRecur', 'create', array(
-                'id' => $recur_id,
-                'next_sched_contribution_date' => $params['receive_date'],
-                'start_date' => $params['receive_date'],
-              ));
-            }
-            catch (CiviCRM_API3_Exception $e) {
-              // Not a critical error, just log and continue.
-              $error = $e->getMessage();
-              Civi::log()->info('Unexpected error updating the next scheduled contribution date for id {id}: {error}', array('id' => $recur_id, 'error' => $error));
-            }
-          }
-          else {
-            Civi::log()->info('Unexpectedly unable to update the next scheduled contribution date, missing id.');
-          }
+          $this->setFutureRecurStartDate($params, $allow_days);
           return $params;
         }
         return self::error('Unexpected error');
@@ -432,6 +402,48 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
     $e->push($matches[1] ?: 0, 0, array(), $matches[2]);
 
     return $e;
+  }
+  
+  /*
+   * Implement the ability to set a future start date for recurring contributions.
+   * This functionality will apply to back-end and front-end,
+   * As enabled when configured via the iATS admin settings.
+   *
+   * This function will alter the recurring schedule and modify the params as an intended side effect.
+   */
+  public function setFutureRecurStartDate(&$params, $allow_days = array()) {
+    // Set the payment status to pending.
+    $params['contribution_status_id'] = 2;
+    // For versions >= 4.6.6, the proper key.
+    $params['payment_status_id'] = 2;
+    // Note that the admin general setting restricting allowable days will overwrite any specific request.
+    if (max($allow_days) > 0) {
+      $from_time = _iats_contributionrecur_next(time(), $allow_days);
+      $params['receive_date'] = date('Ymd', $from_time) . '030000';
+    }
+    // If the recurring record already exists, let's fix the next contribution and start dates,
+    // in case core isn't paying attention.
+    // We also set the schedule to 'in-progress' (even for ACH/EFT when the first one hasn't been verified), 
+    // because we want the recurring job to run for this schedule.
+    if (!empty($params['contributionRecurID'])) {
+      $recur_id = $params['contributionRecurID'];
+      try {
+        $result = civicrm_api3('ContributionRecur', 'create', array(
+          'id' => $recur_id,
+          'next_sched_contribution_date' => $params['receive_date'],
+          'start_date' => $params['receive_date'],
+          'contribution_status_id' => 'In Progress',
+        ));
+      }
+      catch (CiviCRM_API3_Exception $e) {
+        // Not a critical error, just log and continue.
+        $error = $e->getMessage();
+        Civi::log()->info('Unexpected error updating the next scheduled contribution date for id {id}: {error}', array('id' => $recur_id, 'error' => $error));
+      }
+    }
+    else {
+      Civi::log()->info('Unexpectedly unable to update the next scheduled contribution date, missing id.');
+    }
   }
 
 }
