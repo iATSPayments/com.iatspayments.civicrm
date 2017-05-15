@@ -73,7 +73,6 @@ class iATS_Service_Request {
     // Name space url.
     $this->_wsdl_url_ns = 'https://www.iatspayments.com/NetGate/';
     $this->options = $options;
-    $this->options['log'] = _iats_civicrm_domain_info('userFrameworkLogging') && function_exists('watchdog');
     $this->options['debug'] = _iats_civicrm_domain_info('debug_enabled');
     // Check for valid currencies with domain/method combinations.
     if (isset($options['currencyID'])) {
@@ -129,6 +128,7 @@ class iATS_Service_Request {
     }
     // Do some massaging of parameters for badly behaving iATS methods ($method is now the iATS method, not our internal key)
     switch ($method) {
+      case 'CreateACHEFTCustomerCode':
       case 'CreateCreditCardCustomerCode':
       case 'UpdateCreditCardCustomerCode':
         if (empty($request_params['beginDate'])) {
@@ -153,7 +153,7 @@ class iATS_Service_Request {
     $message = $this->method['message'];
     $response = $this->method['response'];
     // Always log requests to my own table, start by making a copy of the original request
-    // note: this is different from the drupal watchdog logging that only happens if userframework logging and debug are enabled.
+    // note: this is different from the debug logging that only happens if debug is enabled.
     if (!empty($request_params['invoiceNum'])) {
       $logged_request = $request_params;
       // Mask the cc numbers.
@@ -196,45 +196,45 @@ class iATS_Service_Request {
       }
       $xml .= '</' . $message . '>';
       if ($testAgentCode && !empty($this->options['debug'])) {
-        watchdog('civicrm_iatspayments_com', 'Method info: !method', array('!method' => $method), WATCHDOG_NOTICE);
-        watchdog('civicrm_iatspayments_com', 'XML: !xml', array('!xml' => $xml), WATCHDOG_NOTICE);
+        CRM_Core_Error::debug_var('Method info', $method);
+        CRM_Core_Error::debug_var('XML', $xml);
       }
       $soapRequest = new SoapVar($xml, XSD_ANYXML);
       if ($testAgentCode && !empty($this->options['debug'])) {
-        watchdog('civicrm_iatspayments_com', 'Request !request', array('!request' => print_r($soapRequest, TRUE)), WATCHDOG_NOTICE);
+        CRM_Core_Error::debug_var('SoapRequest', $soapRequest);
       }
       $soapResponse = $soapClient->$method($soapRequest);
-      if (!empty($this->options['log']) && !empty($this->options['debug'])  && $testAgentCode) {
+      if (!empty($this->options['debug'])  && $testAgentCode) {
         $request_log = "\n HEADER:\n";
         $request_log .= $soapClient->__getLastRequestHeaders();
         $request_log .= "\n BODY:\n";
         $request_log .= $soapClient->__getLastRequest();
         $request_log .= "\n BODYEND:\n";
-        watchdog('civicrm_iatspayments_com', 'Request: !request', array('!request' => '<pre>' . $request_log . '</pre>'), WATCHDOG_NOTICE);
+        CRM_Core_Error::debug_var('Request Log', $request_log);
         $response_log = "\n HEADER:\n";
         $response_log .= $soapClient->__getLastResponseHeaders();
         $response_log .= "\n BODY:\n";
         $response_log .= $soapClient->__getLastResponse();
         $response_log .= "\n BODYEND:\n";
-        watchdog('civicrm_iatspayments_com', 'Response: !response', array('!response' => '<pre>' . $response_log . '</pre>'), WATCHDOG_NOTICE);
+        CRM_Core_Error::debug_var('Response Log', $response_log);
       }
     }
     catch (SoapFault $exception) {
-      if (!empty($this->options['log'])) {
-        watchdog('civicrm_iatspayments_com', 'SoapFault: !exception', array('!exception' => '<pre>' . print_r($exception, TRUE) . '</pre>'), WATCHDOG_ERROR);
+      if (!empty($this->options['debug'])) {
+        CRM_Core_Error::debug_var('SoapFault Exception', $exception);
         $response_log = "\n HEADER:\n";
         $response_log .= $soapClient->__getLastResponseHeaders();
         $response_log .= "\n BODY:\n";
         $response_log .= $soapClient->__getLastResponse();
         $response_log .= "\n BODYEND:\n";
-        watchdog('civicrm_iatspayments_com', 'Raw Response: !response', array('!response' => '<pre>' . $response_log . '</pre>'), WATCHDOG_NOTICE);
+        CRM_Core_Error::debug_var('Raw Response', $response_log);
       }
       return FALSE;
     }
 
     // Log the response if specified.
-    if (!empty($this->options['log'])) {
-      watchdog('civicrm_iatspayments_com', 'iATS SOAP response: !request', array('!request' => '<pre>' . print_r($soapResponse, TRUE) . '</pre>', WATCHDOG_DEBUG));
+    if (!empty($this->options['debug'])) {
+      CRM_Core_Error::debug_var('iATS SOAP Response', $soapResponse);
     }
     if (isset($soapResponse->$response->any)) {
       $xml_response = $soapResponse->$response->any;
@@ -310,7 +310,7 @@ class iATS_Service_Request {
         }
         break;
     }
-    if ($log && !empty($this->invoiceNum)) {
+    if ($log && !empty($this->invoiceNum) && ($this->type == 'process')) {
       $query_params = array(
         1 => array($this->invoiceNum, 'String'),
         2 => array($result['auth_result'], 'String'),
@@ -546,12 +546,12 @@ class iATS_Service_Request {
             'message' => 'DirectDebitACHEFTPayerValidate',
             'response' => 'DirectDebitACHEFTPayerValidateResult',
           ),
-          'direct_debit_create_acheft_customer_code' => array(
-            'title' => 'Direct Debit Create ACHEFT Customer Code',
-            'description' => $desc . 'DirectDebitCreateACHEFTCustomerCode',
-            'method' => 'DirectDebitCreateACHEFTCustomerCode',
-            'message' => 'DirectDebitCreateACHEFTCustomerCode',
-            'response' => 'DirectDebitCreateACHEFTCustomerCodeResult',
+          'create_acheft_customer_code' => array(
+            'title' => 'Create ACHEFT Customer Code',
+            'description' => $desc . 'CreateACHEFTCustomerCode',
+            'method' => 'CreateACHEFTCustomerCode',
+            'message' => 'CreateACHEFTCustomerCode',
+            'response' => 'CreateACHEFTCustomerCodeResult',
           ),
         );
         break;
