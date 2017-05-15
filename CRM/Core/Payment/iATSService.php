@@ -69,7 +69,7 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
   /**
    * Get the iATS configuration values or value.
    */
-  public static function getSettings($key = '') {
+  protected function getSettings($key = '') {
     static $settings = array();
     if (!empty($settings)) {
       try {
@@ -110,7 +110,7 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
    *
    * @return bool
    */
-  protected function supportsFutureRecurStartDate() {
+  public function supportsFutureRecurStartDate() {
     return TRUE;
   } 
 
@@ -433,7 +433,7 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
    * This function will alter the recurring schedule as an intended side effect.
    * and return the modified the params.
    */
-  public function setRecurReturnParams($params, $update) {
+  protected function setRecurReturnParams($params, $update) {
     // Merge in the updates
     $params = array_merge($params, $update);
     // If the recurring record already exists, let's fix the next contribution and start dates,
