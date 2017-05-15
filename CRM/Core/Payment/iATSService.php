@@ -203,15 +203,14 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
           $response = $iats->request($credentials, $request);
           $result = $iats->result($response);
           if ($result['status']) {
-            // Success.
-            $params['contribution_status_id'] = 1;
-            // For versions >= 4.6.6, the proper key.
-            $params['payment_status_id'] = 1;
             // Add a time string to iATS short authentication string to ensure uniqueness and provide helpful referencing.
-            $params['trxn_id'] = trim($result['remote_id']) . ':' . time();
-            $params['gross_amount'] = $params['amount'];
-            // Setting the next_sched_contribution_date param setting is not doing anything, commented out.
-            // $params['next_sched_contribution_date'] = strtotime('+' . $params['frequency_interval'] . ' ' . $params['frequency_unit']);
+            $update = array(
+              'trxn_id' => trim($result['remote_id']) . ':' . time(),
+              'gross_amount' => $params['amount'],
+              'payment_status_id' => 'Completed',
+            );
+            // Setting the next_sched_contribution_date param doesn't do anything, commented out, work around in setRecurReturnParams
+            $params = $this->setRecurReturnParams($params, $update);
             return $params;
           }
           else {
@@ -220,7 +219,15 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
         }
         // I've got a schedule to adhere to!
         else {
-          $this->setFutureRecurStartDate($params, $allow_days);
+          // Note that the admin general setting restricting allowable days will overwrite any specific request.
+          $next_sched_contribution_timestamp = (max($allow_days) > 0) ? _iats_contributionrecur_next(time(), $allow_days) 
+            : strtotime($params['receive_date']);
+          // set the receieve time to 3:00 am for a better admin experience
+          $update = array(
+            'payment_status_id' => 'Pending',
+            'receive_date' => date('Ymd', $next_sched_contribution_timestamp) . '030000',
+          );
+          $params = $this->setRecurReturnParams($params, $update);
           return $params;
         }
         return self::error('Unexpected error');
@@ -416,35 +423,44 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
   }
   
   /*
-   * Implement the ability to set a future start date for recurring contributions.
+   * Set the return params for recurring contributions.
+   *
+   * Implemented as a function so I can do some cleanup and implement
+   * the ability to set a future start date for recurring contributions.
    * This functionality will apply to back-end and front-end,
    * As enabled when configured via the iATS admin settings.
    *
-   * This function will alter the recurring schedule and modify the params as an intended side effect.
+   * This function will alter the recurring schedule as an intended side effect.
+   * and return the modified the params.
    */
-  public function setFutureRecurStartDate(&$params, $allow_days = array()) {
-    // Set the payment status to pending.
-    $params['contribution_status_id'] = 2;
-    // For versions >= 4.6.6, the proper key.
-    $params['payment_status_id'] = 2;
-    // Note that the admin general setting restricting allowable days will overwrite any specific request.
-    if (max($allow_days) > 0) {
-      $from_time = _iats_contributionrecur_next(time(), $allow_days);
-      $params['receive_date'] = date('Ymd', $from_time) . '030000';
-    }
+  public function setRecurReturnParams($params, $update) {
+    // Merge in the updates
+    $params = array_merge($params, $update);
     // If the recurring record already exists, let's fix the next contribution and start dates,
     // in case core isn't paying attention.
     // We also set the schedule to 'in-progress' (even for ACH/EFT when the first one hasn't been verified), 
     // because we want the recurring job to run for this schedule.
     if (!empty($params['contributionRecurID'])) {
       $recur_id = $params['contributionRecurID'];
+      $recur_update = array(
+        'id' => $recur_id,
+        'contribution_status_id' => 'In Progress',
+      );
+      // use the receive date to set the next sched contribution date.
+      // By default, it's empty, unless we've got a future start date.
+      if (empty($update['receive_date'])) {
+        $next = strtotime('+' . $params['frequency_interval'] . ' ' . $params['frequency_unit']);
+        $recur_update['next_sched_contribution_date'] = date('Ymd', $next) . '030000';
+      }
+      else {
+        $recur_update['start_date'] = $recur_update['next_sched_contribution_date'] = $update['receive_date'];
+        // If I've got a monthly schedule, let's set the cycle_day for niceness
+        if ('month' == $params['frequency_interval']) {
+          $recur_update['cycle_day'] = date('j', strtotime($recur_update['start_date']));
+        }
+      }
       try {
-        $result = civicrm_api3('ContributionRecur', 'create', array(
-          'id' => $recur_id,
-          'next_sched_contribution_date' => $params['receive_date'],
-          'start_date' => $params['receive_date'],
-          'contribution_status_id' => 'In Progress',
-        ));
+        $result = civicrm_api3('ContributionRecur', 'create', $recur_update);
       }
       catch (CiviCRM_API3_Exception $e) {
         // Not a critical error, just log and continue.
@@ -455,6 +471,7 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
     else {
       Civi::log()->info('Unexpectedly unable to update the next scheduled contribution date, missing id.');
     }
+    return $params;
   }
-
+  
 }
