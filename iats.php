@@ -454,15 +454,13 @@ function iats_civicrm_merge($type, &$data, $mainId = NULL, $otherId = NULL, $tab
  */
 function iats_civicrm_pre($op, $objectName, $objectId, &$params) {
   // Since this function gets called a lot, quickly determine if I care about the record being created.
-  if (('create' == $op) && ('Contribution' == $objectName || 'ContributionRecur' == $objectName) && !empty($params['contribution_status_id'])) {
+  if (('create' == $op) && ('Contribution' == $objectName) && !empty($params['contribution_status_id'])) {
     // watchdog('iats_civicrm','hook_civicrm_pre for Contribution <pre>@params</pre>',array('@params' => print_r($params));
     // figure out the payment processor id, not nice.
     $version = CRM_Utils_System::version();
-    $payment_processor_id = ('ContributionRecur' == $objectName) ? $params['payment_processor_id'] :
-                              (!empty($params['payment_processor']) ? $params['payment_processor'] :
+    $payment_processor_id = !empty($params['payment_processor']) ? $params['payment_processor'] :
                                 (!empty($params['contribution_recur_id']) ? _iats_civicrm_get_payment_processor_id($params['contribution_recur_id']) :
-                                 0)
-                              );
+                                 0);
     if ($type = _iats_civicrm_is_iats($payment_processor_id)) {
       $settings = CRM_Core_BAO_Setting::getItem('iATS Payments Extension', 'iats_settings');
       $allow_days = empty($settings['days']) ? array('-1') : $settings['days'];
@@ -488,29 +486,6 @@ function iats_civicrm_pre($op, $objectName, $objectId, &$params) {
           }
           break;
 
-        // cc/swipe/ACHEFT recurring contribution record.
-        case 'iATSServiceContributionRecur':
-        case 'iATSServiceSWIPEContributionRecur':
-        case 'iATSServiceACHEFTContributionRecur':
-          // The next scheduled contribution date field name is civicrm version dependent.
-          $field_name = _iats_civicrm_nscd_fid();
-          // When creating a recurring contribution record via a civicrm contribution form
-          // we've already taken the first payment, so calculate the next one (core assumes the intial contribution is pending)
-          // we set this to 'in-progress' even for ACH/EFT if the first one hasn't been verified, because we still want to be attempting later ones
-          // this condition helps avoid mangling records being imported from a csv file.
-          if (5 != $params['contribution_status_id'] && empty($params[$field_name])) {
-            $params['contribution_status_id'] = 5;
-            // Civi wants to put the returned trxn_id in here.
-            $params['trxn_id'] = NULL;
-            $next = strtotime('+' . $params['frequency_interval'] . ' ' . $params['frequency_unit']);
-            $params[$field_name] = date('YmdHis', $next);
-          }
-          // Fix the payment type for ACH/EFT.
-          if ($type == 'iATSServiceACHEFT' && ($params['payment_instrument_id'] <= 1)) {
-            $params['payment_instrument_id'] = 2;
-          }
-          break;
-
         case 'iATSServiceACHEFTContribution':
           // ach/eft contribution: update the payment instrument if it's still showing cc or empty
           if ($params['payment_instrument_id'] <= 1) {
@@ -533,30 +508,11 @@ function iats_civicrm_pre($op, $objectName, $objectId, &$params) {
           }
           break;
 
-        // UK DD recurring contribution record: update the payment instrument, fix the start_date.
-        case 'iATSServiceUKDDContributionRecur':
-          if ($params['payment_instrument_id'] <= 1) {
-            $params['payment_instrument_id'] = 2;
-          }
-          if ($start_date = strtotime($_POST['payer_validate_start_date'])) {
-            $params['start_date'] = date('Ymd', $start_date) . '120000';
-          }
-          break;
-      }
-      if ($type != 'iATSServiceUKDD' && $objectName == 'Contribution') {
-        // new, non-UKDD contribution records that are recurring and in a
-        // schedule are forced to comply with any restrictions.
-        if (!empty($params['contribution_recur_id']) && 0 < max($allow_days)) {
-          $from_time = _iats_contributionrecur_next(strtotime($params['receive_date']), $allow_days);
-          $params['receive_date'] = date('Ymd', $from_time) . '030000';
-        }
       }
     }
     // watchdog('iats_civicrm','ignoring hook_civicrm_pre for objectName @id',array('@id' => $objectName));.
   }
-  // If I've set fixed monthly recurring dates, force any iats (non uk dd) recurring contribution schedule records to comply
-  // it's a bit draconian, and you likely want to give administrators the ability to modify these schedules
-  // this is separate from the above because I want to deal with both create and edit possibilities.
+  // If I've set fixed monthly recurring dates, force any iats (non uk dd) recurring contribution schedule records to comply.
   if (('ContributionRecur' == $objectName) && ('create' == $op || 'edit' == $op) && !empty($params['payment_processor_id'])) {
     if ($type = _iats_civicrm_is_iats($params['payment_processor_id'])) {
       if ($type != 'iATSServiceUKDD' && !empty($params['next_sched_contribution_date'])) {
@@ -1140,7 +1096,8 @@ function iats_civicrm_buildForm_CRM_Contribute_Form_UpdateSubscription(&$form) {
   }
   $allow_days = empty($settings['days']) ? array('-1') : $settings['days'];
   if (0 < max($allow_days)) {
-    $userAlert = ts('Your next scheduled contribution date will automatically be updated to the next allowable day of the month: %1', array(1 => implode(',', $allow_days)));
+    $userAlert = ts('Your next scheduled contribution date will automatically be updated to the next allowable day of the month: %1', 
+      array(1 => implode(', ', $allow_days)));
     CRM_Core_Session::setStatus($userAlert, ts('Warning'), 'alert');
   }
   $crid = CRM_Utils_Request::retrieve('crid', 'Integer', $form, FALSE);
@@ -1173,7 +1130,7 @@ function iats_civicrm_buildForm_CRM_Contribute_Form_UpdateSubscription(&$form) {
       unset($edit_fields[$fid]);
       $dupe_fields[] = str_replace('_','-',$fid);
     }
-    else {
+    elseif (isset($recur[$fid])) {
       $defaults[$fid] = $recur[$fid];
     }
   }
