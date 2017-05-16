@@ -91,14 +91,17 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
   /**
    * Override the default way of testing if a method is supported to enable admin configuration of certain
    * functions.
-   * Where certain functions currently only means updateSubscriptionBillingInfo.
+   * Where certain functions currently only means updateSubscriptionBillingInfo, which we'll allow for credit cards.
    *
    * Core says this method is now deprecated, so I might need to change this in the future, but this is how it is used now.
    */
   public function isSupported($method) {
     switch($method) {
       case 'updateSubscriptionBillingInfo':
-        if (!CRM_Core_Permission::check('access CiviContribution')) {
+        if ('CRM_Core_Payment_iATSServiceACHEFT' == CRM_Utils_System::getClassName($this)) {
+          return FALSE;
+        }
+        elseif (!CRM_Core_Permission::check('access CiviContribution')) {
           // disable self-service update of billing info if the admin has not allowed it
           if (FALSE == $this->getSettings('enable_update_subscription_billing_info')) {
             return FALSE;
@@ -109,6 +112,7 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
     // this is the default method
     return method_exists(CRM_Utils_System::getClassName($this), $method);
   }
+
   /**
    * The first payment date is configurable when setting up back office recurring payments.
    * For iATSPayments, this is also true for front-end recurring payments.
