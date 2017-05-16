@@ -71,7 +71,7 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
    */
   protected function getSettings($key = '') {
     static $settings = array();
-    if (!empty($settings)) {
+    if (empty($settings)) {
       try {
         $settings = civicrm_api3('Setting', 'getvalue', array('name' => 'iats_settings'));
       }
