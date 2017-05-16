@@ -25,7 +25,7 @@
 /**
  *
  */
-class CRM_Core_Payment_iATSServiceACHEFT extends CRM_Core_Payment {
+class CRM_Core_Payment_iATSServiceACHEFT extends CRM_Core_Payment_iATSService {
 
   /**
    * We only need one instance of this object. So we use the singleton
@@ -76,34 +76,40 @@ class CRM_Core_Payment_iATSServiceACHEFT extends CRM_Core_Payment {
     require_once "CRM/iATS/iATSService.php";
     // TODO: force bail if it's not recurring?
     $isRecur = CRM_Utils_Array::value('is_recur', $params) && $params['contributionRecurID'];
-    $method = $isRecur ? 'acheft_create_customer_code' : 'acheft';
+    $methodType = $isRecur ? 'customer' : 'process';
+    $method = $isRecur ? 'create_acheft_customer_code' : 'acheft';
     // To add debugging info in the drupal log, assign 1 to log['all'] below.
-    $iats = new iATS_Service_Request(array('type' => 'process', 'method' => $method, 'iats_domain' => $this->_profile['iats_domain'], 'currencyID' => $params['currencyID']));
+    $iats = new iATS_Service_Request(array('type' => $methodType, 'method' => $method, 'iats_domain' => $this->_profile['iats_domain'], 'currencyID' => $params['currencyID']));
     $request = $this->convertParams($params, $method);
     $request['customerIPAddress'] = (function_exists('ip_address') ? ip_address() : $_SERVER['REMOTE_ADDR']);
     $credentials = array(
       'agentCode' => $this->_paymentProcessor['user_name'],
       'password'  => $this->_paymentProcessor['password'],
     );
-    // Get the API endpoint URL for the method's transaction mode.
-    // TODO: enable override of the default url in the request object
-    // $url = $this->_paymentProcessor['url_site'];.
     // Make the soap request.
     $response = $iats->request($credentials, $request);
-    // Process the soap response into a readable result.
-    $result = $iats->result($response);
-    if ($result['status']) {
-      // Always pending status.
-      $params['contribution_status_id'] = 2;
-      // For future versions, the proper key.
-      $params['payment_status_id'] = 2;
-      $params['trxn_id'] = trim($result['remote_id']) . ':' . time();
-      $params['gross_amount'] = $params['amount'];
-      if ($isRecur) {
-        // Save the client info in my custom table
-        // Allow further manipulation of the arguments via custom hooks,
-        // before initiating processCreditCard()
-        // CRM_Utils_Hook::alterPaymentProcessorParams($this, $params, $iatslink1);.
+    if (!$isRecur) {
+       // Process the soap response into a readable result, logging any transaction.
+      $result = $iats->result($response);
+      if ($result['status']) {
+        // Always set pending status.
+        $params['contribution_status_id'] = 2;
+        // For future versions, the proper key.
+        $params['payment_status_id'] = 2;
+        $params['trxn_id'] = trim($result['remote_id']) . ':' . time();
+        $params['gross_amount'] = $params['amount'];
+      }
+      else {
+        return self::error($result['reasonMessage']);
+      }
+    }
+    else {
+      // Save the client info in my custom table
+      $customer = $iats->result($response);
+      if (!$customer['status']) {
+        return self::error($customer['reasonMessage']);
+      }
+      else {
         $processresult = $response->PROCESSRESULT;
         $customer_code = (string) $processresult->CUSTOMERCODE;
         // $exp = sprintf('%02d%02d', ($params['year'] % 100), $params['month']);.
@@ -128,14 +134,54 @@ class CRM_Core_Payment_iATSServiceACHEFT extends CRM_Core_Payment {
         );
         CRM_Core_DAO::executeQuery("INSERT INTO civicrm_iats_customer_codes
           (customer_code, ip, expiry, cid, email, recur_id) VALUES (%1, %2, %3, %4, %5, %6)", $query_params);
-        // Also set next_sched_contribution, the field name is civicrm version dependent.
-        $field_name = _iats_civicrm_nscd_fid();
-        $params[$field_name] = strtotime('+' . $params['frequency_interval'] . ' ' . $params['frequency_unit']);
+        $allow_days = $this->getSettings('days');
+        // Also test for a specific recieve date request that is not today.
+        $receive_date_request = CRM_Utils_Array::value('receive_date', $params);
+        $today = date('Ymd');
+        // If the receive_date is set to sometime today, unset it.
+        if (!empty($receive_date_request) && 0 === strpos($receive_date_request, $today)) {
+          unset($receive_date_request);
+        }
+        // Normally, run the (first) transaction immediately, unless the admin setting is in force or a specific request is being made.
+        if (max($allow_days) <= 0 && empty($receive_date_request)) {
+          $iats = new iATS_Service_Request(array('type' => 'process', 'method' => 'acheft_with_customer_code', 'iats_domain' => $this->_profile['iats_domain'], 'currencyID' => $params['currencyID']));
+          $request = array('invoiceNum' => $params['invoiceID']);
+          $request['total'] = sprintf('%01.2f', CRM_Utils_Rule::cleanMoney($params['amount']));
+          $request['customerCode'] = $customer_code;
+          $request['customerIPAddress'] = (function_exists('ip_address') ? ip_address() : $_SERVER['REMOTE_ADDR']);
+          $response = $iats->request($credentials, $request);
+          $result = $iats->result($response);
+          if ($result['status']) {
+            // Add a time string to iATS short authentication string to ensure uniqueness and provide helpful referencing.
+            $update = array(
+              'trxn_id' => trim($result['remote_id']) . ':' . time(),
+              'gross_amount' => $params['amount'],
+              'payment_status_id' => 'Pending'
+            );
+            // Setting the next_sched_contribution_date param setting is not doing anything, commented out.
+            $this->setRecurReturnParams($params, $update);
+            return $params;
+          }
+          else {
+            return self::error($result['reasonMessage']);
+          }
+        }
+        // Otherwise, I have a schedule to adhere to.
+        else {    
+          // Note that the admin general setting restricting allowable days may update a specific request.
+          $receive_timestamp = empty($receive_date_request) ? time() : strtotime($receive_date_request);
+          $next_sched_contribution_timestamp = (max($allow_days) > 0) ? _iats_contributionrecur_next($receive_timestamp, $allow_days) 
+            : $receive_timestamp;
+          // set the receieve time to 3:00 am for a better admin experience
+          $update = array(
+            'payment_status_id' => 'Pending',
+            'receive_date' => date('Ymd', $next_sched_contribution_timestamp) . '030000',
+          );
+          $this->setRecurReturnParams($params, $update);
+          return $params;
+        }
       }
       return $params;
-    }
-    else {
-      return self::error($result['reasonMessage']);
     }
   }
 
@@ -251,6 +297,7 @@ class CRM_Core_Payment_iATSServiceACHEFT extends CRM_Core_Payment {
     // Place for ugly hacks.
     switch ($method) {
       case 'acheft':
+      case 'create_acheft_customer_code':
       case 'acheft_create_customer_code':
         // Add bank number + transit to account number
         // TODO: verification?
