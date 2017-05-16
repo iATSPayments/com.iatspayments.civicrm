@@ -68,16 +68,21 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
 
   /**
    * Get the iATS configuration values or value.
+   *
+   * Mangle the days settings to make it easier to test if it is set.
    */
   protected function getSettings($key = '') {
     static $settings = array();
     if (empty($settings)) {
       try {
         $settings = civicrm_api3('Setting', 'getvalue', array('name' => 'iats_settings'));
+        if (empty($settings['days'])) {
+          $settings['days'] = array('-1');
+        }
       }
       catch (CiviCRM_API3_Exception $e) {
         // Assume no settings exist, use safest fallback.
-        $settings = array();
+        $settings = array('days' => array('-1'));
       }
     }
     return (empty($key) ? $settings : (empty($settings[$key]) ? '' : $settings[$key]));
@@ -185,7 +190,6 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
           (customer_code, ip, expiry, cid, email, recur_id) VALUES (%1, %2, %3, %4, %5, %6)", $query_params);
         // Test for admin setting that limits allowable transaction days
         $allow_days = $this->getSettings('days');
-        $allow_days = empty($allow_days) ? array('-1') : $allow_days;
         // Also test for a specific recieve date request that is not today.
         $receive_date_request = CRM_Utils_Array::value('receive_date', $params);
         $today = date('Ymd');
