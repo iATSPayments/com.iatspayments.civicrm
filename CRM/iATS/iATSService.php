@@ -375,35 +375,36 @@ class iATS_Service_Request {
             continue;
           }
           $transaction = new stdClass();
-          $data = str_getcsv($box[$i]);
-          // First get the data common to all methods.
-          $transaction->id = $data[$headers['Transaction ID']];
-          $transaction->customer_code = $data[$headers['Customer Code']];
           // save the raw data in 'data'
+          $data = str_getcsv($box[$i]);
+          // and then store it as an associate array based on the headers
+          $record = array();
           foreach($headers as $label => $column_i) {
             $record[$label] = $data[$column_i];
           }
+          // First get the data common to all methods.
+          $transaction->id = $record['Transaction ID'];
+          $transaction->customer_code = $record['Customer Code'];
+          // Actually, save the entire record in case I need it!
           $transaction->data = $record;
           // Now the method specific headers.
           switch($method) {
             case 'cc_journal_csv':
             case 'acheft_journal_csv':
-              $datetime = $data[$headers['Date']];
-              $transaction->invoice = $data[$headers['Invoice']];
-              $transaction->amount = $data[$headers['Total']];
+              $datetime = $record['Date'];
+              $transaction->invoice = $record['Invoice'];
+              $transaction->amount = $record['Total'];
               break;
-            // The box journals.
-            case 'cc_payment_box_journal_csv':
-              $transaction->data = $data; // full details in case it's a new one
-            default: // the box journals
-              $transaction->amount = $data[$headers['Amount']];
-              $datetime = $data[$headers['Date Time']];
-              $transaction->invoice = $data[$headers['Invoice Number']];
+            // The box journals are the default.
+            default:
+              $transaction->amount = $record['Amount'];
+              $datetime = $record['Date Time'];
+              $transaction->invoice = $record['Invoice Number'];
               break;
           }
           // And now the uk dd specific hack, only for the box journals.
           if ('www.uk.iatspayments.com' == $iats_domain && 'acheft_journal_csv' != $method && 'cc_journal_csv' != $method) {
-            $transaction->achref = $data[$headers['ACH Ref.']];
+            $transaction->achref = $record['ACH Ref.'];
           }
           // Note that $gmt_plus and date_format depend on the server (iats_domain)
           $rdp = date_parse_from_format($date_format, $datetime);
