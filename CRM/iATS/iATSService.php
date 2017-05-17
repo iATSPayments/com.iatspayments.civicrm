@@ -389,6 +389,7 @@ class iATS_Service_Request {
           $transaction->data = $record;
           // Now the method specific headers.
           switch($method) {
+            // These are the same-day journals
             case 'cc_journal_csv':
             case 'acheft_journal_csv':
               $datetime = $record['Date'];
@@ -400,11 +401,11 @@ class iATS_Service_Request {
               $transaction->amount = $record['Amount'];
               $datetime = $record['Date Time'];
               $transaction->invoice = $record['Invoice Number'];
+              // And now the uk dd specific hack, only for the box journals.
+              if ('www.uk.iatspayments.com' == $iats_domain) {
+                $transaction->achref = $record['ACH Ref.'];
+              }
               break;
-          }
-          // And now the uk dd specific hack, only for the box journals.
-          if ('www.uk.iatspayments.com' == $iats_domain && 'acheft_journal_csv' != $method && 'cc_journal_csv' != $method) {
-            $transaction->achref = $record['ACH Ref.'];
           }
           // Note that $gmt_plus and date_format depend on the server (iats_domain)
           $rdp = date_parse_from_format($date_format, $datetime);
