@@ -131,6 +131,7 @@ function civicrm_api3_job_iatsreport($params) {
         }
         foreach($transactions as $transaction) {
           try {
+            $transaction->status_id = $payment_status_id;
             civicrm_api3('IatsPayments', 'journal', get_object_vars($transaction));
             $processed[$user_name][$type][$method]++;
           }

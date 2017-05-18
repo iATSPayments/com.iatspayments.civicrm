@@ -56,9 +56,10 @@ function civicrm_api3_iats_payments_journal($params) {
       8 => array($data['Result'], 'String'),
       9 => array($data['Method of Payment'], 'String'),
       10 => array($data['Comment'], 'String'),
+      11 => array($params['status_id'], 'Integer'),
     );
     $result = CRM_Core_DAO::executeQuery("REPLACE INTO civicrm_iats_journal
-        (tnid, iats_id, dtm, agt, cstc, inv, amt, rst, tntyp, cm) VALUES (%1, $iats_journal_id, %3, %4, %5, %6, %7, %8, %9, %10)", $query_params);
+        (tnid, iats_id, dtm, agt, cstc, inv, amt, rst, tntyp, cm, status_id) VALUES (%1, $iats_journal_id, %3, %4, %5, %6, %7, %8, %9, %10, %11)", $query_params);
   }
   catch (Exception $e) {
     CRM_Core_Error::debug_var('params',$params);

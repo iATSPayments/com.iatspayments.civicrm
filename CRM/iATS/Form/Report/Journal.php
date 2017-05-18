@@ -17,8 +17,8 @@ class CRM_iATS_Form_Report_Journal extends CRM_Report_Form {
   /* static private $processors = array();
   static private $version = array();
   static private $financial_types = array();
-  static private $prefixes = array();
-  static private $contributionStatus = array(); */
+  static private $prefixes = array(); */
+  static private $contributionStatus = array(); 
   static private $transaction_types = array(
     'VISA' => 'Visa',
     'ACHEFT' => 'ACH/EFT',
@@ -32,7 +32,7 @@ class CRM_iATS_Form_Report_Journal extends CRM_Report_Form {
    *
    */
   public function __construct() {
-
+    self::$contributionStatus = CRM_Contribute_BAO_Contribution::buildOptions('contribution_status_id');
     $this->_columns = array(
       'civicrm_iats_journal' =>
         array(
@@ -49,6 +49,7 @@ class CRM_iATS_Form_Report_Journal extends CRM_Report_Form {
               'amt' => array('title' => 'Amount', 'default' => TRUE),
               'rst' => array('title' => 'Result string', 'default' => TRUE),
               'dtm' => array('title' => 'Transaction Date Time', 'default' => TRUE),
+              'status_id' => array('title' => 'Payment Status', 'default' => TRUE),
             ),
           'order_bys' => 
             array(
@@ -81,6 +82,12 @@ class CRM_iATS_Form_Report_Journal extends CRM_Report_Form {
                'rst' => array(
                  'title' => 'Result string',
                  'type' => CRM_Utils_Type::T_STRING,
+               ),
+               'status_id' => array(
+                 'title' => ts('Payment Status'),
+                 'operatorType' => CRM_Report_Form::OP_MULTISELECT,
+                 'options' => self::$contributionStatus,
+                 'type' => CRM_Utils_Type::T_INT,
                ),
              ),
         ),
