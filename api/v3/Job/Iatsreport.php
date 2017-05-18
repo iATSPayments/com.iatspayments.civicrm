@@ -76,14 +76,14 @@ function civicrm_api3_job_iatsreport($params) {
     2 => array('acheft_journal_csv' => 1, 'acheft_payment_box_journal_csv' => 1, 'acheft_payment_box_reject_csv' => 4)
   );
   /* initialize some values so I can report at the end */
-  $error_count = 0;
   // count the number of records from each iats account analysed, and the number of each kind found ('action')
-  $processed = array(); // array_fill_keys(array_keys($process_methods),0);
+  $processed = array();
   // save all my api result messages as well
-  $output = array();
   // watchdog('civicrm_iatspayments_com', 'pending: <pre>!pending</pre>', array('!pending' => print_r($iats_cc_recur_pending,TRUE)), WATCHDOG_NOTICE);
   foreach($payment_processors as $user_name => $payment_processors_per_user) {
+    $processed[$user_name] = array();
     foreach ($payment_processors_per_user as $type => $payment_processors_per_user_type) {
+      $processed[$user_name][$type] = array();
       // we might have multiple payment processors by type e.g. SWIPE or separate codes for 
       // one-time and recurring contributions, I only want to process once per user_name + type
       $payment_processor = reset($payment_processors_per_user_type);
@@ -93,7 +93,7 @@ function civicrm_api3_job_iatsreport($params) {
       $credentials = iATS_Service_Request::credentials($payment_processor['id'], $payment_processor['is_test']);
       foreach($process_methods_per_type as $method => $payment_status_id) {
         // initialize my counts
-        $processed[$type][$method] = array('ignore' => array(), 'update' => array(), 'match' => array(), 'quick' => array(), 'recur' => array(), 'series' => array());
+        $processed[$user_name][$type][$method] = 0;
         // watchdog('civicrm_iatspayments_com', 'pp: <pre>!pp</pre>', array('!pp' => print_r($payment_processor,TRUE)), WATCHDOG_NOTICE);
         /* get approvals from yesterday, approvals from previous days, and then rejections for this payment processor */
         /* we're going to assume that all the payment_processors_per_type are using the same server */
@@ -121,9 +121,18 @@ function civicrm_api3_job_iatsreport($params) {
         $response = $iats->request($credentials,$request);
         // use my iats object to parse the result into an array of transaction ojects
         $transactions = $iats->getCSV($response, $method);
+        // for the acheft journal, I also pull the previous 4 days and append, a bit of a hack.
+        if ('acheft_journal_csv' == $method) {
+          for ($days_before = -1; $days_before > -5; $days_before--) {
+            $request['date'] = date('Y-m-d', strtotime($days_before.' day')) . 'T23:59:59+00:00';
+            $response = $iats->request($credentials, $request);
+            $transactions = array_merge($transactions, $iats->getCSV($response, $method));
+          }
+        }
         foreach($transactions as $transaction) {
           try {
             civicrm_api3('IatsPayments', 'journal', get_object_vars($transaction));
+            $processed[$user_name][$type][$method]++;
           }
           catch (CiviCRM_API3_Exception $e) {
             // todo: log these?
@@ -133,19 +142,20 @@ function civicrm_api3_job_iatsreport($params) {
     }
   }
   // watchdog('civicrm_iatspayments_com', 'found: <pre>!found</pre>', array('!found' => print_r($processed,TRUE)), WATCHDOG_NOTICE);
+  $message = '';
   foreach($processed as $user_name => $p) {
     foreach ($p as $type => $ps) {
-      $message .= '<br />'. ts('For account %4, processed %1 approvals from today, and %2 approval and %3 rejection records from the previous 3 days.',
+      $prefix = ($type == 1) ? 'cc' : 'acheft';
+      $results =
         array(
-          1 => $ps['cc_journal_csv'],
-          2 => $ps['cc_payment_box_journal_csv'],
-          3 => $ps['cc_payment_box_reject_csv'],
-          4 => $user_name,
-        ));
+          1 => $user_name,
+          2 => $prefix,
+          3 => $ps[$prefix.'_journal_csv'],
+          4 => $ps[$prefix.'_payment_box_journal_csv'],
+          5 => $ps[$prefix.'_payment_box_reject_csv'],
+        );
+      $message .= '<br />'. ts('For account %1, type %2, processed %3 approvals from today, and %4 approval and %5 rejection records from the previous 3 days.', $results);
     }
   }
-  // If errors ..
-  if ($error_count) {
-    return civicrm_api3_create_error($message .'</br />'. implode('<br />', $output));
-  }
+  return civicrm_api3_create_success($message);
 }

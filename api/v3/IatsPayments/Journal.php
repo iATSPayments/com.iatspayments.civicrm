@@ -36,28 +36,33 @@ function civicrm_api3_iats_payments_journal($params) {
   //return civicrm_api3_create_success(TRUE, array('test' => TRUE));
   try {
     $data = $params['data'];
-    if (empty($data['Journal Id'])) {
-      CRM_Core_Error::debug_var('data',$data);
-    }
     $dtm = date('YmdHis',$params['receive_date']);
+    $defaults = array(
+      'Client Code' => '', 
+      'Method of Payment' => '',
+      'Comment' => ''
+    );
+    foreach($defaults as $key => $default) {
+      $data[$key] = empty($data[$key]) ? $default : $data[$key];
+    }
+    $iats_journal_id = empty($data['Journal Id']) ? 'NULL' : (int) $data['Journal Id'];
     $query_params = array(
-      1 => array($data['Journal Id'], 'Integer'),
-      2 => array($data['Transaction ID'], 'String'),
+      1 => array($data['Transaction ID'], 'String'),
       3 => array($dtm, 'String'),
       4 => array($data['Client Code'], 'String'),
       5 => array($params['customer_code'], 'String'),
-      6 => array($data['Invoice Number'], 'String'),
-      7 => array($data['Amount'], 'String'),
+      6 => array($params['invoice'], 'String'),
+      7 => array($params['amount'], 'String'),
       8 => array($data['Result'], 'String'),
       9 => array($data['Method of Payment'], 'String'),
       10 => array($data['Comment'], 'String'),
     );
-    $result = CRM_Core_DAO::executeQuery("INSERT IGNORE INTO civicrm_iats_journal
-        (id, tnid, dtm, agt, cstc, inv, amt, rst, tntyp, cm) VALUES (%1, %2, %3, %4, %5, %6, %7, %8, %9, %10)", $query_params);
+    $result = CRM_Core_DAO::executeQuery("REPLACE INTO civicrm_iats_journal
+        (tnid, iats_id, dtm, agt, cstc, inv, amt, rst, tntyp, cm) VALUES (%1, $iats_journal_id, %3, %4, %5, %6, %7, %8, %9, %10)", $query_params);
   }
   catch (Exception $e) {
     CRM_Core_Error::debug_var('params',$params);
-    throw CiviCRM_API3_Exception('iATS Payments journalling failed: '. $e->getMessage());
+    // throw CiviCRM_API3_Exception('iATS Payments journalling failed: '. $e->getMessage());
   }
   return civicrm_api3_create_success();
 }

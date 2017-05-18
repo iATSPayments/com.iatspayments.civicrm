@@ -11,8 +11,8 @@ return array (
     'params' =>
     array (
       'version' => 3,
-      'name' => 'iATS Payments Remote Transactions Report',
-      'description' => 'Call into iATS to get transaction reports for auditing and verifying.',
+      'name' => 'iATS Payments Get Transaction Journal',
+      'description' => 'Call into iATS to get transaction journals (for auditing and verifying).',
       'run_frequency' => 'Hourly',
       'api_entity' => 'Job',
       'api_action' => 'iatsreport',
