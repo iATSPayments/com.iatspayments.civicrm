@@ -1,5 +1,6 @@
 CREATE TABLE `civicrm_iats_journal` (
-  `id` int unsigned NOT NULL COMMENT 'iATS Journal Id',
+  `id` int unsigned NOT NULL AUTO_INCREMENT COMMENT 'CiviCRM Journal Id',
+  `iats_id` int unsigned DEFAULT NULL COMMENT 'iATS Journal Id',
   `tnid` varchar(255) NOT NULL COMMENT 'Transaction ID',
   `tntyp` varchar(255) NOT NULL COMMENT 'Transaction type: Credit card or ACHEFT',
   `agt` varchar(255) NOT NULL COMMENT 'Agent',
@@ -17,6 +18,8 @@ CREATE TABLE `civicrm_iats_journal` (
   `recur_id` int(10) unsigned DEFAULT '0' COMMENT 'CiviCRM recurring_contribution table id',
   `verify_datetime` datetime COMMENT 'Date time of verification',
   PRIMARY KEY ( `id` ),
+  UNIQUE KEY (`tnid`),
+  UNIQUE KEY (`iats_id`),
   KEY (`tnid`),
   KEY (`tntyp`),
   KEY (`inv`),
@@ -25,4 +28,4 @@ CREATE TABLE `civicrm_iats_journal` (
   KEY (`financial_trxn_id`),
   KEY (`contribution_id`),
   KEY (`verify_datetime`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='Table to hold iATS journal transactions imported via the iATSPayments ReportLink.' 
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='Table to iATS journal transactions imported via the iATSPayments ReportLink.' 
