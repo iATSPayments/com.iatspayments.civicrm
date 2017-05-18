@@ -349,21 +349,25 @@ class iATS_Service_Request {
   public function getCSV($response, $method) {
     $transactions = array();
     $iats_domain = parse_url($this->_wsdl_url, PHP_URL_HOST);
-    $gmt_plus = 0;
+
     switch ($iats_domain) {
       case 'www.iatspayments.com':
         $date_format = 'm/d/Y H:i:s';
-        $gmt_plus = 8 * 60 * 60; // this server is 8 hrs ahead of GMT
+        $tz_string  = 'America/Vancouver';
         break;
 
       case 'www.uk.iatspayments.com':
         $date_format = 'd/m/Y H:i:s';
+        $tz_string  = 'Europe/London';
         break;
 
       // Todo throw an exception instead? This should never happen!
       default:
         die('Invalid domain for date format');
     }
+    $tz_object  = new DateTimeZone($tz_string);
+    $gmt_datetime = new DateTime;
+    $gmt_offset = $tz_object->getOffset($gmt_datetime);
     if (is_object($response)) {
       $box = preg_split("/\r\n|\n|\r/", $this->file($response));
       // watchdog('civicrm_iatspayments_com', 'csv: <pre>!data</pre>', array('!data' => print_r($box,TRUE)), WATCHDOG_NOTICE);.
@@ -385,7 +389,7 @@ class iATS_Service_Request {
           // First get the data common to all methods.
           $transaction->id = $record['Transaction ID'];
           $transaction->customer_code = $record['Customer Code'];
-          // Actually, save the entire record in case I need it!
+          // Save the entire record in case I need it
           $transaction->data = $record;
           // Now the method specific headers.
           switch($method) {
@@ -407,9 +411,9 @@ class iATS_Service_Request {
               }
               break;
           }
-          // Note that $gmt_plus and date_format depend on the server (iats_domain)
+          // Note that $gmt_offset and date_format depend on the server (iats_domain)
           $rdp = date_parse_from_format($date_format, $datetime);
-          $transaction->receive_date = $gmt_plus + mktime($rdp['hour'], $rdp['minute'], $rdp['second'], $rdp['month'], $rdp['day'], $rdp['year']);
+          $transaction->receive_date = gmmktime($rdp['hour'], $rdp['minute'], $rdp['second'], $rdp['month'], $rdp['day'], $rdp['year']) - $gmt_offset;
           // And now save it.
           $transactions[$transaction->id] = $transaction;
         }
