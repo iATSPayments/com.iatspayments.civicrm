@@ -38,7 +38,8 @@ class CRM_iATS_Form_Report_Journal extends CRM_Report_Form {
         array(
           'fields' =>
             array(
-              'id' => array('title' => 'iATS Journal Id', 'default' => TRUE),
+              'id' => array('title' => 'CiviCRM Journal Id', 'default' => TRUE),
+              'iats_id' => array('title' => 'iATS Journal Id', 'default' => TRUE),
               'tnid' => array('title' => 'Transaction ID', 'default' => TRUE),
               'tntyp' => array('title' => 'Transaction type', 'default' => TRUE),
               'agt' => array('title' => 'Client/Agent code', 'default' => TRUE),
@@ -51,7 +52,8 @@ class CRM_iATS_Form_Report_Journal extends CRM_Report_Form {
             ),
           'order_bys' => 
             array(
-              'id' => array('title' => ts('iATS Journal Id'), 'default' => TRUE, 'default_order' => 'DESC'),
+              'id' => array('title' => ts('CiviCRM Journal Id'), 'default' => TRUE, 'default_order' => 'DESC'),
+              'iats_id' => array('title' => ts('iATS Journal Id')),
               'dtm' => array('title' => ts('Transaction Date Time')),
             ),
           'filters' =>
