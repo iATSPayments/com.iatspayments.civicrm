@@ -11,15 +11,15 @@
 return array(
   0 =>
   array(
-    'name' => 'CRM_iATS_Form_Report_ACHEFTVerify',
+    'name' => 'CRM_iATS_Form_Report_Verify',
     'entity' => 'ReportTemplate',
     'params' =>
     array(
       'version' => 3,
-      'label' => 'iATS Payments - ACHEFTVerify',
-      'description' => 'iATS Payments - ACHEFTVerify Report',
-      'class_name' => 'CRM_iATS_Form_Report_ACHEFTVerify',
-      'report_url' => 'com.iatspayments.com/acheft_verify',
+      'label' => 'iATS Payments - Verify',
+      'description' => 'iATS Payments - Verify Report',
+      'class_name' => 'CRM_iATS_Form_Report_Verify',
+      'report_url' => 'com.iatspayments.com/verify',
       'component' => 'CiviContribute',
     ),
   ),

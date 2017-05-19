@@ -10,7 +10,7 @@ require_once('CRM/Report/Form.php');
  *
  * $Id$
  */
-class CRM_iATS_Form_Report_ACHEFTVerify extends CRM_Report_Form {
+class CRM_iATS_Form_Report_Verify extends CRM_Report_Form {
 
   static private $contributionStatus = array(); 
   static private $transaction_types = array(
@@ -32,7 +32,7 @@ class CRM_iATS_Form_Report_ACHEFTVerify extends CRM_Report_Form {
         array(
           'fields' =>
             array(
-              'id' => array('title' => 'CiviCRM ACHEFTVerify Id', 'default' => TRUE),
+              'id' => array('title' => 'CiviCRM Verify Id', 'default' => TRUE),
               'customer_code' => array('title' => 'Customer code', 'default' => TRUE),
               'cid' => array('title' => 'Contact', 'default' => TRUE),
               'contribution_id' => array('title' => 'Contribution', 'default' => TRUE),
@@ -42,7 +42,7 @@ class CRM_iATS_Form_Report_ACHEFTVerify extends CRM_Report_Form {
             ),
           'order_bys' => 
             array(
-              'id' => array('title' => ts('CiviCRM ACHEFTVerify Id'), 'default' => TRUE, 'default_order' => 'DESC'),
+              'id' => array('title' => ts('CiviCRM Verify Id'), 'default' => TRUE, 'default_order' => 'DESC'),
               'verification_datetime' => array('title' => ts('Verification Date Time')),
             ),
           'filters' =>
