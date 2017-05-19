@@ -17,7 +17,7 @@ return array(
     array(
       'version' => 3,
       'name' => 'iATS Payments Verification',
-      'description' => 'Call into iATS for approvals, etc.',
+      'description' => 'Verify ACHEFT payments from the iATS journal.',
       'run_frequency' => 'Hourly',
       'api_entity' => 'Job',
       'api_action' => 'iatsacheftverify',
