@@ -118,15 +118,27 @@ function civicrm_api3_job_iatsreport($params) {
             $request = array(
               'startIndex' => 0,
               'endIndex' => 1000,
-              'fromDate' => date('Y-m-d',strtotime('-2 days')).'T00:00:00+00:00',
               'toDate' => date('Y-m-d',strtotime('-1 day')).'T23:59:59+00:00',
               'customerIPAddress' => (function_exists('ip_address') ? ip_address() : $_SERVER['REMOTE_ADDR']),
             );
+            // Calculate how far back I want to go, default 2 days ago.
+            $fromDate = strtotime('-2 days');
+            // Check when I last downloaded this box journal
             if (!empty($iats_journal[$journal_setting_key])) {
+              // If I've already done this today, don't do it again.
               if (0 === strpos($iats_journal[$journal_setting_key],date('Y-m-d'))) {
                 $skip_method = TRUE;
               }
+              else { // Make sure I fill in any gaps if this cron hasn't run for a while, but no more than a month
+                $fromDate = min(strtotime($iats_journal[$journal_setting_key]),strtotime('-2 days'));
+                $fromDate = max($fromDate,strtotime('-30 days'));
+              }
             }
+            else { // If I've cleared the settings, then go back a month of data.
+              $fromDate = strtotime('-30 days');
+            }
+            // reset the request fromDate, from the beginning of fromDate's day.
+            $request['fromDate'] = date('Y-m-d',$fromDate).'T00:00:00+00:00';
             break;
         }
         if (!$skip_method) {
@@ -171,7 +183,7 @@ function civicrm_api3_job_iatsreport($params) {
           4 => $ps[$prefix.'_payment_box_journal_csv'],
           5 => $ps[$prefix.'_payment_box_reject_csv'],
         );
-      $message .= '<br />'. ts('For account %1, type %2, processed %3 approvals from the one-day journals, and %4 approval and %5 rejection records from the previous 3 days using the box journals.', $results);
+      $message .= '<br />'. ts('For account %1, type %2, processed %3 approvals from the one-day journals, and %4 approval and %5 rejection records from previous days using the box journals.', $results);
     }
   }
   if (count($error_log) > 0) {
