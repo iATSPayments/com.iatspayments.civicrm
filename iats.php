@@ -764,20 +764,7 @@ function iats_ukdd_form_customize($form) {
   /* For batch efficiencies, restrict to a specific set of days of the month, less than 28 */
   // you can change these if you're sensible and careful.
   $start_days = array('1', '15');
-  // Actual date options.
-  $start_dates = array();
-  $start_date = time() + IATS_UKDD_START_DELAY;
-  for ($j = 0; $j < count($start_days); $j++) {
-    // So I don't get into an infinite loop somehow ..
-    $i = 0;
-    while (($i++ < 60) && !in_array($dp['mday'], $start_days)) {
-      $start_date += (24 * 60 * 60);
-      $dp = getdate($start_date);
-    }
-    $start_dates[date('Y-m-d', $start_date)] = strftime('%B %e, %Y', $start_date);
-    $start_date += (24 * 60 * 60);
-    $dp = getdate($start_date);
-  }
+  $start_dates = _iats_get_future_monthly_start_dates(time() + IATS_UKDD_START_DELAY, $start_days);
   $service_user_number = $form->_paymentProcessor['signature'];
   $payee = _iats_civicrm_domain_info('name');
   $phone = _iats_civicrm_domain_info('domain_phone');
@@ -828,9 +815,10 @@ function iats_ukdd_form_customize($form) {
 }
 
 /**
- * Modifications to a (public/frontend) contribution forms if iATS ACH/EFT or SWIPE is enabled
+ * Modifications to a (public/frontend) contribution forms.
  * 1. set recurring to be the default, if enabled (ACH/EFT) [previously forced recurring, removed in 1.2.4]
  * 2. add extra fields/modify labels.
+ * 3. enable public selection of future recurring contribution start date.
  * 
  * We're handling event, contribution, and financial payment class forms here. 
  * The new 4.7 financial payment class form is used when switching payment processors (sometimes).
@@ -894,6 +882,21 @@ function iats_civicrm_buildForm_Contribution_Frontend(&$form) {
     if (isset($form->_elementIndex['is_recur'])) {
       // Make recurring contrib default to true.
       $form->setDefaults(array('is_recur' => 1));
+    }
+  }
+
+  // If enabled on a page with monthly recurring contributions enabled, provide a way to set future contribution dates. 
+  // TODO: restrict to only monthly recurring.
+  if (isset($form->_elementIndex['is_recur'])) {
+    $settings = CRM_Core_BAO_Setting::getItem('iATS Payments Extension', 'iats_settings');
+    if (!empty($settings['enable_public_future_recurring_start'])) {
+      $allow_days = empty($settings['days']) ? array('-1') : $settings['days'];
+      $start_dates = _iats_get_future_monthly_start_dates(time(), $allow_days);
+      $form->addElement('select', 'receive_date', ts('Date of first contribution'), $start_dates);
+      CRM_Core_Region::instance('billing-block')->add(array(
+        'template' => 'CRM/iATS/BillingBlockRecurringExtra.tpl',
+      ));
+      CRM_Core_Resources::singleton()->addScriptFile('com.iatspayments.civicrm', 'js/recur_start.js', 10);
     }
   }
   
@@ -1459,4 +1462,37 @@ function _iats_process_transaction($contribution, $options) {
   // pass back the anticipated status_id based on the method (i.e. 1 for CC, 2 for ACH/EFT)
   $result['contribution_status_id'] = $contribution_status_id;
   return $result;
+}
+
+/**
+ * Function _iats_get_future_start_dates
+ *
+ * @param $start_date a timestamp, only return dates after this.
+ * @param $allow_days an array of allowable days of the month.
+ *
+ *   A low-level utility function for triggering a transaction on iATS.
+ */
+function _iats_get_future_monthly_start_dates($start_date, $allow_days) {
+  // Future date options.
+  $start_dates = array();
+  // special handling for today - it means immediately or now.
+  $today = date('Ymd').'030000';
+  // If not set, only allow for the first 28 days of the month.
+  if (max($allow_days) <= 0) {
+    $allow_days = range(1,28);
+  }
+  for ($j = 0; $j < count($allow_days); $j++) {
+    // So I don't get into an infinite loop somehow ..
+    $i = 0;
+    $dp = getdate($start_date);
+    while (($i++ < 60) && !in_array($dp['mday'], $allow_days)) {
+      $start_date += (24 * 60 * 60);
+      $dp = getdate($start_date);
+    }
+    $key = date('Ymd', $start_date).'030000';
+    $display = ($key == $today) ? ts('Now') : strftime('%B %e, %Y', $start_date);
+    $start_dates[$key] = $display;
+    $start_date += (24 * 60 * 60);
+  }
+  return $start_dates;
 }

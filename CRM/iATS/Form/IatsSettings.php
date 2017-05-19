@@ -61,6 +61,14 @@ class CRM_iATS_Form_IatsSettings extends CRM_Core_Form {
       ts('Enable self-service updates to recurring contribution Contact Billing Info.')
     );
 
+    $this->add(
+    // Field type.
+      'checkbox',
+    // Field name.
+      'enable_public_future_recurring_start',
+      ts('Enable public selection of future recurring start dates.')
+    );
+
     $days = array('-1' => 'disabled');
     for ($i = 1; $i <= 28; $i++) {
       $days["$i"] = "$i";
