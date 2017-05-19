@@ -136,6 +136,18 @@ class CRM_iATS_Upgrader extends CRM_iATS_Upgrader_Base {
     return TRUE;
   }
 
+  public function upgrade_1_6_004() {
+    $this->ctx->log->info('Applying update 1_6_004');
+    try {
+      $this->executeSqlFile('sql/upgrade_1_6_004.sql');
+    }
+    catch (Exception $e) {
+      $this->ctx->log->info($e->getMessage());
+    }
+    return TRUE;
+  }
+
+
   /**
    * Example: Run an external SQL script
    *
