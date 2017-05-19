@@ -26,10 +26,11 @@ function _civicrm_api3_job_iatsreport_spec(&$spec) {
 
  * Fetch all recent transactions from iATS for the purposes of auditing (in separate jobs).
  * This addresses multiple needs:
- * 1. Pull recent contributions that went through but weren't reported to CiviCRM due to unexpected connection/code breakage.
- * 2. Pull recurring contributions managed by iATS
- * 3. Pull one-time contributions that did not go through CiviCRM
- * 4. Audit for remote changes in iATS.
+ * 1. Verify incomplete ACH/EFT contributions.
+ * 2. Verify recent contributions that went through but weren't reported to CiviCRM due to unexpected connection/code breakage.
+ * 3. Input recurring contributions managed by iATS
+ * 4. Input one-time contributions that did not go through CiviCRM
+ * 5. Audit for remote changes in iATS.
  *
  */
 function civicrm_api3_job_iatsreport($params) {
@@ -65,9 +66,11 @@ function civicrm_api3_job_iatsreport($params) {
   }
   CRM_Core_Error::debug_var('Payment Processors', $payment_processors);
   // get the settings: TODO allow more detailed configuration of which transactions to import?
-  $settings = CRM_Core_BAO_Setting::getItem('iATS Payments Extension', 'iats_settings');
+  $iats_settings = CRM_Core_BAO_Setting::getItem('iATS Payments Extension', 'iats_settings');
+  // I also use the setttings to keep track of the last time I imported journal data from iATS.
+  $iats_journal = CRM_Core_BAO_Setting::getItem('iATS Payments Extension', 'iats_journal');
   foreach(array('quick', 'recur', 'series') as $setting) {
-    $import[$setting] = empty($settings['import_'.$setting]) ? 0 : 1;
+    $import[$setting] = empty($iats_settings['import_'.$setting]) ? 0 : 1;
   }
   require_once("CRM/iATS/iATSService.php");
   // an array of types => methods => payment status of the records retrieved
@@ -78,8 +81,8 @@ function civicrm_api3_job_iatsreport($params) {
   /* initialize some values so I can report at the end */
   // count the number of records from each iats account analysed, and the number of each kind found ('action')
   $processed = array();
-  // save all my api result messages as well
-  // watchdog('civicrm_iatspayments_com', 'pending: <pre>!pending</pre>', array('!pending' => print_r($iats_cc_recur_pending,TRUE)), WATCHDOG_NOTICE);
+  // save all my api result error messages as well
+  $error_log = array();
   foreach($payment_processors as $user_name => $payment_processors_per_user) {
     $processed[$user_name] = array();
     foreach ($payment_processors_per_user as $type => $payment_processors_per_user_type) {
@@ -91,6 +94,7 @@ function civicrm_api3_job_iatsreport($params) {
       $iats_service_params = array('type' => 'report', 'iats_domain' => parse_url($payment_processor['url_site'], PHP_URL_HOST)); // + $iats_service_params;
       /* the is_test below should always be 0, but I'm leaving it in, in case eventually we want to be verifying tests */
       $credentials = iATS_Service_Request::credentials($payment_processor['id'], $payment_processor['is_test']);
+
       foreach($process_methods_per_type as $method => $payment_status_id) {
         // initialize my counts
         $processed[$user_name][$type][$method] = 0;
@@ -99,6 +103,9 @@ function civicrm_api3_job_iatsreport($params) {
         /* we're going to assume that all the payment_processors_per_type are using the same server */
         $iats_service_params['method'] = $method;
         $iats = new iATS_Service_Request($iats_service_params);
+        // For some methods, I only want to check once per day.
+        $skip_method = FALSE;
+        $journal_setting_key = 'last_update_'.$method;
         switch($method) {
           case 'acheft_journal_csv': // special case to get today's transactions, so we're as real-time as we can be
           case 'cc_journal_csv': 
@@ -115,33 +122,42 @@ function civicrm_api3_job_iatsreport($params) {
               'toDate' => date('Y-m-d',strtotime('-1 day')).'T23:59:59+00:00',
               'customerIPAddress' => (function_exists('ip_address') ? ip_address() : $_SERVER['REMOTE_ADDR']),
             );
+            if (!empty($iats_journal[$journal_setting_key])) {
+              if (0 === strpos($iats_journal[$journal_setting_key],date('Y-m-d'))) {
+                $skip_method = TRUE;
+              }
+            }
             break;
         }
-        // make the soap request, should return a csv file
-        $response = $iats->request($credentials,$request);
-        // use my iats object to parse the result into an array of transaction ojects
-        $transactions = $iats->getCSV($response, $method);
-        // for the acheft journal, I also pull the previous 4 days and append, a bit of a hack.
-        if ('acheft_journal_csv' == $method) {
-          for ($days_before = -1; $days_before > -5; $days_before--) {
-            $request['date'] = date('Y-m-d', strtotime($days_before.' day')) . 'T23:59:59+00:00';
-            $response = $iats->request($credentials, $request);
-            $transactions = array_merge($transactions, $iats->getCSV($response, $method));
+        if (!$skip_method) {
+          $iats_journal[$journal_setting_key] = date('Y-m-d H:i:s');
+          // make the soap request, should return a csv file
+          $response = $iats->request($credentials,$request);
+          // use my iats object to parse the result into an array of transaction ojects
+          $transactions = $iats->getCSV($response, $method);
+          // for the acheft journal, I also pull the previous 4 days and append, a bit of a hack.
+          if ('acheft_journal_csv' == $method) {
+            for ($days_before = -1; $days_before > -5; $days_before--) {
+              $request['date'] = date('Y-m-d', strtotime($days_before.' day')) . 'T23:59:59+00:00';
+              $response = $iats->request($credentials, $request);
+              $transactions = array_merge($transactions, $iats->getCSV($response, $method));
+            }
           }
-        }
-        foreach($transactions as $transaction) {
-          try {
-            $transaction->status_id = $payment_status_id;
-            civicrm_api3('IatsPayments', 'journal', get_object_vars($transaction));
-            $processed[$user_name][$type][$method]++;
-          }
-          catch (CiviCRM_API3_Exception $e) {
-            // todo: log these?
+          foreach($transactions as $transaction) {
+            try {
+              $transaction->status_id = $payment_status_id;
+              civicrm_api3('IatsPayments', 'journal', get_object_vars($transaction));
+              $processed[$user_name][$type][$method]++;
+            }
+            catch (CiviCRM_API3_Exception $e) {
+              $error_log[] = $e->getMessage();
+            }
           }
         }
       }
     }
   }
+  CRM_Core_BAO_Setting::setItem($iats_journal, 'iATS Payments Extension', 'iats_journal');
   // watchdog('civicrm_iatspayments_com', 'found: <pre>!found</pre>', array('!found' => print_r($processed,TRUE)), WATCHDOG_NOTICE);
   $message = '';
   foreach($processed as $user_name => $p) {
@@ -155,8 +171,11 @@ function civicrm_api3_job_iatsreport($params) {
           4 => $ps[$prefix.'_payment_box_journal_csv'],
           5 => $ps[$prefix.'_payment_box_reject_csv'],
         );
-      $message .= '<br />'. ts('For account %1, type %2, processed %3 approvals from today, and %4 approval and %5 rejection records from the previous 3 days.', $results);
+      $message .= '<br />'. ts('For account %1, type %2, processed %3 approvals from the one-day journals, and %4 approval and %5 rejection records from the previous 3 days using the box journals.', $results);
     }
+  }
+  if (count($error_log) > 0) {
+    return civicrm_api3_create_error($message . '</br />' . implode('<br />', $error_log));
   }
   return civicrm_api3_create_success($message);
 }
