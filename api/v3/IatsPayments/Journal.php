@@ -45,7 +45,16 @@ function civicrm_api3_iats_payments_journal($params) {
     foreach($defaults as $key => $default) {
       $data[$key] = empty($data[$key]) ? $default : $data[$key];
     }
-    $iats_journal_id = empty($data['Journal Id']) ? 'NULL' : (int) $data['Journal Id'];
+    // There are unique keys on tnid (transaction) and iats_id (journal)
+    // If I don't have a journal id, don't overwrite.
+    if (empty($data['Journal Id'])) {
+      $iats_journal_id = 'NULL';
+      $sql_action = 'INSERT IGNORE ';
+    }
+    else {
+      $iats_journal_id = (int) $data['Journal Id'];
+      $sql_action = 'REPLACE INTO ';
+    }
     $query_params = array(
       1 => array($data['Transaction ID'], 'String'),
       3 => array($dtm, 'String'),
@@ -58,7 +67,7 @@ function civicrm_api3_iats_payments_journal($params) {
       10 => array($data['Comment'], 'String'),
       11 => array($params['status_id'], 'Integer'),
     );
-    $result = CRM_Core_DAO::executeQuery("REPLACE INTO civicrm_iats_journal
+    $result = CRM_Core_DAO::executeQuery($sql_action ." civicrm_iats_journal
         (tnid, iats_id, dtm, agt, cstc, inv, amt, rst, tntyp, cm, status_id) VALUES (%1, $iats_journal_id, %3, %4, %5, %6, %7, %8, %9, %10, %11)", $query_params);
   }
   catch (Exception $e) {

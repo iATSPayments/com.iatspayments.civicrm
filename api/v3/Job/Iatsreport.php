@@ -155,10 +155,23 @@ function civicrm_api3_job_iatsreport($params) {
               $transactions = array_merge($transactions, $iats->getCSV($response, $method));
             }
           }
+          // CRM_Core_Error::debug_var($method, $transactions);
           foreach($transactions as $transaction) {
             try {
-              $transaction->status_id = $payment_status_id;
-              civicrm_api3('IatsPayments', 'journal', get_object_vars($transaction));
+              $t = get_object_vars($transaction);
+              $t['status_id'] = $payment_status_id;
+              // A few more hacks for the one day journals
+              switch($method) {
+                case 'acheft_journal_csv': 
+                  $t['data']['Method of Payment'] = 'ACHEFT';
+                  $t['data']['Client Code'] = $credentials['agentCode'];
+                  break;
+                case 'cc_journal_csv': 
+                  $t['data']['Method of Payment'] = $t['data']['CCType'];
+                  $t['data']['Client Code'] = $credentials['agentCode'];
+                  break;
+              }
+              civicrm_api3('IatsPayments', 'journal', $t);
               $processed[$user_name][$type][$method]++;
             }
             catch (CiviCRM_API3_Exception $e) {
