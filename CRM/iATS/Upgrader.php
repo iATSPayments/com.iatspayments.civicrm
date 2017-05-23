@@ -94,6 +94,60 @@ class CRM_iATS_Upgrader extends CRM_iATS_Upgrader_Base {
     return TRUE;
   }
 
+  public function upgrade_1_6_001() {
+    $this->ctx->log->info('Applying update 1_6_001');
+    try {
+      $this->executeSqlFile('sql/upgrade_1_6_001.sql');
+    }
+    catch (Exception $e) {
+      $this->ctx->log->info($e->getMessage());
+    }
+    return TRUE;
+  }
+
+  public function upgrade_1_6_002() {
+    $this->ctx->log->info('Applying update 1_6_002');
+    try {
+      $this->executeSqlFile('sql/upgrade_1_6_002.sql');
+    }
+    catch (Exception $e) {
+      $this->ctx->log->info($e->getMessage());
+    }
+    return TRUE;
+  }
+
+  public function upgrade_1_6_003() {
+    $this->ctx->log->info('(Re)applying update 1_5_003');
+    try {
+      $this->ctx->log->info('(Re)applying update 1_5_003');
+      $this->executeSqlFile('sql/upgrade_1_5_003.sql');
+    }
+    catch (Exception $e) {
+      $this->ctx->log->info($e->getMessage());
+    }
+    try {
+      $this->ctx->log->info('Setting payment instrument label');
+      $acheft_option_value_id = civicrm_api3('OptionValue', 'getvalue', array('return' => 'id', 'value' => 2, 'option_group_id' => 'payment_instrument'));
+      civicrm_api3('OptionValue', 'create', array('label' => 'ACHEFT', 'id' => $acheft_option_value_id));
+    }
+    catch (Exception $e) {
+      $this->ctx->log->info($e->getMessage());
+    }
+    return TRUE;
+  }
+
+  public function upgrade_1_6_004() {
+    $this->ctx->log->info('Applying update 1_6_004');
+    try {
+      $this->executeSqlFile('sql/upgrade_1_6_004.sql');
+    }
+    catch (Exception $e) {
+      $this->ctx->log->info($e->getMessage());
+    }
+    return TRUE;
+  }
+
+
   /**
    * Example: Run an external SQL script
    *

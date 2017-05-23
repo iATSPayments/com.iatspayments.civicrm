@@ -349,22 +349,28 @@ class iATS_Service_Request {
   public function getCSV($response, $method) {
     $transactions = array();
     $iats_domain = parse_url($this->_wsdl_url, PHP_URL_HOST);
+
     switch ($iats_domain) {
       case 'www.iatspayments.com':
         $date_format = 'm/d/Y H:i:s';
+        $tz_string  = 'America/Vancouver';
         break;
 
       case 'www.uk.iatspayments.com':
         $date_format = 'd/m/Y H:i:s';
+        $tz_string  = 'Europe/London';
         break;
 
       // Todo throw an exception instead? This should never happen!
       default:
         die('Invalid domain for date format');
     }
+    $tz_object  = new DateTimeZone($tz_string);
+    $gmt_datetime = new DateTime;
+    $gmt_offset = $tz_object->getOffset($gmt_datetime);
     if (is_object($response)) {
       $box = preg_split("/\r\n|\n|\r/", $this->file($response));
-      // watchdog('civicrm_iatspayments_com', 'data: <pre>!data</pre>', array('!data' => print_r($box,TRUE)), WATCHDOG_NOTICE);.
+      // watchdog('civicrm_iatspayments_com', 'csv: <pre>!data</pre>', array('!data' => print_r($box,TRUE)), WATCHDOG_NOTICE);.
       if (1 < count($box)) {
         // Data is an array of rows, the first of which is the column headers.
         $headers = array_flip(array_map('trim',str_getcsv($box[0])));
@@ -373,32 +379,41 @@ class iATS_Service_Request {
             continue;
           }
           $transaction = new stdClass();
+          // save the raw data in 'data'
           $data = str_getcsv($box[$i]);
+          // and then store it as an associate array based on the headers
+          $record = array();
+          foreach($headers as $label => $column_i) {
+            $record[$label] = $data[$column_i];
+          }
           // First get the data common to all methods.
-          $transaction->id = $data[$headers['Transaction ID']];
-          $transaction->customer_code = $data[$headers['Customer Code']];
+          $transaction->id = $record['Transaction ID'];
+          $transaction->customer_code = $record['Customer Code'];
+          // Save the entire record in case I need it
+          $transaction->data = $record;
           // Now the method specific headers.
-          switch ($method) {
+          switch($method) {
+            // These are the same-day journals
+            case 'cc_journal_csv':
             case 'acheft_journal_csv':
-              $datetime = $data[$headers['Date']];
-              $transaction->invoice = $data[$headers['Invoice']];
-              $transaction->amount = $data[$headers['Total']];
+              $datetime = $record['Date'];
+              $transaction->invoice = $record['Invoice'];
+              $transaction->amount = $record['Total'];
               break;
-
-            // The box journals.
+            // The box journals are the default.
             default:
-              $transaction->amount = $data[$headers['Amount']];
-              $datetime = $data[$headers['Date Time']];
-              $transaction->invoice = $data[$headers['Invoice Number']];
+              $transaction->amount = $record['Amount'];
+              $datetime = $record['Date Time'];
+              $transaction->invoice = $record['Invoice Number'];
+              // And now the uk dd specific hack, only for the box journals.
+              if ('www.uk.iatspayments.com' == $iats_domain) {
+                $transaction->achref = $record['ACH Ref.'];
+              }
               break;
           }
-          // And now the uk dd specific hack, only for the box journals.
-          if ('www.uk.iatspayments.com' == $iats_domain && 'acheft_journal_csv' != $method) {
-            $transaction->achref = $data[$headers['ACH Ref.']];
-          }
-          // Note that date_format depends on the server (iats_domain)
+          // Note that $gmt_offset and date_format depend on the server (iats_domain)
           $rdp = date_parse_from_format($date_format, $datetime);
-          $transaction->receive_date = mktime($rdp['hour'], $rdp['minute'], $rdp['second'], $rdp['month'], $rdp['day'], $rdp['year']);
+          $transaction->receive_date = gmmktime($rdp['hour'], $rdp['minute'], $rdp['second'], $rdp['month'], $rdp['day'], $rdp['year']) - $gmt_offset;
           // And now save it.
           $transactions[$transaction->id] = $transaction;
         }
@@ -477,6 +492,20 @@ class iATS_Service_Request {
             'method' => 'GetCreditCardApprovedSpecificDateCSV',
             'message' => 'GetCreditCardApprovedSpecificDateCSV',
             'response' => 'GetCreditCardApprovedSpecificDateCSVResult',
+          ),
+          'cc_payment_box_journal_csv' => array(
+            'title' => 'Credit Card Payment Box Journal CSV',
+            'description'=> $desc. 'GetCreditCardApprovedDateRangeCSV',
+            'method' => 'GetCreditCardApprovedDateRangeCSV',
+            'message' => 'GetCreditCardApprovedDateRangeCSV',
+            'response' => 'GetCreditCardApprovedDateRangeCSVResult',
+          ),
+          'cc_payment_box_reject_csv' => array(
+            'title' => 'Credit Card Payment Box Reject CSV',
+            'description'=> $desc. 'GetCreditCardRejectDateRangeCSV',
+            'method' => 'GetCreditCardRejectDateRangeCSV',
+            'message' => 'GetCreditCardRejectDateRangeCSV',
+            'response' => 'GetCreditCardRejectDateRangeCSVResult',
           ),
           'acheft_journal_csv' => array(
             'title' => 'ACH-EFT Journal CSV',

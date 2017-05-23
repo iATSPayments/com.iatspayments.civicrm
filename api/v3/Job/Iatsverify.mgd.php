@@ -11,16 +11,16 @@
 return array(
   0 =>
   array(
-    'name' => 'Cron:Job.Iatsacheftverify',
+    'name' => 'Cron:Job.Iatsverify',
     'entity' => 'Job',
     'params' =>
     array(
       'version' => 3,
       'name' => 'iATS Payments Verification',
-      'description' => 'Call into iATS for approvals, etc.',
+      'description' => 'Verify payments from the iATS journal.',
       'run_frequency' => 'Hourly',
       'api_entity' => 'Job',
-      'api_action' => 'iatsacheftverify',
+      'api_action' => 'iatsverify',
       'parameters' => '',
     ),
     'update' => 'never',

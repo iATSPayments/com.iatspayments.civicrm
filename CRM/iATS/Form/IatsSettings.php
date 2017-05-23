@@ -61,10 +61,28 @@ class CRM_iATS_Form_IatsSettings extends CRM_Core_Form {
       ts('Enable self-service updates to recurring contribution Contact Billing Info.')
     );
 
+    /* These checkboxes are not yet implemented, ignore for now 
     $this->add(
-    // Field type.
+      'checkbox', // field type
+      'import_quick', // field name
+      ts('Import one-time/new iATS transactions into CiviCRM (e.g. "mobile").')
+    );
+
+    $this->add(
+      'checkbox', // field type
+      'import_recur', // field name
+      ts('Import recurring iATS transactions into CiviCRM for known series (e.g. "iATS managed recurring").')
+    );
+
+    $this->add(
+      'checkbox', // field type
+      'import_series', // field name
+      ts('Allow creation of new recurring series from iATS imports. (e.g. "mobile recurring")')
+    );
+    */
+    
+    $this->add(
       'checkbox',
-    // Field name.
       'enable_public_future_recurring_start',
       ts('Enable public selection of future recurring start dates.')
     );

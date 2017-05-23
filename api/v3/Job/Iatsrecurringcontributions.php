@@ -313,7 +313,8 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
       }
       // So far so, good ... now create the pending contribution, and save its id
       // and then try to get the money, and do one of:
-      // update the contribution to failed, leave as pending for server failure, complete the transaction, or update a pending ach/eft with it's transaction id.
+      // update the contribution to failed, leave as pending for server failure, complete the transaction, 
+      // or update a pending ach/eft with it's transaction id.
       $result = _iats_process_contribution_payment($contribution, $options, $original_contribution_id);
       if ($email_failure_report && !empty($contribution['iats_reject_code'])) {
         $failure_report_text .= "\n $result ";
