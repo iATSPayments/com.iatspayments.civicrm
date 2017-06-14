@@ -74,11 +74,10 @@ class CRM_Core_Payment_iATSServiceACHEFT extends CRM_Core_Payment_iATSService {
     }
     // Use the iATSService object for interacting with iATS, mostly the same for recurring contributions.
     require_once "CRM/iATS/iATSService.php";
-    // TODO: force bail if it's not recurring?
+    // We handle both one-time and recurring ACH/EFT
     $isRecur = CRM_Utils_Array::value('is_recur', $params) && $params['contributionRecurID'];
     $methodType = $isRecur ? 'customer' : 'process';
     $method = $isRecur ? 'create_acheft_customer_code' : 'acheft';
-    // To add debugging info in the drupal log, assign 1 to log['all'] below.
     $iats = new iATS_Service_Request(array('type' => $methodType, 'method' => $method, 'iats_domain' => $this->_profile['iats_domain'], 'currencyID' => $params['currencyID']));
     $request = $this->convertParams($params, $method);
     $request['customerIPAddress'] = (function_exists('ip_address') ? ip_address() : $_SERVER['REMOTE_ADDR']);
@@ -89,7 +88,7 @@ class CRM_Core_Payment_iATSServiceACHEFT extends CRM_Core_Payment_iATSService {
     // Make the soap request.
     $response = $iats->request($credentials, $request);
     if (!$isRecur) {
-       // Process the soap response into a readable result, logging any transaction.
+      // Process the soap response into a readable result, logging any transaction.
       $result = $iats->result($response);
       if ($result['status']) {
         // Always set pending status.
@@ -98,6 +97,8 @@ class CRM_Core_Payment_iATSServiceACHEFT extends CRM_Core_Payment_iATSService {
         $params['payment_status_id'] = 2;
         $params['trxn_id'] = trim($result['remote_id']) . ':' . time();
         $params['gross_amount'] = $params['amount'];
+        // CRM_Core_Error::debug_var('params returned', $params);
+        return $params;
       }
       else {
         return self::error($result['reasonMessage']);
