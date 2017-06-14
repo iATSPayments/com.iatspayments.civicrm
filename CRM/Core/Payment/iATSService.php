@@ -215,7 +215,7 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
             $update = array(
               'trxn_id' => trim($result['remote_id']) . ':' . time(),
               'gross_amount' => $params['amount'],
-              'payment_status_id' => 'Completed',
+              'payment_status_id' => '1',
             );
             // Setting the next_sched_contribution_date param doesn't do anything, commented out, work around in setRecurReturnParams
             $params = $this->setRecurReturnParams($params, $update);
