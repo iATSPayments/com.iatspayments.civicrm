@@ -182,7 +182,7 @@ function civicrm_api3_job_iatsverify($params) {
         if (empty($contribution['contribution_recur_id'])) {
           unset($query_params[6]);
           CRM_Core_DAO::executeQuery("INSERT INTO civicrm_iats_verify
-            (customer_code, cid, contribution_id, contribution_status_id, verify_datetime, auth_result) VALUES (%1, %2, %3, %4, NOW(), %5)", $query_params);
+            (customer_code, cid, contribution_id, contribution_status_id, verify_datetime) VALUES (%1, %2, %3, %4, NOW(), %5)", $query_params);
         }
         else {
           CRM_Core_DAO::executeQuery("INSERT INTO civicrm_iats_verify
