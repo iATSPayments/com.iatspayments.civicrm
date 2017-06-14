@@ -97,7 +97,18 @@ class CRM_Core_Payment_iATSServiceACHEFT extends CRM_Core_Payment_iATSService {
         $params['payment_status_id'] = 2;
         $params['trxn_id'] = trim($result['remote_id']) . ':' . time();
         $params['gross_amount'] = $params['amount'];
-        // CRM_Core_Error::debug_var('params returned', $params);
+        // Core assumes that a pending result will have no transaction id, but we have a useful one.
+        if (!empty($params['contributionID'])) {
+          $contribution_update = array('id' => $params['contributionID'], 'trxn_id' => $params['trxn_id']);
+          try {
+            $result = civicrm_api3('Contribution', 'create', $contribution_update);
+          }
+          catch (CiviCRM_API3_Exception $e) {
+            // Not a critical error, just log and continue.
+            $error = $e->getMessage();
+            Civi::log()->info('Unexpected error adding the trxn_id for contribution id {id}: {error}', array('id' => $recur_id, 'error' => $error));
+          }
+        }
         return $params;
       }
       else {
@@ -157,10 +168,22 @@ class CRM_Core_Payment_iATSServiceACHEFT extends CRM_Core_Payment_iATSService {
             $update = array(
               'trxn_id' => trim($result['remote_id']) . ':' . time(),
               'gross_amount' => $params['amount'],
-              'payment_status_id' => 'Pending'
+              'payment_status_id' => 2
             );
             // Setting the next_sched_contribution_date param setting is not doing anything, commented out.
             $this->setRecurReturnParams($params, $update);
+            // Core assumes that a pending result will have no transaction id, but we have a useful one.
+            if (!empty($params['contributionID'])) {
+              $contribution_update = array('id' => $params['contributionID'], 'trxn_id' => $update['trxn_id']);
+              try {
+                $result = civicrm_api3('Contribution', 'create', $contribution_update);
+              }
+              catch (CiviCRM_API3_Exception $e) {
+                // Not a critical error, just log and continue.
+                $error = $e->getMessage();
+                Civi::log()->info('Unexpected error adding the trxn_id for contribution id {id}: {error}', array('id' => $recur_id, 'error' => $error));
+              }
+            }
             return $params;
           }
           else {
@@ -175,7 +198,7 @@ class CRM_Core_Payment_iATSServiceACHEFT extends CRM_Core_Payment_iATSService {
             : $receive_timestamp;
           // set the receieve time to 3:00 am for a better admin experience
           $update = array(
-            'payment_status_id' => 'Pending',
+            'payment_status_id' => 2,
             'receive_date' => date('Ymd', $next_sched_contribution_timestamp) . '030000',
           );
           $this->setRecurReturnParams($params, $update);
