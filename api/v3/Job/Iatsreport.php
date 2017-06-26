@@ -64,7 +64,7 @@ function civicrm_api3_job_iatsreport($params) {
     }
     $payment_processors[$user_name][$type][$id] = $payment_processor;
   }
-  CRM_Core_Error::debug_var('Payment Processors', $payment_processors);
+  // CRM_Core_Error::debug_var('Payment Processors', $payment_processors);
   // get the settings: TODO allow more detailed configuration of which transactions to import?
   $iats_settings = CRM_Core_BAO_Setting::getItem('iATS Payments Extension', 'iats_settings');
   // I also use the setttings to keep track of the last time I imported journal data from iATS.
