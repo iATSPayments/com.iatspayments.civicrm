@@ -159,14 +159,6 @@ class CRM_iATS_Form_Report_Recur extends CRM_Report_Form {
               'expiry' => array('title' => 'Expiry Date', 'default' => TRUE),
             ),
         ),
-      'civicrm_iats_request_log' =>
-        array(
-          'dao' => 'CRM_Contribute_DAO_Contribution',
-          'fields' =>
-            array(
-              'cc' => array('title' => 'last 4 digits (org)', 'default' => TRUE),
-            ),
-        ),
       'civicrm_contribution_recur' => array(
         'dao' => 'CRM_Contribute_DAO_ContributionRecur',
         'order_bys' => array(
@@ -404,9 +396,6 @@ class CRM_iATS_Form_Report_Recur extends CRM_Report_Form {
       LEFT JOIN civicrm_phone {$this->_aliases['civicrm_phone']}
         ON ({$this->_aliases['civicrm_contact']}.id = {$this->_aliases['civicrm_phone']}.contact_id AND
           {$this->_aliases['civicrm_phone']}.is_primary = 1)";
-    $this->_from .= "
-      LEFT JOIN civicrm_iats_request_log {$this->_aliases['civicrm_iats_request_log']}
-        ON ({$this->_aliases['civicrm_iats_request_log']}.invoice_num = {$this->_aliases['civicrm_contribution_recur']}.invoice_id)";
     $this->_from .= "
       LEFT JOIN civicrm_iats_customer_codes {$this->_aliases['civicrm_iats_customer_codes']}
         ON ({$this->_aliases['civicrm_iats_customer_codes']}.recur_id = {$this->_aliases['civicrm_contribution_recur']}.id)";
