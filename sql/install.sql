@@ -58,7 +58,7 @@ CREATE TABLE `civicrm_iats_verify` (
   KEY (`cid`),
   KEY (`contribution_id`),
   KEY (`recur_id`),
-  KEY (`auth_result`),
+  KEY (`auth_result`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='Table to store verification information';
 
 CREATE TABLE `civicrm_iats_ukdd_validate` (
@@ -107,5 +107,5 @@ CREATE TABLE `civicrm_iats_journal` (
   KEY (`financial_trxn_id`),
   KEY (`contribution_id`),
   KEY (`verify_datetime`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='Table to iATS journal transactions imported via the iATSPayments ReportLink.' 
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='Table to iATS journal transactions imported via the iATSPayments ReportLink.'
 
