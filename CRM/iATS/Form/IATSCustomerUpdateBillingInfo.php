@@ -17,6 +17,11 @@ class IATSCustomerUpdateBillingInfo extends CRM_iATS_Form_IATSCustomerLink {
       'Amex' => 'AMX',
       'Discover' => 'DSC',
     );
+    
+    // Fix billing form update bug by forcing crid to exist
+    if(empty($ubi['crid'])) {
+      $ubi['crid'] = !empty($_POST['crid']) ? (int) $_POST['crid'] : 0;
+    }
 
     $dao = CRM_Core_DAO::executeQuery("SELECT cr.payment_processor_id, cc.customer_code, cc.cid
       FROM civicrm_contribution_recur cr
