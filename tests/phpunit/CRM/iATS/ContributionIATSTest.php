@@ -24,7 +24,6 @@ use Civi\Payment\System;
  *
  * @group headless
  */
-//class CRM_iATS_ContributionTest extends \PHPUnit_Framework_TestCase implements HeadlessInterface, HookInterface, TransactionalInterface {
 class CRM_iATS_ContributioniATSTest extends BaseTestClass implements HeadlessInterface, HookInterface, TransactionalInterface {
 
   public function setUpHeadless() {
@@ -63,24 +62,6 @@ class CRM_iATS_ContributioniATSTest extends BaseTestClass implements HeadlessInt
    */
   public function testIATSCreditCardBackend() {
 
-    // KG
-    // Can I write to the test database?
-
-    $p = array(
-      'sequential' => 1,
-      'financial_type_id' => "Donation",
-      'total_amount' => "2.22",
-      'contact_id' => 1,
-    );
-    $contribution = $this->callAPISuccess('contribution', 'create', $p);
-
-    $contribution_get = $this->callAPISuccessGetSingle('Contribution',
-      array(
-        'contribution_id' => 1,
-        'return' => array('total_amount'),
-      )
-    );
-
     $params = array(
       'sequential' => 1,
       'first_name' => "Can",
@@ -90,6 +71,7 @@ class CRM_iATS_ContributioniATSTest extends BaseTestClass implements HeadlessInt
 
     $result = $this->callAPISuccess('contact', 'create', $params);
 
+    // Check
     $this->_individualId = $this->callAPISuccessGetSingle('Contact',
       array(
         'first_name' => "Can",
@@ -97,15 +79,12 @@ class CRM_iATS_ContributioniATSTest extends BaseTestClass implements HeadlessInt
       )
     );
 
-    $test = 1;
+    $this->_individualId = 3;
 
-
-    // KG
-    $this->_individualId = 3; // Default Organization
-    $this->paymentInstruments = array('Credit Card' => 1); // Credit Card
     // Need to create a Payment Processor - iATS Payment Credit Card is in civicrm_payment_processor_type id=13
     // iATS CC TEST88
     $this->paymentProcessor = $this->iATSCCProcessorCreate();
+
     // dummy is in civicrm_payment_processor_type id=8
     // $this->paymentProcessor = $this->dummyProcessorCreate();
 
@@ -159,9 +138,8 @@ class CRM_iATS_ContributioniATSTest extends BaseTestClass implements HeadlessInt
     $this->assertEquals('1.11', $contribution['total_amount']);
     $this->assertEquals(0, $contribution['non_deductible_amount']);
 
-    
-
-    // Test that we have a Transaction ID and that it contains a : (unique to iATS)
+    // Make sure that we have a Transaction ID and that it contains a : (unique to iATS);
+    $this->assertRegExp('/:/', $contribution['trxn_id']);
   }
 
   /**
@@ -242,35 +220,6 @@ class CRM_iATS_ContributioniATSTest extends BaseTestClass implements HeadlessInt
     $processorParams = array_merge($processorParams, $params);
     $processor = $this->callAPISuccess('PaymentProcessor', 'create', $processorParams);
     return $processor['id'];
-  }
-
-  /**
-   * Create test Authorize.net instance.
-   *
-   * @param array $params
-   *
-   * @return mixed
-   */
-  public function paymentProcessorAuthorizeNetCreate($params = array()) {
-    $params = array_merge(array(
-      'name' => 'Authorize',
-      'domain_id' => CRM_Core_Config::domainID(),
-      'payment_processor_type_id' => 'AuthNet',
-      'title' => 'AuthNet',
-      'is_active' => 1,
-      'is_default' => 0,
-      'is_test' => 1,
-      'is_recur' => 1,
-      'user_name' => '4y5BfuW7jm',
-      'password' => '4cAmW927n8uLf5J8',
-      'url_site' => 'https://test.authorize.net/gateway/transact.dll',
-      'url_recur' => 'https://apitest.authorize.net/xml/v1/request.api',
-      'class_name' => 'Payment_AuthorizeNet',
-      'billing_mode' => 1,
-    ), $params);
-
-    $result = $this->callAPISuccess('PaymentProcessor', 'create', $params);
-    return $result['id'];
   }
 
 }
