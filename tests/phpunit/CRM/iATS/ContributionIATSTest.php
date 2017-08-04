@@ -59,27 +59,69 @@ class CRM_iATS_ContributioniATSTest extends BaseTestClass implements HeadlessInt
   }
 
   /**
-   * Test a Credit Card Contribution - one time iATS Credit Card - TEST88
+   * Test a Credit Card Contribution - one time iATS Credit Card - TEST88 - Backend
    */
-  public function testIATSCreditCard() {
+  public function testIATSCreditCardBackend() {
 
     // KG
-    $this->_individualId = 2; // Default Organization
+    // Can I write to the test database?
+
+    $p = array(
+      'sequential' => 1,
+      'financial_type_id' => "Donation",
+      'total_amount' => "2.22",
+      'contact_id' => 1,
+    );
+    $contribution = $this->callAPISuccess('contribution', 'create', $p);
+
+    $contribution_get = $this->callAPISuccessGetSingle('Contribution',
+      array(
+        'contribution_id' => 1,
+        'return' => array('total_amount'),
+      )
+    );
+
+    $params = array(
+      'sequential' => 1,
+      'first_name' => "Can",
+      'last_name' => "ada",
+      'contact_type' => "Individual",
+    );
+
+    $result = $this->callAPISuccess('contact', 'create', $params);
+
+    $this->_individualId = $this->callAPISuccessGetSingle('Contact',
+      array(
+        'first_name' => "Can",
+        'return' => array('contact_id'),
+      )
+    );
+
+    $test = 1;
+
+
+    // KG
+    $this->_individualId = 3; // Default Organization
     $this->paymentInstruments = array('Credit Card' => 1); // Credit Card
     // Need to create a Payment Processor - iATS Payment Credit Card is in civicrm_payment_processor_type id=13
+    // iATS CC TEST88
     $this->paymentProcessor = $this->iATSCCProcessorCreate();
+    // dummy is in civicrm_payment_processor_type id=8
+    // $this->paymentProcessor = $this->dummyProcessorCreate();
+
     $processor = $this->paymentProcessor->getPaymentProcessor();
     $this->paymentProcessorID = $processor['id'];
 
     $form = new CRM_Contribute_Form_Contribution();
     $form->_mode = 'Live';
-    $form->testSubmit(array(
+
+    $contribution_params = array(
       'total_amount' => 1.11,
       'financial_type_id' => 1,
       'receive_date' => '08/03/2017',
       'receive_date_time' => '11:59PM',
       'contact_id' => $this->_individualId,
-      'payment_instrument_id' => array_search('Credit Card', $this->paymentInstruments),
+      'payment_instrument_id' => 1,
       'contribution_status_id' => 1,
       'credit_card_number' => 4222222222222220,
       'cvv2' => 123,
@@ -101,20 +143,25 @@ class CRM_iATS_ContributioniATSTest extends BaseTestClass implements HeadlessInt
       'installments' => '',
       'hidden_AdditionalDetail' => 1,
       'hidden_Premium' => 1,
-      'from_email_address' => '"SemperIT" <frontdesk@semper-it.com>',
       'receipt_date' => '',
       'receipt_date_time' => '',
       'payment_processor_id' => $this->paymentProcessorID,
       'currency' => 'USD',
-      'source' => '',
-    ), CRM_Core_Action::ADD);
+      'source' => 'iATS CC TEST88',
+    );
+
+    $form->testSubmit($contribution_params, CRM_Core_Action::ADD);
 
     $contribution = $this->callAPISuccessGetSingle('Contribution', array(
       'contact_id' => $this->_individualId,
       'contribution_status_id' => 'Completed',
     ));
-    $this->assertEquals('50', $contribution['total_amount']);
+    $this->assertEquals('1.11', $contribution['total_amount']);
     $this->assertEquals(0, $contribution['non_deductible_amount']);
+
+    
+
+    // Test that we have a Transaction ID and that it contains a : (unique to iATS)
   }
 
   /**
@@ -141,7 +188,7 @@ class CRM_iATS_ContributioniATSTest extends BaseTestClass implements HeadlessInt
       'domain_id' => 1,
       'name' => 'iATS Credit Card - TEST88',
       'payment_processor_type_id' => 13,
-      'financial_account_id' => 12,
+      //'financial_account_id' => 12,
       'is_test' => FALSE,
       'is_active' => 1,
       'user_name' => 'TEST88',
@@ -159,6 +206,71 @@ class CRM_iATS_ContributioniATSTest extends BaseTestClass implements HeadlessInt
     return $processor['id'];
   }
 
+  /**
+   * Create Payment Processor.
+   *
+   * @param array $processorParams
+   *
+   * @return \CRM_Core_Payment_Dummy
+   *    Instance of Dummy Payment Processor
+   */
+  public function dummyProcessorCreate($processorParams = array()) {
+    $paymentProcessorID = $this->processorCreateDummy($processorParams);
+    return System::singleton()->getById($paymentProcessorID);
+  }
 
+  /**
+   * Create Payment Processor.
+   *
+   * @return int
+   *   Id Payment Processor
+   */
+  public function processorCreateDummy($params = array()) {
+    $processorParams = array(
+      'domain_id' => CRM_Core_Config::domainID(),
+      'name' => 'Dummy',
+      'payment_processor_type_id' => 'Dummy',
+      //'financial_account_id' => 12,
+      'is_test' => TRUE,
+      'is_active' => 1,
+      'user_name' => '',
+      'url_site' => 'http://dummy.com',
+      'url_recur' => 'http://dummy.com',
+      'billing_mode' => 1,
+      'payment_instrument_id' => 1,
+    );
+    $processorParams = array_merge($processorParams, $params);
+    $processor = $this->callAPISuccess('PaymentProcessor', 'create', $processorParams);
+    return $processor['id'];
+  }
+
+  /**
+   * Create test Authorize.net instance.
+   *
+   * @param array $params
+   *
+   * @return mixed
+   */
+  public function paymentProcessorAuthorizeNetCreate($params = array()) {
+    $params = array_merge(array(
+      'name' => 'Authorize',
+      'domain_id' => CRM_Core_Config::domainID(),
+      'payment_processor_type_id' => 'AuthNet',
+      'title' => 'AuthNet',
+      'is_active' => 1,
+      'is_default' => 0,
+      'is_test' => 1,
+      'is_recur' => 1,
+      'user_name' => '4y5BfuW7jm',
+      'password' => '4cAmW927n8uLf5J8',
+      'url_site' => 'https://test.authorize.net/gateway/transact.dll',
+      'url_recur' => 'https://apitest.authorize.net/xml/v1/request.api',
+      'class_name' => 'Payment_AuthorizeNet',
+      'billing_mode' => 1,
+    ), $params);
+
+    $result = $this->callAPISuccess('PaymentProcessor', 'create', $params);
+    return $result['id'];
+  }
 
 }
