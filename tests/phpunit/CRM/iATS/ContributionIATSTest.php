@@ -24,7 +24,7 @@ use Civi\Payment\System;
  *
  * @group headless
  */
-class CRM_iATS_ContributioniATSTest extends BaseTestClass implements HeadlessInterface, HookInterface, TransactionalInterface {
+class CRM_iATS_ContributioniATSTest extends BaseTestClass {
 
   public function setUpHeadless() {
     // Civi\Test has many helpers, like install(), uninstall(), sql(), and sqlFile().
