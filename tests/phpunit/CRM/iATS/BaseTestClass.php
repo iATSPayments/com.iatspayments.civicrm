@@ -18,8 +18,8 @@ use Civi\Test\TransactionalInterface;
  *
  * @group headless
  */
-//class BaseTestClass extends \PHPUnit_Framework_TestCase implements HeadlessInterface, HookInterface, TransactionalInterface {
-class BaseTestClass extends \PHPUnit_Framework_TestCase implements HeadlessInterface, HookInterface {
+class BaseTestClass extends \PHPUnit_Framework_TestCase implements HeadlessInterface, HookInterface, TransactionalInterface {
+//class BaseTestClass extends \PHPUnit_Framework_TestCase implements HeadlessInterface, HookInterface {
 
   public function setUpHeadless() {
     // Civi\Test has many helpers, like install(), uninstall(), sql(), and sqlFile().

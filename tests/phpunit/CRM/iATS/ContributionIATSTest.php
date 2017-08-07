@@ -123,10 +123,14 @@ class CRM_iATS_ContributioniATSTest extends BaseTestClass {
       'contribution_status_id' => 'Completed',
     ));
     $this->assertEquals('1.11', $contribution['total_amount']);
+
+    // Grab Financial Type -> Id
     $this->assertEquals(0, $contribution['non_deductible_amount']);
 
     // Make sure that we have a Transaction ID and that it contains a : (unique to iATS);
     $this->assertRegExp('/:/', $contribution['trxn_id']);
+
+    // LineItems; Financial Tables;
   }
 
   /**
