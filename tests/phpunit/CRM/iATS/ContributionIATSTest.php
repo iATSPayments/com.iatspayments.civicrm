@@ -69,24 +69,11 @@ class CRM_iATS_ContributioniATSTest extends BaseTestClass {
       'contact_type' => "Individual",
     );
 
-    $result = $this->callAPISuccess('contact', 'create', $params);
-
-    // Check
-    $this->_individualId = $this->callAPISuccessGetSingle('Contact',
-      array(
-        'first_name' => "Can",
-        'return' => array('contact_id'),
-      )
-    );
-
-    $this->_individualId = 3;
+    $individual = $this->callAPISuccess('contact', 'create', $params);
 
     // Need to create a Payment Processor - iATS Payment Credit Card is in civicrm_payment_processor_type id=13
     // iATS CC TEST88
     $this->paymentProcessor = $this->iATSCCProcessorCreate();
-
-    // dummy is in civicrm_payment_processor_type id=8
-    // $this->paymentProcessor = $this->dummyProcessorCreate();
 
     $processor = $this->paymentProcessor->getPaymentProcessor();
     $this->paymentProcessorID = $processor['id'];
@@ -99,7 +86,7 @@ class CRM_iATS_ContributioniATSTest extends BaseTestClass {
       'financial_type_id' => 1,
       'receive_date' => '08/03/2017',
       'receive_date_time' => '11:59PM',
-      'contact_id' => $this->_individualId,
+      'contact_id' => $individual['id'],
       'payment_instrument_id' => 1,
       'contribution_status_id' => 1,
       'credit_card_number' => 4222222222222220,
@@ -132,7 +119,7 @@ class CRM_iATS_ContributioniATSTest extends BaseTestClass {
     $form->testSubmit($contribution_params, CRM_Core_Action::ADD);
 
     $contribution = $this->callAPISuccessGetSingle('Contribution', array(
-      'contact_id' => $this->_individualId,
+      'contact_id' => $individual['id'],
       'contribution_status_id' => 'Completed',
     ));
     $this->assertEquals('1.11', $contribution['total_amount']);
@@ -178,44 +165,6 @@ class CRM_iATS_ContributioniATSTest extends BaseTestClass {
       'sequential' => 1,
      // 'payment_instrument_id' => 'Credit Card',
        'payment_instrument_id' => 1,
-    );
-    $processorParams = array_merge($processorParams, $params);
-    $processor = $this->callAPISuccess('PaymentProcessor', 'create', $processorParams);
-    return $processor['id'];
-  }
-
-  /**
-   * Create Payment Processor.
-   *
-   * @param array $processorParams
-   *
-   * @return \CRM_Core_Payment_Dummy
-   *    Instance of Dummy Payment Processor
-   */
-  public function dummyProcessorCreate($processorParams = array()) {
-    $paymentProcessorID = $this->processorCreateDummy($processorParams);
-    return System::singleton()->getById($paymentProcessorID);
-  }
-
-  /**
-   * Create Payment Processor.
-   *
-   * @return int
-   *   Id Payment Processor
-   */
-  public function processorCreateDummy($params = array()) {
-    $processorParams = array(
-      'domain_id' => CRM_Core_Config::domainID(),
-      'name' => 'Dummy',
-      'payment_processor_type_id' => 'Dummy',
-      //'financial_account_id' => 12,
-      'is_test' => TRUE,
-      'is_active' => 1,
-      'user_name' => '',
-      'url_site' => 'http://dummy.com',
-      'url_recur' => 'http://dummy.com',
-      'billing_mode' => 1,
-      'payment_instrument_id' => 1,
     );
     $processorParams = array_merge($processorParams, $params);
     $processor = $this->callAPISuccess('PaymentProcessor', 'create', $processorParams);
