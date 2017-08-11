@@ -45,7 +45,8 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
   // I've added an extra 2 days when getting candidates from CiviCRM to be sure i've got them all.
   $civicrm_verify_days = IATS_VERIFY_DAYS + 2;
   // Get all the pending direct debit contributions that still need approval within the last civicrm_verify_days.
-  $select = 'SELECT c.id, c.trxn_id, c.invoice_id, c.contact_id, c.contribution_recur_id, c.receive_date, cr.is_email_receipt
+  // Re issue #211, include contribution_status_id so I can update it after verification, and later on check if it is already completed.
+  $select = 'SELECT c.id, c.trxn_id, c.invoice_id, c.contact_id, c.contribution_recur_id, c.receive_date, cr.is_email_receipt, c.contribution_status_id
       FROM civicrm_contribution c
       LEFT JOIN civicrm_contribution_recur cr ON c.contribution_recur_id = cr.id
       WHERE
@@ -62,7 +63,7 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
   while ($dao->fetch()) {
     /* We index in the invoice_id which (now) is stored in iATS */
     $key = $dao->invoice_id;
-    $acheft_pending[$key] = array('id' => $dao->id, 'trxn_id' => $dao->trxn_id, 'invoice_id' => $dao->invoice_id, 'contact_id' => $dao->contact_id, 'contribution_recur_id' => $dao->contribution_recur_id, 'receive_date' => $dao->receive_date, 'is_email_receipt' => $dao->is_email_receipt);
+    $acheft_pending[$key] = array('id' => $dao->id, 'trxn_id' => $dao->trxn_id, 'invoice_id' => $dao->invoice_id, 'contact_id' => $dao->contact_id, 'contribution_recur_id' => $dao->contribution_recur_id, 'receive_date' => $dao->receive_date, 'is_email_receipt' => $dao->is_email_receipt, 'contribution_status_id' => $dao->contribution_status_id);
   }
   // And some recent UK DD recurring contributions.
   $select = 'SELECT c.id, c.contribution_status_id, c.trxn_id, c.invoice_id, icc.customer_code
@@ -206,33 +207,40 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
           $contribution = $acheft_pending[$invoice_id];
           // Updating a contribution status to complete needs some extra bookkeeping.
           if (1 == $contribution_status_id) {
-            // Note that I'm updating the timestamp portion of the transaction id here, since this might be useful at some point
-            // should I update the receive date to when it was actually received? Would that confuse membership dates?
-            $trxn_id = $transaction_id . ':' . time();
-            $complete = array('version' => 3, 'id' => $contribution['id'], 'trxn_id' => $trxn_id, 'receive_date' => $contribution['receive_date']);
-            if ($is_recur) {
-              // For email receipting, use either my iats extension global, or the specific setting for this schedule.
-              $complete['is_email_receipt'] = ($receipt_recurring < 2) ? $receipt_recurring : $contribution['is_email_receipt'];
-            }
-            try {
-              $contributionResult = civicrm_api3('contribution', 'completetransaction', $complete);
-            }
-            catch (Exception $e) {
-              throw new API_Exception('Failed to complete transaction: ' . $e->getMessage() . "\n" . $e->getTraceAsString());
-            }
+            // Re issue #211: don't try to complete a transaction if it is already completed. This could happen when the same transaction was returned in both acheft_journal_csv and acheft_payment_box_journal_csv
+            if( $acheft_pending[$invoice_id]->contribution_status_id != 1 ){
+              // Note that I'm updating the timestamp portion of the transaction id here, since this might be useful at some point
+              // should I update the receive date to when it was actually received? Would that confuse membership dates?
+              $trxn_id = $transaction_id . ':' . time();
+              $complete = array('version' => 3, 'id' => $contribution['id'], 'trxn_id' => $trxn_id, 'receive_date' => $contribution['receive_date']);
+              if ($is_recur) {
+                // For email receipting, use either my iats extension global, or the specific setting for this schedule.
+                $complete['is_email_receipt'] = ($receipt_recurring < 2) ? $receipt_recurring : $contribution['is_email_receipt'];
+              }
+              try {
+                $contributionResult = civicrm_api3('contribution', 'completetransaction', $complete);
+                // Re issue #211: update contribution status to completed in the array, so that the next loop will not try to complete this transaction again and throw a "contribution already completed" exception
+                $acheft_pending[$invoice_id]->contribution_status_id = $contribution_status_id;
+              }
+              catch (Exception $e) {
+                throw new API_Exception('Failed to complete transaction: ' . $e->getMessage() . "\n" . $e->getTraceAsString());
+              }
 
-            // Restore source field and trxn_id that completetransaction overwrites
-            civicrm_api3('contribution', 'create', array(
-              'id' => $contribution['id'], 
-              'source' => $contribution['source'],
-              'trxn_id' => $trxn_id
-            ));
+              // Restore source field and trxn_id that completetransaction overwrites
+              civicrm_api3('contribution', 'create', array(
+                'id' => $contribution['id'], 
+                'source' => $contribution['source'],
+                'trxn_id' => $trxn_id
+              ));
+            }
           }
           else { // the other option is 4 == failed, just update the contribution status.
             civicrm_api3('Contribution', 'create', array(
               'id' => $contribution['id'],
               'contribution_status_id' => $contribution_status_id
             ));
+            // Re issue #211: update contribution status to failed in the array, just to be consistent with what we did when completing a transaction
+            $acheft_pending[$invoice_id]->contribution_status_id = $contribution_status_id;
           }
           // Always log these requests in my cutom civicrm table for auditing type purposes
           // watchdog('civicrm_iatspayments_com', 'contribution: <pre>!contribution</pre>', array('!contribution' => print_r($query_params,TRUE)), WATCHDOG_NOTICE);.
