@@ -15,8 +15,6 @@ use Civi\Test\TransactionalInterface;
  *    If this test needs to manipulate schema or truncate tables, then either:
  *       a. Do all that using setupHeadless() and Civi\Test.
  *       b. Disable TransactionalInterface, and handle all setup/teardown yourself.
- *
- * @group headless
  */
 abstract class BaseTestClass extends \PHPUnit_Framework_TestCase implements HeadlessInterface, HookInterface, TransactionalInterface {
   //class BaseTestClass extends \PHPUnit_Framework_TestCase implements HeadlessInterface, HookInterface {
