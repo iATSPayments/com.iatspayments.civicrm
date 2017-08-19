@@ -167,8 +167,8 @@ class CRM_iATS_ContributioniATSTest extends BaseTestClass {
       'class_name' => 'Payment_iATSService',
       'is_recur' => 1,
       'sequential' => 1,
-     // 'payment_instrument_id' => 'Credit Card',
-       'payment_instrument_id' => 1,
+      // 'payment_instrument_id' => 'Credit Card',
+      'payment_instrument_id' => 1,
     );
     $processorParams = array_merge($processorParams, $params);
     $processor = $this->callAPISuccess('PaymentProcessor', 'create', $processorParams);

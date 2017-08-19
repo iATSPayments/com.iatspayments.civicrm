@@ -19,8 +19,11 @@ use Civi\Test\TransactionalInterface;
  * @group headless
  */
 abstract class BaseTestClass extends \PHPUnit_Framework_TestCase implements HeadlessInterface, HookInterface, TransactionalInterface {
-//class BaseTestClass extends \PHPUnit_Framework_TestCase implements HeadlessInterface, HookInterface {
+  //class BaseTestClass extends \PHPUnit_Framework_TestCase implements HeadlessInterface, HookInterface {
 
+  /**
+   * Configure the headless environment.
+   */
   public function setUpHeadless() {
     // Civi\Test has many helpers, like install(), uninstall(), sql(), and sqlFile().
     // See: https://github.com/civicrm/org.civicrm.testapalooza/blob/master/civi-test.md
@@ -30,6 +33,7 @@ abstract class BaseTestClass extends \PHPUnit_Framework_TestCase implements Head
   }
 
   private $_apiversion = 3;
+
   /**
    * wrap api functions.
    * so we can ensure they succeed & throw exceptions without litterering the test with checks
@@ -55,8 +59,10 @@ abstract class BaseTestClass extends \PHPUnit_Framework_TestCase implements Head
     switch (strtolower($action)) {
       case 'getvalue':
         return $this->callAPISuccessGetValue($entity, $params, $checkAgainst);
+
       case 'getsingle':
         return $this->callAPISuccessGetSingle($entity, $params, $checkAgainst);
+
       case 'getcount':
         return $this->callAPISuccessGetCount($entity, $params, $checkAgainst);
     }
@@ -190,5 +196,3 @@ abstract class BaseTestClass extends \PHPUnit_Framework_TestCase implements Head
   }
 
 }
-
-
