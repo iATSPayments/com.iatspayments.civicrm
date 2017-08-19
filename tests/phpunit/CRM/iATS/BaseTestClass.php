@@ -15,12 +15,13 @@ use Civi\Test\TransactionalInterface;
  *    If this test needs to manipulate schema or truncate tables, then either:
  *       a. Do all that using setupHeadless() and Civi\Test.
  *       b. Disable TransactionalInterface, and handle all setup/teardown yourself.
- *
- * @group headless
  */
-class BaseTestClass extends \PHPUnit_Framework_TestCase implements HeadlessInterface, HookInterface, TransactionalInterface {
-//class BaseTestClass extends \PHPUnit_Framework_TestCase implements HeadlessInterface, HookInterface {
+abstract class BaseTestClass extends \PHPUnit_Framework_TestCase implements HeadlessInterface, HookInterface, TransactionalInterface {
+  //class BaseTestClass extends \PHPUnit_Framework_TestCase implements HeadlessInterface, HookInterface {
 
+  /**
+   * Configure the headless environment.
+   */
   public function setUpHeadless() {
     // Civi\Test has many helpers, like install(), uninstall(), sql(), and sqlFile().
     // See: https://github.com/civicrm/org.civicrm.testapalooza/blob/master/civi-test.md
@@ -30,6 +31,7 @@ class BaseTestClass extends \PHPUnit_Framework_TestCase implements HeadlessInter
   }
 
   private $_apiversion = 3;
+
   /**
    * wrap api functions.
    * so we can ensure they succeed & throw exceptions without litterering the test with checks
@@ -55,8 +57,10 @@ class BaseTestClass extends \PHPUnit_Framework_TestCase implements HeadlessInter
     switch (strtolower($action)) {
       case 'getvalue':
         return $this->callAPISuccessGetValue($entity, $params, $checkAgainst);
+
       case 'getsingle':
         return $this->callAPISuccessGetSingle($entity, $params, $checkAgainst);
+
       case 'getcount':
         return $this->callAPISuccessGetCount($entity, $params, $checkAgainst);
     }
@@ -190,5 +194,3 @@ class BaseTestClass extends \PHPUnit_Framework_TestCase implements HeadlessInter
   }
 
 }
-
-
