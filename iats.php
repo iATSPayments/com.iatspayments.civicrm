@@ -161,6 +161,21 @@ function iats_civicrm_managed(&$entities) {
 }
 
 /**
+ * Implements hook_civicrm_check().
+ */
+function iats_civicrm_check(&$messages) {
+  if (!class_exists('SoapClient')) {
+    $messages[] = new CRM_Utils_Check_Message(
+      'iats_soap',
+      ts('The SOAP extension for PHP %1 is not installed on this server, but is required for this extension.', array(1 => phpversion())),
+      ts('iATS Payments Installation'),
+      \Psr\Log\LogLevel::CRITICAL,
+      'fa-flag'
+    );
+  }
+}
+
+/**
  * Utility function to get domain info.
  *
  * Get values from the civicrm_domain table, or a domain setting.
