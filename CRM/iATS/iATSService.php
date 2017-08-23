@@ -191,7 +191,7 @@ class iATS_Service_Request {
       $tags = (!empty($this->_tag_order)) ? $this->_tag_order : array_keys($request);
       foreach ($tags as $k) {
         if (isset($request[$k])) {
-          $xml .= '<' . $k . '>' . htmlspecialchars($request[$k], ENT_XML1, 'UTF-8') . '</' . $k . '>';
+          $xml .= '<' . $k . '>' . xmlsafe($request[$k]) . '</' . $k . '>';
         }
       }
       $xml .= '</' . $message . '>';
@@ -861,6 +861,25 @@ class iATS_Service_Request {
       CRM_Core_BAO_Setting::setItem($version, 'iATS Payments Extension', 'iats_extension_version');
     }
     return $version;
+  }
+  /**
+   * function xmlsafe
+   *
+   * Replacement for using ENT_XML1 with htmlspecialchars for php5.3 compatibility.
+   */
+  private function xmlsafe($string) {
+    if (version_compare(PHP_VERSION, '5.4.0') < 0) {
+      $replace = array(
+        '"'=> "&quot;",
+        "&" => "&amp;",
+        "'"=> "&apos;",
+        "<" => "&lt;",
+        ">"=> "&gt;"
+      );
+      return strtr($string, $replace);
+    }
+    // else, better way for php5.4 and above
+    return htmlspecialchars($string, ENT_XML1, 'UTF-8');
   }
 
 }
