@@ -191,7 +191,7 @@ class iATS_Service_Request {
       $tags = (!empty($this->_tag_order)) ? $this->_tag_order : array_keys($request);
       foreach ($tags as $k) {
         if (isset($request[$k])) {
-          $xml .= '<' . $k . '>' . xmlsafe($request[$k]) . '</' . $k . '>';
+          $xml .= '<' . $k . '>' . $this->xmlsafe($request[$k]) . '</' . $k . '>';
         }
       }
       $xml .= '</' . $message . '>';
