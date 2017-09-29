@@ -1,5 +1,8 @@
 <?php
 
+// KG I need this - BestTestClass does not always autoload in local IDE
+require_once __DIR__ . '/BaseTestClass.php';
+
 use Civi\Test\HeadlessInterface;
 use Civi\Test\HookInterface;
 use Civi\Test\TransactionalInterface;
@@ -153,13 +156,13 @@ class CRM_iATS_ContributioniATSTest extends BaseTestClass {
   public function processorCreate($params = array()) {
     $processorParams = array(
       'domain_id' => 1,
-      'name' => 'iATS Credit Card - TEST88',
+      'name' => 'iATS Credit Card - TE4188',
       'payment_processor_type_id' => 13,
       //'financial_account_id' => 12,
       'is_test' => FALSE,
       'is_active' => 1,
-      'user_name' => 'TEST88',
-      'password' => 'TEST88',
+      'user_name' => 'TE4188',
+      'password' => 'abcde01',
       'url_site' => 'https://www.iatspayments.com/NetGate/ProcessLinkv2.asmx?WSDL',
       'url_recur' => 'https://www.iatspayments.com/NetGate/ProcessLinkv2.asmx?WSDL',
       'class_name' => 'Payment_iATSService',
