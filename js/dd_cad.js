@@ -35,6 +35,13 @@ function iatsACHEFTca() {
         case '016': $('#bank_name').val('HSBC Canada'); break;
         case '030': $('#bank_name').val('Canadian Western Bank'); break;
         case '326': $('#bank_name').val('President\'s Choice Financial'); break;
+
+        case '839': // Credit Union Heritage (Nova Scotia)
+        case '879': // Credit Union Central of Manitoba
+        case '889': // Credit Union Central of Saskatchewan
+        case '899': // Credit Union Central Alberta
+          $('#bank_name').val('Credit Union'); break;
+        
         default: $('#bank_name').val(''); break;
       }
       iatsSetBankIdenficationNumber();
