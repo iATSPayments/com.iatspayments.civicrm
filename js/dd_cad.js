@@ -40,6 +40,7 @@ function iatsACHEFTca() {
         case '879': // Credit Union Central of Manitoba
         case '889': // Credit Union Central of Saskatchewan
         case '899': // Credit Union Central Alberta
+        case '809': // Credit Union British Columbia
           $('#bank_name').val('Credit Union'); break;
         
         default: $('#bank_name').val(''); break;
