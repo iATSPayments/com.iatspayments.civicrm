@@ -81,7 +81,7 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
   $dtCurrentDayStart = $dtCurrentDay . "000000";
   $dtCurrentDayEnd   = $dtCurrentDay . "235959";
   $expiry_limit = date('ym');
-  // Restrict this method of recurring contribution processing to only these two payment processors.
+  // Restrict this method of recurring contribution processing to only these three payment processors.
   $args = array(
     1 => array('Payment_iATSService', 'String'),
     2 => array('Payment_iATSServiceACHEFT', 'String'),
@@ -274,7 +274,25 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
     else {
       $contribution['financial_type_id'] = $dao->financial_type_id;
     }
-    if (!empty($contribution_template['line_items'])) {
+    // if we have a created a pending contribution record due to a future start time, then recycle that CiviCRM contribution record now.
+    // Note that the date and amount both could have changed. 
+    // The key is to only match if we find a single pending contribution, with a NULL transaction id, for this recurring schedule.
+    // We'll need to pay attention later that we may or may not already have a contribution id.
+    try {
+      $pending_contribution = civicrm_api3('Contribution', 'get', array(
+        'return' => array('id'),
+        'trxn_id' => array('IS NULL' => 1),
+        'contribution_recur_id' => $contribution_recur_id,
+        'contribution_status_id' => "Pending",
+      ));
+      $contribution['id'] = $pending_contribution['id'];
+    }
+    catch (Exception $e) {
+      // ignore, we'll proceed normally without a contribution id
+    }
+    // If I'm not recycling a contribution record and my original has line_items, then I'll add them to the contribution creation array.
+    // TODO: if the amount of a matched pending contribution has changed, then we should be removing line items from the contribution and replacing them.
+    if (empty($contribution['id']) && !empty($contribution_template['line_items'])) {
       $contribution['skipLineItem'] = 1;
       $contribution['api.line_item.create'] = $contribution_template['line_items'];
     }

@@ -1274,7 +1274,8 @@ function _iats_contributionrecur_next($from_time, $allow_mdays) {
 /**
  * Function _iats_contribution_payment
  *
- * @param $contribution an array of a contribution to be created
+ * @param $contribution an array of a contribution to be created (or in case of future start date,
+          possibly an existing pending contribution to recycle, if it already has a contribution id).
  * @param $options must include customer code, subtype and iats_domain, may include a membership id
  * @param $original_contribution_id if included, use as a template for a recurring contribution.
  *
@@ -1305,8 +1306,11 @@ function _iats_process_contribution_payment(&$contribution, $options, $original_
     $trxn_id = $contribution['trxn_id'] = trim($result['remote_id']) . ':' . time();
     // Initialize the status to pending
     $contribution['contribution_status_id'] = 2;
-    // We'll use the repeattransaction api for successful transactions, if we trust it, and if we want it
-    $use_repeattransaction = $is_recurrence && _iats_civicrm_use_repeattransaction();
+    // We'll use the repeattransaction api for successful transactions under three conditions:
+    // 1. if we want it
+    // 2. if we don't already have a contribution id
+    // 3. if we trust it
+    $use_repeattransaction = $is_recurrence && empty($contribution['id']) && _iats_civicrm_use_repeattransaction();
   }
   if ($use_repeattransaction) {
     // We processed it successflly and I can try to use repeattransaction. 
