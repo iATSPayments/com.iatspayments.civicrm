@@ -901,7 +901,7 @@ function iats_civicrm_buildForm_Contribution_Frontend(&$form) {
   }
 
   // If enabled on a page with monthly recurring contributions enabled, provide a way to set future contribution dates. 
-  // TODO: restrict to only monthly recurring.
+  // Uses javascript to hide/reset unless they have recurring contributions checked.
   if (isset($form->_elementIndex['is_recur'])) {
     $settings = CRM_Core_BAO_Setting::getItem('iATS Payments Extension', 'iats_settings');
     if (!empty($settings['enable_public_future_recurring_start'])) {
