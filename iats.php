@@ -1510,7 +1510,13 @@ function _iats_get_future_monthly_start_dates($start_date, $allow_days) {
       $dp = getdate($start_date);
     }
     $key = date('Ymd', $start_date).'030000';
-    $display = ($key == $today) ? ts('Now') : strftime('%B %e, %Y', $start_date);
+    if ($key == $today) { // special handling
+      $display = ts('Now');
+      $key = ''; // date('YmdHis');
+    }
+    else {
+      $display = strftime('%B %e, %Y', $start_date);
+    }
     $start_dates[$key] = $display;
     $start_date += (24 * 60 * 60);
   }
