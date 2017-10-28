@@ -191,6 +191,79 @@ class CRM_iATS_ContributioniATSTest extends BaseTestClass {
     // LineItems; Financial Tables;
   }
 
+  /**
+   * Test a Credit Card Contribution - one time iATS ACHEFT - TEST41 - Backend
+   */
+  public function testIATSACHEFTBackend() {
+
+    $params = array(
+      'sequential' => 1,
+      'first_name' => "Can",
+      'last_name' => "ada",
+      'contact_type' => "Individual",
+    );
+
+    $individual = $this->callAPISuccess('contact', 'create', $params);
+
+    // Need to create a Payment Processor - iATS ACHEFT - TE4188
+    $this->paymentProcessor = $this->iATSACHEFTProcessorCreate();
+
+    $processor = $this->paymentProcessor->getPaymentProcessor();
+    $this->paymentProcessorID = $processor['id'];
+
+    $form = new CRM_Contribute_Form_Contribution();
+    $form->_mode = 'Live';
+
+    $contribution_params = array(
+      'total_amount' => 3.00,
+      'financial_type_id' => 1,
+      'receive_date' => '08/03/2017',
+      'receive_date_time' => '11:59PM',
+      'contact_id' => $individual['id'],
+      'payment_instrument_id' => 2,
+      //'contribution_status_id' => 1,
+      'bank_identification_number' => 00000123,
+      'bank_account_number' => 123456,
+      'credit_card_exp_date' => array(
+        'M' => 12,
+        'Y' => 2025,
+      ),
+      //'credit_card_type' => 'Visa',
+      'billing_first_name' => 'Karin',
+      'billing_middle_name' => '',
+      'billing_last_name' => 'G',
+      'billing_street_address-5' => '39 St',
+      'billing_city-5' => 'Calgary',
+      'billing_state_province_id-5' => 1031,
+      'billing_postal_code-5' => 10545,
+      'billing_country_id-5' => 1228,
+      'frequency_interval' => 1,
+      'frequency_unit' => 'month',
+      'installments' => '',
+      'hidden_AdditionalDetail' => 1,
+      'hidden_Premium' => 1,
+      'receipt_date' => '',
+      'receipt_date_time' => '',
+      'payment_processor_id' => $this->paymentProcessorID,
+      'currency' => 'CAD',
+      'source' => 'iATS ACHEFT TEST88',
+    );
+
+    $form->testSubmit($contribution_params, CRM_Core_Action::ADD);
+
+    $contribution = $this->callAPISuccessGetSingle('Contribution', array(
+      'contact_id' => $individual['id'],
+      'contribution_status_id' => 'Completed',
+    ));
+    $this->assertEquals('3.00', $contribution['total_amount']);
+    $this->assertEquals(0, $contribution['non_deductible_amount']);
+
+    // Make sure that we have a Transaction ID and that it contains a : (unique to iATS);
+    $this->assertRegExp('/:/', $contribution['trxn_id']);
+
+    // LineItems; Financial Tables;
+  }
+
 
   /**
    * Create iATS - TEST41 CC Payment Processor.
@@ -213,6 +286,18 @@ class CRM_iATS_ContributioniATSTest extends BaseTestClass {
    */
   public function iATSSWIPEProcessorCreate($processorParams = array()) {
     $paymentProcessorID = $this->processorCreateSWIPE($processorParams);
+    return System::singleton()->getById($paymentProcessorID);
+  }
+
+  /**
+   * Create iATS - TEST41 ACHEFT Payment Processor.
+   *
+   * @param array $processorParams
+   *
+   * @return Instance of ACHEFT Payment Processor
+   */
+  public function iATSACHEFTProcessorCreate($processorParams = array()) {
+    $paymentProcessorID = $this->processorCreateACHEFT($processorParams);
     return System::singleton()->getById($paymentProcessorID);
   }
 
@@ -270,6 +355,36 @@ class CRM_iATS_ContributioniATSTest extends BaseTestClass {
       'sequential' => 1,
       'payment_type' => 1,
       'payment_instrument_id' => 1,
+    );
+    $processorParams = array_merge($processorParams, $params);
+    $processor = $this->callAPISuccess('PaymentProcessor', 'create', $processorParams);
+    return $processor['id'];
+  }
+
+  /**
+   * Create iATS ACHEFT - TEST41 Payment Processor.
+   * Payment Processor Type: 14 is iATS Payments ACHEFT
+   *
+   * @return int
+   *   Id Payment Processor
+   */
+  public function processorCreateACHEFT($params = array()) {
+    $processorParams = array(
+      'domain_id' => 1,
+      'name' => 'iATS ACHEFT - TE4188',
+      'payment_processor_type_id' => 14,
+      'financial_account_id' => 12,
+      'is_test' => FALSE,
+      'is_active' => 1,
+      'user_name' => 'TE4188',
+      'password' => 'abcde01',
+      'url_site' => 'https://www.iatspayments.com/NetGate/ProcessLinkv2.asmx?WSDL',
+      'url_recur' => 'https://www.iatspayments.com/NetGate/ProcessLinkv2.asmx?WSDL',
+      'class_name' => 'Payment_iATSServiceACHEFT',
+      'is_recur' => 1,
+      'sequential' => 1,
+      'payment_type' => 2,
+      'payment_instrument_id' => 2,
     );
     $processorParams = array_merge($processorParams, $params);
     $processor = $this->callAPISuccess('PaymentProcessor', 'create', $processorParams);
