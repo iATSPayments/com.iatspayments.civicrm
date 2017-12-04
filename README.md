@@ -1,26 +1,22 @@
 com.iatspayments.civicrm
 ===============
 
-CiviCRM Extension for iATS Web Services Payment Processor - Date: May 2, 2017. 
+CiviCRM Extension for iATS Web Services Payment Processor - Date: Oct 17, 2017. 
 Version 1.5.3 for 4.6.x and below.
-Version 1.6.0 for 4.7.x.
+Version 1.6.1 for 4.7.x.
 
 This README.md contains information specific to system administrators/developers. Information for users/implementors can be found in the Documentation Wiki: https://github.com/iATSPayments/com.iatspayments.civicrm/wiki/Documentation
 
 Requirements
 ------------
 
-1. CiviCRM latest 4.4.x, 4.5.x, 4.6.x or 4.7.x.
+1. CiviCRM 4.6.x or 4.7.x. We strongly recommend that you keep up with the most recent version of each branch.
 
-2. Your PHP needs to include the SOAP extension (php.net/manual/en/soap.setup.php).
+2. Your PHP needs to include the SOAP extension (php.net/manual/en/soap.setup.php), recommended that you use at least PHP 5.6 but 5.3 and above should work if it supports TLS1.1/1.2 and SHA-256.
 
-3. iATS retired TLS1.0 and moved to TLS1.1/1.2 and SHA-256
+3. To use this extension in production, You must have an iATS Payments Account - and have configured it to accept payment though WebServices. You can use the shared iATS test account credentials for initial setup and testing. For details please see the Documentation Wiki: https://github.com/iATSPayments/com.iatspayments.civicrm/wiki/Documentation
 
-4. NOTE: to ensure all different types of transactions are working across all CiviCRM pathways [our test matrix includes 21 type of transactions at the moment] - a small patch to CiviCRM core is required for 4.4 and 4.5. You can find iATS_4.4.14.diff and iATS_4.5.8.diff in the repository. If you use another version of CiviCRM you may have to adjust the line numbers in these patches. 
-
-5. You must have an iATS Payments Account - and have configured it to accept payment though WebServices. For details please see the Documentation Wiki: https://github.com/iATSPayments/com.iatspayments.civicrm/wiki/Documentation
-
-6. To handle ACH/EFT Contributions (verification of them) and to handle Recurring Contributions (of any type) you must configure cron for your CiviCRM install. Information about how to do this can be found in: http://wiki.civicrm.org/confluence/display/CRMDOC/Managing+Scheduled+Jobs
+4. To handle ACH/EFT Contributions (verification of them) and to handle Recurring Contributions (of any type) you must configure cron for your CiviCRM install. Information about how to do this can be found in: http://wiki.civicrm.org/confluence/display/CRMDOC/Managing+Scheduled+Jobs
 
 
 Installation
@@ -28,28 +24,28 @@ Installation
 
 This extension follows the standard installation method - if you've got a supported CiviCRM version and you've set up your extensions directory, it'll appear in the Manage Extensions list as 'iATS Payments (com.iatspayments.civicrm)'. Hit Install.
 
-If you need help with installing extensions, try: https://wiki.civicrm.org/confluence/display/CRMDOC/Extensions - If you want to try out a particular version directly from github, you probably already know how to do that.
+If you need help with installing extensions, try: https://wiki.civicrm.org/confluence/display/CRMDOC/Extensions
+
+If you want to try out a particular version directly from github, you probably already know how to do that.
 
 Once the extension is installed, you need to add the payment processor(s) and input your iATS credentials:
 
 1. Administer -> System Settings -> Payment Processors -> + Add Payment Processor
 
-2. Select iATS Payments Credit Card, iATS Payments ACH/EFT, iATS Payments SWIPE or iATS Payments UK Direct Debit - all provided by this extension and modify the instructions below appropriately.
+2. Select iATS Payments Credit Card, iATS Payments ACH/EFT, or iATS Payments SWIPE, they are all provided by this extension (the instructions differ only slightly for each one). You can create multiple payment processor entries using the same credentials for the different types.
 
 3. The "Name" of the payment processor is what your site visitors will see when they select a payment method, so typically use "Credit Card" here, or "Credit Card C$" (or US$) if there's any doubt about the currency. Your iATS Payments Account is configured for a single currency, so when you set up the payment page, you'll have to manually ensure you set the right currency (not an issue if you're only handling one currency).
 
-4. To test your new processor using live workflows: 
-  * For iATS Payments Credit Card, iATS Payments ACH/EFT or iATS Payments SWIPE:
-use Agent Code = TEST88 and Password = TEST88 for both Live and Test
-  * For iATS Payments UK Direct Debit:
-use Agent Code = UDDD88, Password = UDDD888 and Service User Number = 123456789 for both Live and Test
+4. The test account uses Agent Code = TEST88 and Password = TEST88. This is a shared test account, so don't put in any private information.
 
-7. Create a Contribution Page (or go to an existing one) -> Under Configure -> Contribution Amounts -> select your newly installed/configured Payment Processor(s) - hit Save
+5. If you'd like to test using live workflows, you can just temporarily use the test account credentials in your live processor fields.
 
-Testing
--------
+6. Create a Contribution Page (or go to an existing one) -> Under Configure -> Contribution Amounts -> select your newly installed/configured Payment Processor(s), and Save.
 
-1. Our test matrix includes 21 type of transactions at the moment -> view a summary of the results here: https://cloud.githubusercontent.com/assets/5340555/5616064/2459a9b8-94be-11e4-84c7-2ef0c83cc744.png - UK Direct Debit is still in beta at this time. 
+Extension Testing Notes
+-----------------------
+
+1. Our test matrix includes 21 type of transactions at the moment. View a summary of the results here: https://cloud.githubusercontent.com/assets/5340555/5616064/2459a9b8-94be-11e4-84c7-2ef0c83cc744.png
 
 2. Manage Contribution Pages -> Links -> Live Page.
 
@@ -108,7 +104,7 @@ Issues
 The best source for understanding current issues with the most recent release is the github issue queue:
 https://github.com/iATSPayments/com.iatspayments.civicrm/issues
 
-Most of the outstanding issues are related in some way to core CiviCRM issues, and may not have an immediate solution, but we'll endeavour to help you understand, work-around, and/or fix whatever concerns you raise on the issue queue.
+Some issues may be related to core CiviCRM issues, and may not have an immediate solution, but we'll endeavour to help you understand, work-around, and/or fix whatever concerns you raise on the issue queue.
 
 Below is a list of some of the most common issues:
 
