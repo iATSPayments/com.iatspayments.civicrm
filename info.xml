@@ -10,7 +10,7 @@
     <url desc="Release Notes">https://github.com/iATSPayments/com.iatspayments.civicrm/blob/master/release-notes/1.6.1.md</url>
     <url desc="Getting Started">https://www.semper-it.com/civicamp-iats-payments-slides</url>
   </urls>
-  <license>AGPL</license>
+  <license>AGPL-3.0</license>
   <maintainer>
     <author>Alan Dixon</author>
     <email>iats@blackflysolutions.ca</email>
