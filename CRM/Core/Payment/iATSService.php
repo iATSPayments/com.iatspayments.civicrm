@@ -276,8 +276,8 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
          'installments',
          'next_sched_contribution_date',
 //         'contribution_status_id',
-//         'start_date',
-//         'is_email_receipt',
+         'start_date',
+         'is_email_receipt',
        );
   }
 
