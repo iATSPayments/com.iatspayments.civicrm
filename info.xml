@@ -19,7 +19,7 @@
   <version>1.6.2-beta</version>
   <develStage>stable</develStage>
   <compatibility>
-    <ver>4.7, 5</ver>
+    <ver>4.7, 5.0</ver>
   </compatibility>
   <comments>This release is compatible with CiviCRM 4.7 and higher. Please see the current release notes linked above for details.
 </comments>
