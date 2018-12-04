@@ -118,7 +118,7 @@ function civicrm_api3_job_iatsverify($params) {
       ));
       if ($journal_matches['count'] > 0) {
         /* found a matching journal entry, we can approve or fail it */
-        $is_recur = empty($pending_contribution['contribution_recur_id']) ? FALSE : TRUE;
+        $is_recur = empty($contribution['contribution_recur_id']) ? FALSE : TRUE;
         // I only use the first one to determine the new status of the contribution.
         // TODO, deal with multiple partial payments
         $journal_entry = reset($journal_matches['values']);
