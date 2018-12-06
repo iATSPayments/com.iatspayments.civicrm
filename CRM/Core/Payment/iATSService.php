@@ -196,10 +196,13 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
         $allow_days = $this->getSettings('days');
         // Also test for a specific recieve date request that is not today.
         $receive_date_request = CRM_Utils_Array::value('receive_date', $params);
-        $today = date('Ymd');
         // If the receive_date is set to sometime today, unset it.
-        if (!empty($receive_date_request) && 0 === strpos($receive_date_request, $today)) {
-          unset($receive_date_request);
+        if (!empty($receive_date_request)) {
+          $today = date('Ymd');
+          $receive_date_formatted= date('Ymd',strtotime($receive_date_request));
+          if ($receive_date_formatted === $today) {
+            unset($receive_date_request);
+          }
         }
         // Normally, run the (first) transaction immediately, unless the admin setting is in force or a specific request is being made.
         if (max($allow_days) <= 0 && empty($receive_date_request)) {
