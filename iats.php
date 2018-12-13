@@ -974,20 +974,12 @@ function iats_civicrm_buildForm_CreditCard_Backend(&$form) {
       if ($swipe_id_default) {
         // Remove any that are not my swipe default pp.
         if ($pp_id != $swipe_id_default) {
-          unset($form->_elements[$pp_form_id]->_options[$option_id]);
-          unset($form->_processors[$pp_id]);
-          if (!empty($form->_recurPaymentProcessors[$pp_id])) {
-            unset($form->_recurPaymentProcessors[$pp_id]);
-          }
+          $form->_elements[$pp_form_id]->_options[$option_id]['attr']['disabled'] = 'disabled';
         }
       }
       elseif (!empty($acheft[$pp_id]) || !empty($swipe[$pp_id])) {
-        // Remove my ach/eft and swipe, which both require form changes.
-        unset($form->_elements[$pp_form_id]->_options[$option_id]);
-        unset($form->_processors[$pp_id]);
-        if (!empty($form->_recurPaymentProcessors[$pp_id])) {
-          unset($form->_recurPaymentProcessors[$pp_id]);
-        }
+        // Disable my ach/eft and swipe, which both require form changes.
+        $form->_elements[$pp_form_id]->_options[$option_id]['attr']['disabled'] = 'disabled';
       }
     }
   }
