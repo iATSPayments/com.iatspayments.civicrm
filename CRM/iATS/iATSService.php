@@ -224,7 +224,7 @@ class iATS_Service_Request {
       CRM_Core_Error::debug_var('SoapFault Exception', $exception);
       CRM_Core_Error::debug_var('SoapFault Code',$exception->faultcode);
       CRM_Core_Error::debug_var('SoapFault String',$exception->faultstring);
-      if (!empty($this->options['debug'])) {
+      if (!empty($this->options['debug']) && !empty($soapClient)) {
         $response_log = "\n HEADER:\n";
         $response_log .= $soapClient->__getLastResponseHeaders();
         $response_log .= "\n BODY:\n";
