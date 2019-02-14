@@ -13,17 +13,17 @@
         <div class="clear"></div>
       </div>
       <div class="crm-section cad-transit-number-section">
-        <div class="label">{$form.cad_transit_number.label}</div>
+        <div class="label">{ts domain='com.iatspayments.civicrm'}{$form.cad_transit_number.label}{/ts}</div>
         <div class="content">{$form.cad_transit_number.html}</div>
         <div class="clear"></div>
       </div>
       <div class="crm-section cad-bank-number-section">
-        <div class="label">{$form.cad_bank_number.label}</div>
+        <div class="label">{ts domain='com.iatspayments.civicrm'}{$form.cad_bank_number.label}{/ts}</div>
         <div class="content">{$form.cad_bank_number.html}</div>
         <div class="clear"></div>
       </div>
       <div class="crm-section bank-account-type-section">
-        <div class="label">{$form.bank_account_type.label}</div>
+        <div class="label">{ts domain='com.iatspayments.civicrm'}{$form.bank_account_type.label}{/ts}</div>
         <div class="content">{$form.bank_account_type.html}</div>
         <div class="clear"></div>
       </div>
