@@ -11,6 +11,10 @@ class IATSCustomerUpdateBillingInfo extends CRM_iATS_Form_IATSCustomerLink {
   public function exportValues($elementList = NULL, $filterInternal = FALSE) {
 
     $ubi = $this->updatedBillingInfo;
+    // Fix billing form update bug by forcing crid to exist
+    if(empty($ubi['crid'])) {
+      $ubi['crid'] = !empty($_POST['crid']) ? (int) $_POST['crid'] : (!empty($_GET['crid']) ? (int) $_GET['crid'] : 0);
+    }
     // updatedBillingInfo array changed sometime after 4.7.27
     $crid = !empty($ubi['crid']) ? $ubi['crid'] : $ubi['recur_id'];
     if (empty($crid)) {
