@@ -507,6 +507,13 @@ class iATS_Service_Request {
             'message' => 'GetCreditCardRejectDateRangeCSV',
             'response' => 'GetCreditCardRejectDateRangeCSVResult',
           ),
+          'cc_bank_reconciliation_csv' => array(
+            'title' => 'Credit Card Bank Reconciliation CSV',
+            'description' => $desc . 'GetCreditCardBankReconciliationReportCSV',
+            'method' => 'GetCreditCardBankReconciliationReportCSV',
+            'message' => 'GetCreditCardBankReconciliationReportCSV',
+            'response' => 'GetCreditCardBankReconciliationReportCSVResult',
+          ),
           'acheft_journal_csv' => array(
             'title' => 'ACH-EFT Journal CSV',
             'description' => $desc . 'GetACHEFTApprovedSpecificDateCSV',
@@ -541,6 +548,13 @@ class iATS_Service_Request {
             'method' => 'GetACHEFTRejectSpecificDateCSV',
             'message' => 'GetACHEFTRejectSpecificDateCSV',
             'response' => 'GetACHEFTRejectSpecificDateCSVResult',
+          ),
+          'acheft_bank_reconciliation_csv' => array(
+            'title' => 'ACH-EFT Bank Reconciliation CSV',
+            'description' => $desc . 'GetACHEFTBankReconciliationReportCSV',
+            'method' => 'GetACHEFTBankReconciliationReportCSV',
+            'message' => 'GetACHEFTBankReconciliationReportCSV',
+            'response' => 'GetACHEFTBankReconciliationReportCSVResult',
           ),
         );
         break;
