@@ -154,7 +154,7 @@ class CRM_iATS_Form_Report_Recur extends CRM_Report_Form {
           'fields' =>
             array(
               'customer_code' => array('title' => 'customer code', 'default' => TRUE),
-              'expiry' => array('title' => 'Expiry Date (original card)', 'default' => TRUE),
+              'expiry' => array('title' => 'Expiry Date', 'default' => TRUE),
             ),
         ),
       'civicrm_contribution_recur' => array(
