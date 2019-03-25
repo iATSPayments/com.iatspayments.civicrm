@@ -129,13 +129,11 @@ class CRM_iATS_Form_Report_Recur extends CRM_Report_Form {
             'required' => TRUE,
             'dbAlias' => "GROUP_CONCAT(contribution_civireport.id SEPARATOR ', ')",
           ),
-          'total_amount' => array(
-            'title' => ts('Amount Contributed to date'),
-            'required' => TRUE,
-            'statistics' => array(
-              'sum' => ts("Total Amount contributed"),
-            ),
-          ),
+          'total_amount_sum' => array(
+	    'title' => ts('Amount - to date'),
+	    'required' => TRUE,
+	    'dbAlias' => "SUM(contribution_civireport.total_amount)",
+	  ),
         ),
         'filters' => array(
           'total_amount' => array(

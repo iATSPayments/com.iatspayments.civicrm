@@ -266,14 +266,7 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
         $contribution[$field] = is_array($contribution_template[$field]) ? implode(', ', $contribution_template[$field]) : $contribution_template[$field];
       }
     }
-    // 4.2.
-    if (isset($dao->contribution_type_id)) {
-      $contribution['contribution_type_id'] = $dao->contribution_type_id;
-    }
-    // 4.3+.
-    else {
-      $contribution['financial_type_id'] = $dao->financial_type_id;
-    }
+    $contribution['financial_type_id'] = $dao->financial_type_id;
     // if we have a created a pending contribution record due to a future start time, then recycle that CiviCRM contribution record now.
     // Note that the date and amount both could have changed.
     // The key is to only match if we find a single pending contribution, with a NULL transaction id, for this recurring schedule.
@@ -331,6 +324,14 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
           // ignore, if will fail correctly if there is no membership payment.
         }
       }
+      // Before talking to iATS, advance the next collection date now so that in case of partial server failure I don't try to take money again.
+      // Save the current value to restore in some cases of confirmed payment failure
+      $saved_next_sched_contribution_date = $dao->next_sched_contribution_date;
+      /* calculate the next collection date, based on the recieve date (note effect of catchup mode, above)  */
+      $next_collection_date = date('Y-m-d H:i:s', strtotime("+$dao->frequency_interval $dao->frequency_unit", $receive_ts));
+      /* advance to the next scheduled date */
+      $contribution_recur_set = array('version' => 3, 'id' => $contribution['contribution_recur_id'], 'next_sched_contribution_date' => $next_collection_date);
+      civicrm_api('ContributionRecur', 'create', $contribution_recur_set);
       // So far so, good ... now create the pending contribution, and save its id
       // and then try to get the money, and do one of:
       // update the contribution to failed, leave as pending for server failure, complete the transaction,
@@ -347,7 +348,7 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
       switch ($contribution['iats_reject_code']) {
         // Reported lost or stolen.
         case 'REJECT: 25':
-          // Do not reprocess!
+          // Do not reprocess (fall through)!
         case 'REJECT: 100':
           /* convert the contribution series to pending to avoid reprocessing until dealt with */
           civicrm_api('ContributionRecur', 'create',
@@ -361,17 +362,15 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
       }
     }
 
-    /* calculate the next collection date, based on the recieve date (note effect of catchup mode, above)  */
-    $next_collection_date = date('Y-m-d H:i:s', strtotime("+$dao->frequency_interval $dao->frequency_unit", $receive_ts));
-    /* by default, advance to the next schduled date and set the failure count back to 0 */
-    $contribution_recur_set = array('version' => 3, 'id' => $contribution['contribution_recur_id'], 'failure_count' => '0', 'next_sched_contribution_date' => $next_collection_date);
+    /* on success, just set the failure count back to 0 */
+    $contribution_recur_set = array('version' => 3, 'id' => $contribution['contribution_recur_id'], 'failure_count' => '0');
     /* special handling for failures */
     if (4 == $contribution['contribution_status_id']) {
       $contribution_recur_set['failure_count'] = $failure_count + 1;
-      /* if it has failed but the failure threshold will not be reached with this failure, leave the next sched contribution date as it was */
+      /* if it has failed but the failure threshold will not be reached with this failure, revert the next sched contribution date to what it was */
       if ($contribution_recur_set['failure_count'] < $failure_threshhold) {
         // Should the failure count be reset otherwise? It is not.
-        unset($contribution_recur_set['next_sched_contribution_date']);
+        $contribution_recur_set['next_sched_contribution_date'] = $saved_next_sched_contribution_date; 
       }
     }
     civicrm_api('ContributionRecur', 'create', $contribution_recur_set);
