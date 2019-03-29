@@ -53,6 +53,9 @@ function civicrm_api3_iats_payments_journal($params) {
       $iats_journal_id = (int) $data['Journal Id'];
       $sql_action = 'REPLACE INTO ';
     }
+    if ($data['Result'] == 'REJ:TIMEOUT' && $data['Method of Payment'] == 'ACHEFT') {
+      throw new API3_Exception('iATS Payments journal ignore ACHEFT REJ:TIMEOUT');
+    } 
     $query_params = array(
       1 => array($data['Transaction ID'], 'String'),
       3 => array($dtm, 'String'),
@@ -65,9 +68,6 @@ function civicrm_api3_iats_payments_journal($params) {
       10 => array($data['Comment'], 'String'),
       11 => array($params['status_id'], 'Integer'),
     );
-    if ($data['Result'] == 'REJ:TIMEOUT' && $data['Method of Payment'] == 'ACHEFT') {
-      throw CiviCRM_API3_Exception('iATS Payments journal ignore ACHEFT REJ:TIMEOUT');
-    } 
     $result = CRM_Core_DAO::executeQuery($sql_action . " civicrm_iats_journal
         (tnid, iats_id, dtm, agt, cstc, inv, amt, rst, tntyp, cm, status_id) VALUES (%1, $iats_journal_id, %3, %4, %5, %6, %7, %8, %9, %10, %11)", $query_params);
   }
