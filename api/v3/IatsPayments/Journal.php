@@ -54,7 +54,7 @@ function civicrm_api3_iats_payments_journal($params) {
       $sql_action = 'REPLACE INTO ';
     }
     if ($data['Result'] == 'REJ:TIMEOUT' && $data['Method of Payment'] == 'ACHEFT') {
-      throw new API3_Exception('iATS Payments journal ignore ACHEFT REJ:TIMEOUT');
+      throw new CiviCRM_API3_Exception('iATS Payments journal ignore ACHEFT REJ:TIMEOUT');
     } 
     $query_params = array(
       1 => array($data['Transaction ID'], 'String'),
