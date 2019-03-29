@@ -53,21 +53,27 @@ function civicrm_api3_iats_payments_journal($params) {
       $iats_journal_id = (int) $data['Journal Id'];
       $sql_action = 'REPLACE INTO ';
     }
-    $query_params = array(
-      1 => array($data['Transaction ID'], 'String'),
-      3 => array($dtm, 'String'),
-      4 => array($data['Client Code'], 'String'),
-      5 => array($params['customer_code'], 'String'),
-      6 => array($params['invoice'], 'String'),
-      7 => array($params['amount'], 'String'),
-      8 => array($data['Result'], 'String'),
-      9 => array($data['Method of Payment'], 'String'),
-      10 => array($data['Comment'], 'String'),
-      11 => array($params['status_id'], 'Integer'),
-    );
+    // KG simulate a REJ:TIMEOUT                                                                                                               
+    // if ($params['invoice'] == '115c1ca58f619b6122ad47ef2303db99') {
+    //   $data['Result'] = 'REJ:TIMEOUT';
+    //   $params['status_id'] = 4;
+    // };
     if ($data['Result'] == 'REJ:TIMEOUT' && $data['Method of Payment'] == 'ACHEFT') {
-      throw CiviCRM_API3_Exception('iATS Payments journal ignore ACHEFT REJ:TIMEOUT');
-    } 
+      // throw CiviCRM_API3_Exception('iATS Payments journal ignore ACHEFT REJ:TIMEOUT');
+    } else { 
+      $query_params = array(
+        1 => array($data['Transaction ID'], 'String'),
+        3 => array($dtm, 'String'),
+        4 => array($data['Client Code'], 'String'),
+        5 => array($params['customer_code'], 'String'),
+        6 => array($params['invoice'], 'String'),
+        7 => array($params['amount'], 'String'),
+        8 => array($data['Result'], 'String'),
+        9 => array($data['Method of Payment'], 'String'),
+        10 => array($data['Comment'], 'String'),
+        11 => array($params['status_id'], 'Integer'),
+      );
+    }
     $result = CRM_Core_DAO::executeQuery($sql_action . " civicrm_iats_journal
         (tnid, iats_id, dtm, agt, cstc, inv, amt, rst, tntyp, cm, status_id) VALUES (%1, $iats_journal_id, %3, %4, %5, %6, %7, %8, %9, %10, %11)", $query_params);
   }
