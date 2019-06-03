@@ -99,7 +99,7 @@ function _iats_civix_upgrader() {
   if (!file_exists(__DIR__.'/CRM/Iats/Upgrader.php')) {
     return NULL;
   } else {
-    return CRM_iATS_Upgrader_Base::instance();
+    return CRM_Iats_Upgrader_Base::instance();
   }
 }
 
