@@ -1,6 +1,6 @@
 <?php
 
-class IATSCustomerUpdateBillingInfo extends CRM_iATS_Form_IATSCustomerLink {
+class IATSCustomerUpdateBillingInfo extends CRM_Iats_Form_IATSCustomerLink {
 
   public $updatedBillingInfo;
 

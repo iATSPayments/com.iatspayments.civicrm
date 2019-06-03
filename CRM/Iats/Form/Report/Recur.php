@@ -33,7 +33,7 @@
  * @copyright CiviCRM LLC (c) 2004-2013
  * $Id$
  */
-class CRM_iATS_Form_Report_Recur extends CRM_Report_Form {
+class CRM_Iats_Form_Report_Recur extends CRM_Report_Form {
 
   protected $_customGroupExtends = array('Contact');
 

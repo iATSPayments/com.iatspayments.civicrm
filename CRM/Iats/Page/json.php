@@ -7,7 +7,7 @@
 /**
  *
  */
-class CRM_iATS_Page_json {
+class CRM_Iats_Page_json {
 
   /**
    *

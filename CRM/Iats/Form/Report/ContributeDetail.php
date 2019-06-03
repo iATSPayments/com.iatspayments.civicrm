@@ -8,7 +8,7 @@
  * @package CRM
  * @copyright CiviCRM LLC (c) 2004-2018
  */
-class CRM_iATS_Form_Report_ContributeDetail extends CRM_Report_Form {
+class CRM_Iats_Form_Report_ContributeDetail extends CRM_Report_Form {
 
   protected $_summary = NULL;
 

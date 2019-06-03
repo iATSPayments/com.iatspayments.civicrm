@@ -11,14 +11,14 @@
 return array(
   0 =>
   array(
-    'name' => 'CRM_iATS_Form_Report_ContributeDetail',
+    'name' => 'CRM_Iats_Form_Report_ContributeDetail',
     'entity' => 'ReportTemplate',
     'params' =>
     array(
       'version' => 3,
       'label' => 'iATS Payments - Contribution Reconciliation',
       'description' => 'Donor Report (Detail) Report with extra iATS Reconciliation fields.',
-      'class_name' => 'CRM_iATS_Form_Report_ContributeDetail',
+      'class_name' => 'CRM_Iats_Form_Report_ContributeDetail',
       'report_url' => 'com.iatspayments.com/contributedetail',
       'component' => 'CiviContribute',
     ),

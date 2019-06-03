@@ -8,7 +8,7 @@
 /**
  * Base class which provides helpers to execute upgrade logic.
  */
-class CRM_iATS_Upgrader_Base {
+class CRM_Iats_Upgrader_Base {
 
   /**
    * @var variessubclassofhtis
@@ -41,7 +41,7 @@ class CRM_iATS_Upgrader_Base {
   static public function instance() {
     if (!self::$instance) {
       // FIXME auto-generate.
-      self::$instance = new CRM_iATS_Upgrader(
+      self::$instance = new CRM_Iats_Upgrader(
         'com.iatspayments.civicrm',
         realpath(__DIR__ . '/../../../')
       );
@@ -56,7 +56,7 @@ class CRM_iATS_Upgrader_Base {
    * task-context; otherwise, this will be non-reentrant.
    *
    * @code
-   * CRM_iATS_Upgrader_Base::_queueAdapter($ctx, 'methodName', 'arg1', 'arg2');
+   * CRM_Iats_Upgrader_Base::_queueAdapter($ctx, 'methodName', 'arg1', 'arg2');
    * @endcode
    */
   static public function _queueAdapter() {

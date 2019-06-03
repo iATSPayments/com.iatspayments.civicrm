@@ -11,7 +11,7 @@ require_once 'CRM/Core/Form.php';
  *
  * @see http://wiki.civicrm.org/confluence/display/CRMDOC43/QuickForm+Reference
  */
-class CRM_iATS_Form_IatsSettings extends CRM_Core_Form {
+class CRM_Iats_Form_IatsSettings extends CRM_Core_Form {
 
   /**
    *

@@ -9,7 +9,7 @@ require_once 'CRM/Core/Page.php';
 /**
  *
  */
-class CRM_iATS_Page_iATSAdmin extends CRM_Core_Page {
+class CRM_Iats_Page_iATSAdmin extends CRM_Core_Page {
 
   /**
    *
