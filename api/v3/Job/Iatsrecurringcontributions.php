@@ -71,8 +71,6 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
   unset($params['ignoremembership']);
 
   // TODO: what kind of extra security do we want or need here to prevent it from being triggered inappropriately? Or does it matter?
-  // The next scheduled contribution date field name is civicrm version dependent.
-  define('IATS_CIVICRM_NSCD_FID', _iats_civicrm_nscd_fid());
   // $config = &CRM_Core_Config::singleton();
   // $debug  = false;
   // do my calculations based on yyyymmddhhmmss representation of the time
@@ -164,7 +162,7 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
   $dao = CRM_Core_DAO::executeQuery($update, $args);
 
   // Now we're ready to trigger payments
-  // Select the ongoing recurring payments for iATSServices where the next scheduled contribution date (NSCD) is before the end of of the current day.
+  // Select the ongoing recurring payments for iATSServices where the next scheduled contribution date is before the end of of the current day.
   $select = 'SELECT cr.*, icc.customer_code, icc.expiry as icc_expiry, icc.cid as icc_contact_id, pp.class_name as pp_class_name, pp.url_site as url_site, pp.is_test
       FROM civicrm_contribution_recur cr
       INNER JOIN civicrm_payment_processor pp ON cr.payment_processor_id = pp.id
@@ -181,7 +179,7 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
   // If (!empty($params['scheduled'])) {.
   else {
     // normally, process all recurring contributions due today or earlier.
-    $select .= ' AND cr.' . IATS_CIVICRM_NSCD_FID . ' <= %4';
+    $select .= ' AND cr.next_sched_contribution_date <= %4';
     $args[4] = array($dtCurrentDayEnd, 'String');
     // ' AND cr.next_sched_contribution >= %2
     // $args[2] = array($dtCurrentDayStart, 'String');

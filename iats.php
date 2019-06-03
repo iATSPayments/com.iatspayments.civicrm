@@ -334,14 +334,6 @@ function _iats_civicrm_use_repeattransaction() {
 }
 
 /**
- * Get the name of the next scheduled contribution date field, (not necessary since 4.4)
- */
-function _iats_civicrm_nscd_fid() {
-  $version = CRM_Utils_System::version();
-  return (version_compare($version, '4.4') < 0) ? 'next_sched_contribution' : 'next_sched_contribution_date';
-}
-
-/**
  * Set js config values, version dependent. Access is also version dependent.
  */
 function _iats_civicrm_varset($vars) {
