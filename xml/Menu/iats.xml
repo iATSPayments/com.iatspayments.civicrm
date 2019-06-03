@@ -1,9 +1,9 @@
 <?xml version="1.0"?>
 <menu>
   <item>
-    <path>civicrm/iATSAdmin</path>
-    <page_callback>CRM_Iats_Page_iATSAdmin</page_callback>
-    <title>iATS Payments Administration</title>
+    <path>civicrm/admin/contribute/faps-settings</path>
+    <page_callback>CRM_Iats_Form_Settings</page_callback>
+    <title>Settings</title>
     <access_arguments>access CiviCRM</access_arguments>
   </item>
 </menu>

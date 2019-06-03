@@ -1,28 +1,26 @@
 <?xml version="1.0"?>
 <extension key="com.iatspayments.civicrm" type="module">
   <file>iats</file>
-  <name>iATS Payments</name>
-  <description>iATS Payments Web Services Payment Processor</description>
-  <urls>
-    <url desc="Main Extension Page">http://blackflysolutions.ca/project/iats-webservices-civicrm-extension</url>
-    <url desc="Support">https://github.com/iATSPayments/com.iatspayments.civicrm/issues?state=open</url>
-    <url desc="Installation Instructions">https://github.com/iATSPayments/com.iatspayments.civicrm</url>
-    <url desc="Documentation">https://github.com/iATSPayments/com.iatspayments.civicrm</url>
-  </urls>
-  <license>AGPL</license>
+  <name>iATS Payments CiviCRM</name>
+  <description>Payment processor extension for iATS Payments.</description>
+  <license>AGPL-3.0</license>
   <maintainer>
     <author>Alan Dixon</author>
     <email>iats@blackflysolutions.ca</email>
   </maintainer>
-  <releaseDate>2014-04-03</releaseDate>
-  <version>1.2.1</version>
-  <develStage>stable</develStage>
+  <urls>
+    <url desc="Main Extension Page">https://github.com/adixon/com.iatspayments.civicrm</url>
+    <url desc="Documentation">https://github.com/adixon/com.iatspayments.civicrm/wiki</url>
+    <url desc="Support">https://github.com/adixon/com.iatspayments.civicrm/issues</url>
+    <url desc="Licensing">http://www.gnu.org/licenses/agpl-3.0.html</url>
+  </urls>
+  <releaseDate>2018-03-08</releaseDate>
+  <version>1.0</version>
+  <develStage>alpha</develStage>
   <compatibility>
-    <ver>4.2</ver>
-    <ver>4.3</ver>
-    <ver>4.4</ver>
+    <ver>4.7</ver>
   </compatibility>
-  <comments>This extension module replaces the previous iATS payment processor. It uses the new webservices interface instead of the old "php api" interface to iATS, and is now distributed as an extension. It can co-exist with the old iATS payment processor.</comments>
+  <comments>This is a new, undeveloped module</comments>
   <civix>
     <namespace>CRM/Iats</namespace>
   </civix>

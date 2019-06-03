@@ -1,376 +1,320 @@
 <?php
 
-define('IATS_CIVICRM_NSCD_FID',_iats_civicrm_nscd_fid());
-
 require_once 'iats.civix.php';
+use CRM_Iats_ExtensionUtil as E;
+
+define('FAPS_DEFAULT_ACH_CATEGORY_TEXT','CiviCRM ACH');
 
 /**
- * Implementation of hook_civicrm_config
+ * Implements hook_civicrm_config().
+ *
+ * @link http://wiki.civicrm.org/confluence/display/CRMDOC/hook_civicrm_config
  */
 function iats_civicrm_config(&$config) {
   _iats_civix_civicrm_config($config);
 }
 
 /**
- * Implementation of hook_civicrm_xmlMenu
+ * Implements hook_civicrm_xmlMenu().
  *
- * @param $files array(string)
+ * @link http://wiki.civicrm.org/confluence/display/CRMDOC/hook_civicrm_xmlMenu
  */
 function iats_civicrm_xmlMenu(&$files) {
   _iats_civix_civicrm_xmlMenu($files);
 }
 
 /**
- * Implementation of hook_civicrm_install
+ * Implements hook_civicrm_install().
+ *
+ * @link http://wiki.civicrm.org/confluence/display/CRMDOC/hook_civicrm_install
  */
 function iats_civicrm_install() {
-  return _iats_civix_civicrm_install();
+  _iats_civix_civicrm_install();
 }
 
 /**
- * Implementation of hook_civicrm_uninstall
+ * Implements hook_civicrm_postInstall().
+ *
+ * @link http://wiki.civicrm.org/confluence/display/CRMDOC/hook_civicrm_postInstall
+ */
+function iats_civicrm_postInstall() {
+  _iats_civix_civicrm_postInstall();
+}
+
+/**
+ * Implements hook_civicrm_uninstall().
+ *
+ * @link http://wiki.civicrm.org/confluence/display/CRMDOC/hook_civicrm_uninstall
  */
 function iats_civicrm_uninstall() {
-  return _iats_civix_civicrm_uninstall();
+  _iats_civix_civicrm_uninstall();
 }
 
 /**
- * Implementation of hook_civicrm_enable
+ * Implements hook_civicrm_enable().
+ *
+ * @link http://wiki.civicrm.org/confluence/display/CRMDOC/hook_civicrm_enable
  */
 function iats_civicrm_enable() {
-  return _iats_civix_civicrm_enable();
+  _iats_civix_civicrm_enable();
 }
 
 /**
- * Implementation of hook_civicrm_disable
+ * Implements hook_civicrm_disable().
+ *
+ * @link http://wiki.civicrm.org/confluence/display/CRMDOC/hook_civicrm_disable
  */
 function iats_civicrm_disable() {
-  return _iats_civix_civicrm_disable();
+  _iats_civix_civicrm_disable();
 }
 
 /**
- * Implementation of hook_civicrm_upgrade
+ * Implements hook_civicrm_upgrade().
  *
- * @param $op string, the type of operation being performed; 'check' or 'enqueue'
- * @param $queue CRM_Queue_Queue, (for 'enqueue') the modifiable list of pending up upgrade tasks
- *
- * @return mixed  based on op. for 'check', returns array(boolean) (TRUE if upgrades are pending)
- *                for 'enqueue', returns void
+ * @link http://wiki.civicrm.org/confluence/display/CRMDOC/hook_civicrm_upgrade
  */
 function iats_civicrm_upgrade($op, CRM_Queue_Queue $queue = NULL) {
   return _iats_civix_civicrm_upgrade($op, $queue);
 }
 
 /**
- * Implementation of hook_civicrm_managed
+ * Implements hook_civicrm_managed().
  *
  * Generate a list of entities to create/deactivate/delete when this module
  * is installed, disabled, uninstalled.
+ *
+ * @link http://wiki.civicrm.org/confluence/display/CRMDOC/hook_civicrm_managed
  */
 function iats_civicrm_managed(&$entities) {
-  $entities[] = array(
-    'module' => 'com.iatspayments.civicrm',
-    'name' => 'iATS Payments',
-    'entity' => 'PaymentProcessorType',
-    'params' => array(
-      'version' => 3,
-      'name' => 'iATS Payments Credit Card',
-      'title' => 'iATS Payments Credit Card',
-      'description' => 'iATS credit card payment processor using the web services interface.',
-      'class_name' => 'Payment_iATSService',
-      'billing_mode' => 'form',
-      'user_name_label' => 'Agent Code',
-      'password_label' => 'Password',
-      'url_site_default' => 'https://www.iatspayments.com/NetGate/ProcessLink.asmx?WSDL',
-      'url_recur_default' => 'https://www.iatspayments.com/NetGate/ProcessLink.asmx?WSDL',
-      'url_site_test_default' => 'https://www.iatspayments.com/NetGate/ProcessLink.asmx?WSDL',
-      'url_recur_test_default' => 'https://www.iatspayments.com/NetGate/ProcessLink.asmx?WSDL',
-      'is_recur' => 1,
-      'payment_type' => 1,
-    ),
-  );
-  $entities[] = array(
-    'module' => 'com.iatspayments.civicrm',
-    'name' => 'iATS Payments ACH/EFT',
-    'entity' => 'PaymentProcessorType',
-    'params' => array(
-      'version' => 3,
-      'name' => 'iATS Payments ACH/EFT',
-      'title' => 'iATS Payments ACH/EFT',
-      'description' => 'iATS ACH/EFT payment processor using the web services interface.',
-      'class_name' => 'Payment_iATSServiceACHEFT',
-      'billing_mode' => 'form',
-      'user_name_label' => 'Agent Code',
-      'password_label' => 'Password',
-      'url_site_default' => 'https://www.iatspayments.com/NetGate/ProcessLink.asmx?WSDL',
-      'url_recur_default' => 'https://www.iatspayments.com/NetGate/ProcessLink.asmx?WSDL',
-      'url_site_test_default' => 'https://www.iatspayments.com/NetGate/ProcessLink.asmx?WSDL',
-      'url_recur_test_default' => 'https://www.iatspayments.com/NetGate/ProcessLink.asmx?WSDL',
-      'is_recur' => 1,
-      'payment_type' => 2,
-    ),
-  );
-  return _iats_civix_civicrm_managed($entities);
+  _iats_civix_civicrm_managed($entities);
 }
 
-function iats_civicrm_navigationMenu(&$params) {
-  // get the maximum key of $params
-  $maxKey = 1 + (max(array_keys($params)));
-  foreach($params as $key => $value) {
-    if ('Contributions' == $value['attributes']['name']) {
-      $params[$key]['child'][$maxKey] =  array (
-        'attributes' => array (
-          'label'      => 'iATS Payments Admin',
-          'name'       => 'iATS Payments Admin',
-          'url'        => 'civicrm/iATSAdmin',
-          'permission' => 'access CiviContribute,administer CiviCRM',
-          'operator'   => 'AND',
-          'separator'  => null,
-          'parentID'   => 28,
-          'navID'      => $maxKey,
-          'active'     => 1
-        )
-      );
-      $maxKey++; // just in case ...
+/**
+ * Implements hook_civicrm_caseTypes().
+ *
+ * Generate a list of case-types.
+ *
+ * Note: This hook only runs in CiviCRM 4.4+.
+ *
+ * @link http://wiki.civicrm.org/confluence/display/CRMDOC/hook_civicrm_caseTypes
+ */
+function iats_civicrm_caseTypes(&$caseTypes) {
+  _iats_civix_civicrm_caseTypes($caseTypes);
+}
+
+/**
+ * Implements hook_civicrm_angularModules().
+ *
+ * Generate a list of Angular modules.
+ *
+ * Note: This hook only runs in CiviCRM 4.5+. It may
+ * use features only available in v4.6+.
+ *
+ * @link http://wiki.civicrm.org/confluence/display/CRMDOC/hook_civicrm_angularModules
+ */
+function iats_civicrm_angularModules(&$angularModules) {
+  _iats_civix_civicrm_angularModules($angularModules);
+}
+
+/**
+ * Implements hook_civicrm_alterSettingsFolders().
+ *
+ * @link http://wiki.civicrm.org/confluence/display/CRMDOC/hook_civicrm_alterSettingsFolders
+ */
+function iats_civicrm_alterSettingsFolders(&$metaDataFolders = NULL) {
+  _iats_civix_civicrm_alterSettingsFolders($metaDataFolders);
+}
+
+/**
+ * Implements hook_civicrm_entityTypes().
+ *
+ * Declare entity types provided by this module.
+ *
+ * @link http://wiki.civicrm.org/confluence/display/CRMDOC/hook_civicrm_entityTypes
+ */
+function iats_civicrm_entityTypes(&$entityTypes) {
+  _iats_civix_civicrm_entityTypes($entityTypes);
+}
+
+// --- Functions below this ship commented out. Uncomment as required. ---
+
+/**
+ * Implements hook_civicrm_preProcess().
+ *
+ * @link http://wiki.civicrm.org/confluence/display/CRMDOC/hook_civicrm_preProcess
+ *
+function iats_civicrm_preProcess($formName, &$form) {
+
+} // */
+
+/**
+ * Implements hook_civicrm_navigationMenu().
+ *
+ * @link http://wiki.civicrm.org/confluence/display/CRMDOC/hook_civicrm_navigationMenu
+ *
+function iats_civicrm_navigationMenu(&$menu) {
+  _iats_civix_insert_navigation_menu($menu, 'Mailings', array(
+    'label' => E::ts('New subliminal message'),
+    'name' => 'mailing_subliminal_message',
+    'url' => 'civicrm/mailing/subliminal',
+    'permission' => 'access CiviMail',
+    'operator' => 'OR',
+    'separator' => 0,
+  ));
+  _iats_civix_navigationMenu($menu);
+} // */
+
+function iats_get_setting($key = NULL) {
+  static $settings;
+  if (empty($settings)) { 
+    $settings = CRM_Core_BAO_Setting::getItem('iATS FAPS Payments Extension', 'iats_settings');
+  }
+  return empty($key) ?  $settings : (isset($settings[$key]) ? $settings[$key] : '');
+}
+
+/**
+ * Internal utility function: return the id's of any iATS processors matching various conditions.
+ *
+ * Processors: an array of payment processors indexed by id to filter by,
+ *             or if NULL, it searches through all
+ * subtype: the service class name type or subtype
+ * params: an array of additional params to pass to the api call.
+ */
+function iats_civicrm_processors($processors, $subtype = '', $params = array()) {
+  $list = array();
+  $match_all = ('*' == $subtype) ? TRUE : FALSE;
+  if (!$match_all) {
+    $params['class_name'] = 'Payment_' . $subtype;
+  }
+
+  // Set the domain id if not passed in.
+  if (!array_key_exists('domain_id', $params)) {
+    $params['domain_id']    = CRM_Core_Config::domainID();
+  }
+
+  $result = civicrm_api3('PaymentProcessor', 'get', $params);
+  if (0 == $result['is_error'] && count($result['values']) > 0) {
+    foreach ($result['values'] as $paymentProcessor) {
+      $id = $paymentProcessor['id'];
+      if ((is_null($processors)) || !empty($processors[$id])) {
+        if (!$match_all || (0 === strpos($paymentProcessor['class_name'], 'Payment_Faps'))) {
+          $list[$id] = $paymentProcessor;
+        }
+      }
     }
   }
+  return $list;
 }
 
-
-/*
- * hook_civicrm_buildForm
- * Do a Drupal 7 style thing so we can write smaller functions
+/**
+ * Hook_civicrm_buildForm.
+ * Do a Drupal 7 style thing so we can write smaller functions.
  */
 function iats_civicrm_buildForm($formName, &$form) {
-  $fname = 'iats_civicrm_buildForm_'.$formName;
+  // But start by grouping a few forms together for nicer code.
+  switch ($formName) {
+    case 'CRM_Event_Form_Participant':
+    case 'CRM_Member_Form_Membership':
+    case 'CRM_Contribute_Form_Contribution':
+      // Override normal convention, deal with all these backend credit card contribution forms the same way.
+      $fname = 'iats_civicrm_buildForm_Contribution';
+      break;
+
+    case 'CRM_Contribute_Form_Contribution_Main':
+    case 'CRM_Event_Form_Registration_Register':
+    case 'CRM_Financial_Form_Payment':
+      // Override normal convention, deal with all these front-end contribution forms the same way.
+      $fname = 'iats_civicrm_buildForm_Contribution';
+      break;
+    default:
+      $fname = 'iats_civicrm_buildForm_' . $formName;
+      break;
+  }
   if (function_exists($fname)) {
     $fname($form);
   }
+  // Else echo $fname;.
 }
 
-/*
- * hook_civicrm_pre
- *
- * CiviCRM assumes all recurring contributions need to be reverified
- * using the IPN mechanism.
- * After saving any contribution, test for status = 2 and using IATS Payments
- * and set to status = 1 instead.
- * Applies only to the initial contribution and the recurring contribution record.
- * The recurring contribution status id is set explicitly in the job that creates it, and doesn't need this modification.
+/**
+ * Add the magic sauce to cc and ach forms if I'm using FAPS
  */
-
-function iats_civicrm_pre($op, $objectName, $objectId, &$params) {
-  if ('create' == $op) {
-    if (('Contribution' == $objectName) 
-      && !empty($params['contribution_status_id']) 
-      && !empty($params['contribution_recur_id'])) {
-      if (2 == $params['contribution_status_id']) {
-        // watchdog('iats_civicrm','hook_civicrm_pre for Contribution recur @id',array('@id' => $params['contribution_recur_id']));
-        if ($payment_processor_id = _iats_civicrm_get_payment_processor_id($params['contribution_recur_id'])) {
-          // watchdog('iats_civicrm','hook_civicrm_pre for PP id @id',array('@id' => $payment_processor_id));
-          if ($type = _iats_civicrm_is_iats($payment_processor_id)) {
-            // watchdog('iats_civicrm','Convert to status of 1');
-            switch ($type) {
-              case 'iATSService': // cc
-                $params['contribution_status_id'] = 1;
-                break;
-              case 'iATSServiceACHEFT': // cc
-                $params['payment_instrument_id'] = 2;
-                // watchdog('iats_civicrm_regular','<pre>'.print_r($params,TRUE).'</pre>');
-                // $params['contribution_status_id'] = 1;
-                break;
-            }
-            
-          }
-        }
-      }
-    }
-    elseif ('ContributionRecur' == $objectName) {
-      // watchdog('iats_civicrm','hook_civicrm_pre for ContributionRecur params @id',array('@id' => print_r($params, TRUE)));
-      if (2 == $params['contribution_status_id']
-          && !empty($params['payment_processor_id'])
-      ) {
-        if ($type = _iats_civicrm_is_iats($params['payment_processor_id'])) {
-          // watchdog('iats_civicrm','Convert to status of 1');
-          switch ($type) {
-            case 'iATSService': // cc
-              // we have already taken the first payment, so calculate the next one
-              $params['contribution_status_id'] = 1;
-              $next = strtotime('+'.$params['frequency_interval'].' '.$params['frequency_unit']);
-              $params[IATS_CIVICRM_NSCD_FID] = date('YmdHis',$next);
-              break;
-            case 'iATSServiceACHEFT': // 
-              // watchdog('iats_civicrm_recur','<pre>'.print_r($params,TRUE).'</pre>');
-              $params['payment_instrument_id'] = 2;
-              $params['contribution_status_id'] = 1;
-              $next = strtotime('+'.$params['frequency_interval'].' '.$params['frequency_unit']);
-              $params[IATS_CIVICRM_NSCD_FID] = date('YmdHis',$next);
-              break;
-          }
-        }
-      }
-    }
-    // watchdog('iats_civicrm','ignoring hook_civicrm_pre for objectName @id',array('@id' => $objectName));
-  }
-}
-
-/* 
- * The contribution itself doesn't tell you which payment processor it came from
- * So we have to dig back via the contribution_recur_id that it is associated with.
- */
-function _iats_civicrm_get_payment_processor_id($contribution_recur_id) {
-  $params = array(
-    'version' => 3,
-    'sequential' => 1,
-    'id' => $contribution_recur_id,
-  );
-  $result = civicrm_api('ContributionRecur', 'getsingle', $params);
-  if (empty($result['payment_processor_id'])) {
-    return FALSE;
-    // TODO: log error
-  }
-  return $result['payment_processor_id'];
-}
-
-function _iats_civicrm_is_iats($payment_processor_id) {
-  $params = array(
-    'version' => 3,
-    'sequential' => 1,
-    'id' => $payment_processor_id,
-  );
-  $result = civicrm_api('PaymentProcessor', 'getsingle', $params);
-  if (empty($result['class_name'])) {
-    return FALSE;
-    // TODO: log error
-  }
-  $type = substr($result['class_name'],0,19);
-  $subtype = substr($result['class_name'],19);
-  return ('Payment_iATSService' == $type) ? 'iATSService'.$subtype  : FALSE;
-}
-
-/* internal utility function: return the id's of any iats ach/eft processors */
-function iats_civicrm_acheft_processors($processors) {
-  $acheft = array();
-  foreach($processors as $id => $paymentProcessor) {
-    $params = array('version' => 3, 'sequential' => 1, 'id' => $id);
-    $result = civicrm_api('PaymentProcessor', 'getsingle', $params);
-    if (!empty($result['class_name']) && ('Payment_iATSServiceACHEFT' == $result['class_name'])) {
-      $acheft[$id] = TRUE; 
-      break;
-    }
-  }
-  return $acheft;
-}
-
-/* ACH/EFT modifications from the default direct debit form */
-function iats_civicrm_buildForm_CRM_Contribute_Form_Contribution_Main(&$form) {
-  if (empty($form->_paymentProcessors)) {
-    return;
-  }
-  $acheft = iats_civicrm_acheft_processors($form->_paymentProcessors);
-  // I only need to mangle forms that allow ACH/EFT
-  if (0 == count($acheft)) {
-    return;
-  }
-  if (isset($form->_elementIndex['is_recur'])) {
-    $form->getElement('is_recur')->setValue(1); // force recurring contrib option
-    $form->getElement('is_recur')->freeze(); 
-  }
-  elseif (empty($form->_values['is_recur'])) {
-    CRM_Core_Session::setStatus(ts('You must configure iATS ACH/EFT for recurring contributions.'), ts('Invalid form setting!'), 'alert');
-  }
- 
-  /* In addition, I need to mangle the ajax-bit of the form if I've just selected an ach/eft option 
-   * I need to include an extra field for iATS
-   * TODO: make this form nicer by include a sample check with instructions for getting the account number
-   */
-  if (!empty($acheft[$form->_paymentProcessor['id']])){ 
-    $element = $form->getElement('account_holder');
-    $element->setLabel(ts('Name of Account Holder'));
-    $element = $form->getElement('bank_identification_number');
-    $element->setLabel(ts('Bank number + branch transit number'));
-    //$element = $form->getElement('bank_name');
-    //$element->setLabel(ts('Bank name'));
-    $form->addElement('select', 'bank_account_type', ts('Account type'), array('CHECKING' => 'Checking', 'SAVING' => 'Saving'));
-    $form->addRule('bank_account_type', ts('%1 is a required field.', array(1 => ts('Account type'))), 'required');
-    CRM_Core_Region::instance('billing-block')->add(array(
-      'template' => 'CRM/Iats/BillingBlockDirectDebitExtra.tpl'
-    ));
-
-    // watchdog('iats_acheft',kprint_r($form,TRUE));
-  }
-  // TODO: add legal requirement notice and perhaps checkbox acceptance for electronic acceptance of ACH/EFT ? Country dependent!
-}
-
-/*  Fix the backend contribution form.
- *  1. take out my ACH/EFT processors 
- *  2. if I took them out, provide helpful links to backend-ish payment pages
- *  This should get fixed in core.
- */
-function iats_civicrm_buildForm_CRM_Contribute_Form_Contribution(&$form) {
+function iats_civicrm_buildForm_Contribution(&$form) {
+  // Skip if i don't have any processors.
+  // echo '<pre>'; print_r(array_keys(get_object_vars($form))); die();
   if (empty($form->_processors)) {
+   // return;
+  }
+  $form_class = get_class($form);
+  //  die($form_class);
+
+  if ($form_class == 'CRM_Financial_Form_Payment') {
+    // We're on CRM_Financial_Form_Payment, we've got just one payment processor
+    $id = $form->_paymentProcessor['id'];
+    $iats_processors = iats_civicrm_processors(array($id => $form->_paymentProcessor), 'FAPS');
+  }
+  else {
+    // Handle the event and contribution page forms
+    if (empty($form->_paymentProcessors)) {
+      if (empty($form->_paymentProcessorIDs)) {
+        return;
+      }
+      else {
+        $form_payment_processors = array_fill_keys($form->_paymentProcessorIDs,1);
+      }
+    }
+    else {
+      $form_payment_processors = $form->_paymentProcessors;
+    }
+    $iats_processors = iats_civicrm_processors($form_payment_processors, 'FAPS');
+  }
+  if (empty($iats_processors)) {
     return;
   }
-  $acheft = iats_civicrm_acheft_processors($form->_processors);
-  // I only need to mangle forms that allow ACH/EFT
-  if (0 == count($acheft)) {
-    return;
-  }
-  $acheft_backoffice_links = array();
-  // yes, there's a more efficient/clever way to find the right element
-  foreach($form->_elements as $form_id => $element) {
-    if ($element->_attributes['name'] == 'payment_processor_id') {
-      $pp_form_id = $form_id;
-      break;
+  // print_r($iats_processors); die();
+  // die('test');
+  if (empty($form->_submitValues['payment_processor_id'])) {
+    if (empty($form->_defaults['payment_processor_id'])) {
+      $payment_processor_ids = array_keys($iats_processors);
+      $payment_processor_id = reset($payment_processor_ids);
+    }
+    else {
+      $payment_processor_id = $form->_defaults['payment_processor_id'];
     }
   }
-  foreach(array_keys($acheft) as $pp_id) {
-    unset($form->_processors[$pp_id]);
-    if (!empty($form->_recurPaymentProcessors[$pp_id])) {
-      unset($form->_recurPaymentProcessors[$pp_id]);
-    }
-    $element = $form->_elements[$pp_form_id];
-    if (is_array($element->_options)) {
-      foreach($element->_options as $option_id => $option) {
-        if ($option['attr']['value'] == $pp_id) {
-          unset($element->_options[$option_id]);
-        }
-      }
-    }
-    // and now try to provide a different mechanism for 'backoffice' type contributions using this ACH/EFT payment processor
-    $params = array('version' => 3, 'sequential' => 1, 'payment_processor' => $pp_id);
-    $result = civicrm_api('ContributionPage', 'get', $params);
-    if (0 == $result['is_error'] && count($result['values']) > 0) {
-      foreach($result['values'] as $page) {
-        $url = CRM_Utils_System::url('civicrm/contribute/transact','reset=1&cid='.$form->_contactID.'&id='.$page['id']);
-        $acheft_backoffice_links[] = '<a href="'.$url.'">'.$page['title'].'</a>';
-      }
-    }
+  else {
+    $payment_processor_id = $form->_submitValues['payment_processor_id'];
   }
-  if (count($acheft_backoffice_links)) {
-    // a hackish way to inject these links into the form, they are display nicely using some javascript
-    $form->addElement('hidden','acheft_backoffice_links',json_encode($acheft_backoffice_links));
+  $iats_processor = $iats_processors[$payment_processor_id];
+  $is_cc = ($iats_processor['payment_instrument_id'] == 1);
+  $is_test = ($iats_processor['is_test'] == 1);
+  $has_is_recur = $form->elementExists('is_recur');
+  if (iats_get_setting('use_cryptogram')) {
+    // CRM_Core_Error::debug_var('generate cryptogram html', $iats_processors);
+    // CRM_Core_Error::debug_var('form class', $form_class);
+    // CRM_Core_Error::debug_var('form', $form);
+    $credentials = array(
+      'transcenterId' => $iats_processor['password'],
+      'processorId' => $iats_processor['user_name']
+    );
+    $iats_domain = parse_url($iats_processor['url_site'], PHP_URL_HOST);
+    $cryptojs = 'https://'.$iats_domain.'/secure/PaymentHostedForm/Scripts/firstpay/firstpay.cryptogram.js';
+    $transaction_type = $has_is_recur ? ($is_cc ? 'Auth' : 'Vault') : ($is_cc ? 'Sale' : 'AchDebit');
+    $iframe_src = 'https://'.$iats_domain. '/secure/PaymentHostedForm/v3/' .($is_cc ? 'CreditCard' : 'Ach');
+    $iframe_style = 'width: 100%;'; // height: 100%;';
+    $markup = sprintf("<iframe id=\"firstpay-iframe\" src=\"%s\" style=\"%s\" data-transcenter-id=\"%s\" data-processor-id=\"%s\" data-transaction-type=\"%s\" data-manual-submit=\"false\"></iframe>\n", $iframe_src, $iframe_style,$credentials['transcenterId'], $credentials['processorId'], $transaction_type);
+    // $markup = "<iframe id=\"firstpay-iframe\" src=\"%s\" style=\"width: 100%; height: 100%\" data-transcenter-id=\"%s\" data-processor-id=\"%s\" data-transaction-type=\"%s\" data-manual-submit=\"false\"></iframe>\n";
+    // print_r('<pre>'.$markup.'</pre>'); die();
+    CRM_Core_Resources::singleton()->addScriptUrl($cryptojs);
+    // $markup = print_r($iats_processors, TRUE);
+    CRM_Core_Resources::singleton()->addScriptFile('com.iatspayments.faps', 'js/crypto.js', 10);
+    CRM_Core_Resources::singleton()->addStyleFile('com.iatspayments.faps', 'css/crypto.css', 10);
+    CRM_Core_Region::instance('page-body')->add(array(
+          'name' => 'firstpay-iframe',
+          'type' => 'markup',
+          'markup' => $markup,
+          'weight' => 11,
+          'region' => 'page-body',
+        )); 
   }
-}
-
-function _iats_civicrm_domain_info($key) {
-  static $domain;
-  if (empty($domain)) {
-    $domain = civicrm_api('Domain', 'getsingle', array('version' => 3));
-  }
-  switch($key) {
-    case 'version':
-      return explode('.',$domain['version']);
-    default:
-      if (!empty($domain[$key])) {
-        return $key;
-      }
-      $config_backend = unserialize($domain['config_backend']);
-      return $config_backend[$key];
-  }
-}
-
-function _iats_civicrm_nscd_fid() {
-  $version = _iats_civicrm_domain_info('version');
-  return (($version[0] <= 4) && ($version[1] <= 3)) ? 'next_sched_contribution' : 'next_sched_contribution_date';
 }
