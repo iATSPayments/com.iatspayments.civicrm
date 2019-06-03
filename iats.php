@@ -294,7 +294,7 @@ function iats_civicrm_buildForm_CRM_Contribute_Form_Contribution_Main(&$form) {
     $form->addElement('select', 'bank_account_type', ts('Account type'), array('CHECKING' => 'Checking', 'SAVING' => 'Saving'));
     $form->addRule('bank_account_type', ts('%1 is a required field.', array(1 => ts('Account type'))), 'required');
     CRM_Core_Region::instance('billing-block')->add(array(
-      'template' => 'CRM/iATS/BillingBlockDirectDebitExtra.tpl'
+      'template' => 'CRM/Iats/BillingBlockDirectDebitExtra.tpl'
     ));
 
     // watchdog('iats_acheft',kprint_r($form,TRUE));

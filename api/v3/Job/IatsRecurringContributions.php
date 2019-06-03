@@ -128,7 +128,7 @@ function civicrm_api3_job_iatsrecurringcontributions($params) {
     }
     else { 
       // so far so, good ... now try to trigger the payment on iATS
-      require_once("CRM/iATS/iATSService.php");
+      require_once("CRM/Iats/iATSService.php");
       switch($subtype) {
         case 'ACHEFT':
           $method = 'acheft_with_customer_code';

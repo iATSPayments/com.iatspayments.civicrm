@@ -55,7 +55,7 @@ class CRM_Core_Payment_iATSServiceACHEFT extends CRM_Core_Payment {
       return self::error('Unexpected error, missing profile');
     }
     // use the iATSService object for interacting with iATS, mostly the same for recurring contributions
-    require_once("CRM/iATS/iATSService.php");
+    require_once("CRM/Iats/iATSService.php");
     // TODO: force bail if it's not recurring?
     $isRecur =  CRM_Utils_Array::value('is_recur', $params) && $params['contributionRecurID'];
     $method = $isRecur ? 'acheft_create_customer_code':'acheft';

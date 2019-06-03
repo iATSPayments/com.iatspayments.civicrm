@@ -52,7 +52,7 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
   }
 
   /* get "recent" approvals and rejects from iats and match them up with my pending list via the customer code */
-  require_once("CRM/iATS/iATSService.php");
+  require_once("CRM/Iats/iATSService.php");
   /* initialize some values so I can report at the end */
   $error_count = 0;
   $counter = 0; // number of reject/accept records from iats analysed
