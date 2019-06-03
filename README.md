@@ -123,3 +123,5 @@ Please note that ACH Returns require manually processing. iATS Payments will not
 Caution on the use of Pricesets in recurring contributions. This extension will try to use the original transactions' line items. But there are two separate issues here. First, CiviCRM API does an incomplete job with the bookkeeping of line items, so if you need detailed bookkeeping of line items in recurring contributions, you may be disappointed. Separately, if the total amount of the recurring contribution has changed, then there's no machine way of reliably re-allocating it into the original line items, so in that case, they are not used at all. Though not always ideal, a workaround might be to do different transactions for different types of CiviCRM payments instead.
 
 Please post an issue to the github repository if you have any questions.
+=======
+# com.iatspayments.civicrm

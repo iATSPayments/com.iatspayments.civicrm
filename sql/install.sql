@@ -108,4 +108,3 @@ CREATE TABLE `civicrm_iats_journal` (
   KEY (`contribution_id`),
   KEY (`verify_datetime`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='Table to iATS journal transactions imported via the iATSPayments ReportLink.'
-

@@ -18,6 +18,12 @@
     <access_arguments>access CiviContribute,administer CiviCRM</access_arguments>
   </item>
   <item>
+    <path>civicrm/admin/contribute/faps-settings</path>
+    <page_callback>CRM_Iats_Form_Settings</page_callback>
+    <title>Settings</title>
+    <access_arguments>access CiviCRM</access_arguments>
+  </item>
+  <item>
     <path>civicrm/contact/view/iatscustomerlink</path>
     <page_callback>CRM_iATS_Page_IATSCustomerLink</page_callback>
     <title>CustomerLink Information at iATS</title>
@@ -33,6 +39,5 @@
     <path>civicrm/contact/iatsprocesslink</path>
     <page_callback>CRM_iATS_Form_IATSOneTimeCharge</page_callback>
     <title>IATSOneTimeCharge</title>
-    <access_arguments>access CiviCRM</access_arguments>
   </item>
 </menu>
