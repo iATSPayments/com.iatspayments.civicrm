@@ -261,19 +261,7 @@ function _iats_civicrm_domain_info($key) {
 
 /* START utility functions to allow this extension to work with different civicrm version */
 
-/**
- * Set js config values, version dependent. Access is also version dependent.
- */
-function _iats_civicrm_varset($vars) {
-  $version = CRM_Utils_System::version();
-  // Support 4.4!
-  if (version_compare($version, '4.5') < 0) {
-    CRM_Core_Resources::singleton()->addSetting('iatspayments', $vars);
-  }
-  else {
-    CRM_Core_Resources::singleton()->addVars('iatspayments', $vars);
-  }
-}
+// removed, 1.7 release
 
 /* END functions to allow this extension to work with different civicrm version */
 
@@ -1163,7 +1151,7 @@ function iats_civicrm_buildForm_Contribution(&$form) {
     $iats_processors = iats_civicrm_processors($form_payment_processors, 'FAPS');
   }
   if (count($acheft_backoffice_links)) {
-    _iats_civicrm_varset(array('backofficeLinks' => $acheft_backoffice_links));
+    CRM_Core_Resources::singleton()->addVars('iatspayments', array('backofficeLinks' => $acheft_backoffice_links));
     CRM_Core_Resources::singleton()->addScriptFile('com.iatspayments.civicrm', 'js/contribute_form_search.js');
   }
 }
@@ -1296,7 +1284,7 @@ function iats_civicrm_buildForm_CRM_Contribute_Form_UpdateSubscription(&$form) {
     }
   }
   // Use this in my js to identify which fields need to be removed from the tpl I inject below
-  _iats_civicrm_varset(array('dupeSubscriptionFields' => $dupe_fields));
+  CRM_Core_Resources::singleton()->addVars('iatspayments', array('dupeSubscriptionFields' => $dupe_fields));
   foreach ($edit_fields as $fid => $label) {
     switch($fid) {
       case 'contribution_status_id':
