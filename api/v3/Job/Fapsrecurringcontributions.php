@@ -101,7 +101,7 @@ function civicrm_api3_job_Fapsrecurringcontributions($params) {
   $counter = 0;
   $error_count  = 0;
   $output  = array();
-  $settings = CRM_Core_BAO_Setting::getItem('iATS FAPS Payments Extension', 'faps_settings');
+  $settings = CRM_Core_BAO_Setting::getItem('iATS Payments Extension', 'iats_settings');
   $receipt_recurring = $settings['receipt_recurring'];
   $email_failure_report = empty($settings['email_recurring_failure_report']) ? '' : $settings['email_recurring_failure_report'];
   // By default, after 3 failures move the next scheduled contribution date forward.

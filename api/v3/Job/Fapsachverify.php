@@ -32,7 +32,7 @@ function civicrm_api3_job_fapsachverify($params) {
 
   /* get a list of all active/non-test iATS FAPS payment processors of type ACH, quit if there are none */
   /* We'll make sure they are unique from iATS FAPS point of view (i.e. distinct processorId = username) */
-  $ach_processors = iats_civicrm_processors(array(), 'FAPSACH', array('is_active' => 1, 'is_test' => 0))
+  $ach_processors = _iats_get_payment_processors('FapsACH', array(), array('is_active' => 1, 'is_test' => 0))
   if (empty($ach_processors)) {
     return;
   }
@@ -44,7 +44,7 @@ function civicrm_api3_job_fapsachverify($params) {
     }
   }
 
-  $settings = CRM_Core_BAO_Setting::getItem('iATS FAPS Payments Extension', 'faps_settings');
+  $settings = CRM_Core_BAO_Setting::getItem('iATS Payments Extension', 'iats_settings');
   $receipt_recurring = $settings['receipt_recurring'];
   $verify_days = define('FAPS_VERIFY_DAYS', 30);
   // Get all the contributions that may need approval within the last verify_days.

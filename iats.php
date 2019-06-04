@@ -365,7 +365,7 @@ function iats_civicrm_pageRun(&$page) {
  */
 function iats_civicrm_pageRun_CRM_Contact_Page_View_Summary(&$page) {
   // Because of AJAX loading, I need to load my backend swipe js here.
-  $swipe = iats_civicrm_processors(NULL, 'SWIPE', array('is_default' => 1));
+  $swipe = _iats_filter_payment_processors('iATSServiceSWIPE', array(), array('is_default' => 1));
   if (count($swipe) > 0) {
     CRM_Core_Resources::singleton()->addScriptFile('com.iatspayments.civicrm', 'js/swipe.js', 10);
   }
@@ -595,38 +595,56 @@ function _iats_civicrm_is_iats($payment_processor_id) {
 /**
  * Internal utility function: return the id's of any iATS processors matching various conditions.
  *
- * Processors: an array of payment processors indexed by id to filter by,
- *             or if NULL, it searches through all
- * subtype: the iats service class name subtype
+ * class: the payment object class name to match (prefixed w/ 'Payment_')
+ * processors: an array of payment processors indexed by id to filter by
  * params: an array of additional params to pass to the api call.
  */
-function iats_civicrm_processors($processors, $subtype = '', $params = array()) {
+function _iats_filter_payment_processors($class, $processors = array(), $params = array()) {
   $list = array();
-  $match_all = ('*' == $subtype) ? TRUE : FALSE;
-  if (!$match_all) {
-    $params['class_name'] = 'Payment_iATSService' . $subtype;
-  }
+  $params['class_name'] = ['LIKE' => 'Payment_' . $class];
 
   // Set the domain id if not passed in.
   if (!array_key_exists('domain_id', $params)) {
     $params['domain_id']    = CRM_Core_Config::domainID();
   }
-
+  $params['sequential'] = FALSE; // return list indexed by processor id
   $result = civicrm_api3('PaymentProcessor', 'get', $params);
   if (0 == $result['is_error'] && count($result['values']) > 0) {
-    foreach ($result['values'] as $paymentProcessor) {
-      $id = $paymentProcessor['id'];
-      if ((is_null($processors)) || !empty($processors[$id])) {
-        if (!$match_all 
-          || (0 === strpos($paymentProcessor['class_name'], 'Payment_iATSService')
-          || (0 === strpos($paymentProcessor['class_name'], 'Payment_Faps')) {
-          $list[$id] = $paymentProcessor;
-        }
-      }
-    }
+    $list = (0 < count($processors)) ? array_intersect_key($results['values'], $processors) : $results['values'];
   }
   return $list;
 }
+
+
+/**
+ * Internal utility function: return a list of the payment processors attached
+ * to a contribution form of variable class
+ * */
+function _iats_get_form_payment_processors($form) {
+  $form_class = get_class($form);
+
+  if ($form_class == 'CRM_Financial_Form_Payment') {
+    // We're on CRM_Financial_Form_Payment, we've got just one payment processor
+    $id = $form->_paymentProcessor['id'];
+    return array($id => $form->_paymentProcessor);
+  }
+  else { 
+    // Handle the legacy: event and contribution page forms
+    if (empty($form->_paymentProcessors)) {
+      if (empty($form->_paymentProcessorIDs)) {
+        return;
+      }
+      else {
+        return array_fill_keys($form->_paymentProcessorIDs, 1);
+      }
+    }
+    else {
+      return $form->_paymentProcessors;
+    }
+  }
+}
+
+
 
 /**
  * Customize direct debit billing blocks, per currency.
@@ -771,45 +789,8 @@ function iats_swipe_form_customize($form) {
  */
 function iats_civicrm_buildForm_Contribution_Frontend(&$form) {
 
-  $form_class = get_class($form);
-
-  if ($form_class == 'CRM_Financial_Form_Payment') {
-    // We're on CRM_Financial_Form_Payment, we've got just one payment processor
-    $id = $form->_paymentProcessor['id'];
-    $iats_processors = iats_civicrm_processors(array($id => $form->_paymentProcessor), '*');
-  }
-  else { 
-    // Handle the event and contribution page forms
-    if (empty($form->_paymentProcessors)) {
-      if (empty($form->_paymentProcessorIDs)) {
-        return;
-      }
-      else {
-        $form_payment_processors = array_fill_keys($form->_paymentProcessorIDs,1);
-      }
-    }
-    else {
-      $form_payment_processors = $form->_paymentProcessors;
-    }
-    $iats_processors = iats_civicrm_processors($form_payment_processors, '*');
-  }
-  if (empty($iats_processors)) {
-    return;
-  }
-  $ukdd = $swipe = $acheft = array();
-  foreach ($iats_processors as $id => $processor) {
-    switch ($processor['class_name']) {
-      case 'Payment_iATSServiceACHEFT':
-        $acheft[$id] = $processor;
-        break;
-
-      case 'Payment_iATSServiceSWIPE':
-        $swipe[$id] = $processor;
-        break;
-
-    }
-  }
-  // Include the required javascripts for available customized selections
+  $processors = _iats_get_payment_processors($form);
+  $acheft = _iats_filter_payment_processors('iATSServiceACHEFT', $processors);
   // If a form allows ACH/EFT and enables recurring, set recurring to the default.
   if (0 < count($acheft)) {
     if (isset($form->_elementIndex['is_recur'])) {
@@ -817,13 +798,29 @@ function iats_civicrm_buildForm_Contribution_Frontend(&$form) {
       $form->setDefaults(array('is_recur' => 1));
     }
   }
+  // Include extra javascript for SWIPE
+  $swipe = _iats_filter_payment_processors('iATSServiceSWIPE', $processors);
   if (0 < count($swipe)) {
     CRM_Core_Resources::singleton()->addScriptFile('com.iatspayments.civicrm', 'js/swipe.js', 10);
   }
-
-  // If enabled on a page with monthly recurring contributions enabled, provide a way to set future contribution dates. 
+  /* Mangle the ajax bit of the form for swipe and ach */
+  if (!empty($form->_paymentProcessor['id'])) {
+    $id = $form->_paymentProcessor['id'];
+    /* Note that Ach/Eft is currency dependent */
+    if (!empty($acheft[$id])) {
+      iats_acheft_form_customize($form);
+      // watchdog('iats_acheft',kprint_r($form,TRUE));.
+    }
+    elseif (!empty($swipe[$id])) {
+      iats_swipe_form_customize($form);
+    }
+  }
+  // now get all iATS (+ FAPS) processors for this page
+  $iats = _iats_filter_payment_processors('iATSService', $processors);
+  $faps = _iats_filter_payment_processors('FAPS', $processors);
+  // If any of them is enabled on a page with monthly recurring contributions enabled, provide a way to set future contribution dates. 
   // Uses javascript to hide/reset unless they have recurring contributions checked.
-  if (isset($form->_elementIndex['is_recur'])) {
+  if ((count($iats) || count($faps)) && isset($form->_elementIndex['is_recur'])) {
     $settings = CRM_Core_BAO_Setting::getItem('iATS Payments Extension', 'iats_settings');
     if (!empty($settings['enable_public_future_recurring_start'])) {
       $allow_days = empty($settings['days']) ? array('-1') : $settings['days'];
@@ -836,34 +833,20 @@ function iats_civicrm_buildForm_Contribution_Frontend(&$form) {
     }
   }
   
-  /* Mangle the ajax bit of the form (if any) by processor type */
-  if (!empty($form->_paymentProcessor['id'])) {
-    $id = $form->_paymentProcessor['id'];
-    /* Note that Ach/Eft is currency dependent */
-    if (!empty($acheft[$id])) {
-      iats_acheft_form_customize($form);
-      // watchdog('iats_acheft',kprint_r($form,TRUE));.
-    }
-    elseif (!empty($swipe[$id])) {
-      iats_swipe_form_customize($form);
-    }
+  // check if I'm using any faps processors w/ cryptogram
+  if (count($faps) && !iats_get_setting('disable_cryptogram')) {
+    iats_faps_form_customize($form, $faps);
   }
 
 }
-
 
 /**
  * Add the FAPS iframe
  * This is still a placeholder - need to invoke with more argument at the right
  * place.
  */
-function iats_civicrm_buildForm_FapsIframe(&$form) {
+function iats_faps_form_customize($form, $faps_processors) {
 
-  $iats_processors = iats_civicrm_processors($form_payment_processors, 'FAPS');
-  if (empty($iats_processors)) {
-    return;
-  }
-  // print_r($iats_processors); die();
   // die('test');
   if (empty($form->_submitValues['payment_processor_id'])) {
     if (empty($form->_defaults['payment_processor_id'])) {
@@ -877,39 +860,37 @@ function iats_civicrm_buildForm_FapsIframe(&$form) {
   else {
     $payment_processor_id = $form->_submitValues['payment_processor_id'];
   }
-  $iats_processor = $iats_processors[$payment_processor_id];
-  $is_cc = ($iats_processor['payment_instrument_id'] == 1);
-  $is_test = ($iats_processor['is_test'] == 1);
+  $this_processor = $faps_processors[$payment_processor_id];
+  $is_cc = ($this_processor['payment_instrument_id'] == 1);
+  $is_test = ($this_processor['is_test'] == 1);
   $has_is_recur = $form->elementExists('is_recur');
   /* by default, use the cryptogram, but allow it to be disabled */
-  if (!iats_get_setting('disable_cryptogram')) {
-    // CRM_Core_Error::debug_var('generate cryptogram html', $iats_processors);
-    // CRM_Core_Error::debug_var('form class', $form_class);
-    // CRM_Core_Error::debug_var('form', $form);
-    $credentials = array(
-      'transcenterId' => $iats_processor['password'],
-      'processorId' => $iats_processor['user_name']
-    );
-    $iats_domain = parse_url($iats_processor['url_site'], PHP_URL_HOST);
-    $cryptojs = 'https://'.$iats_domain.'/secure/PaymentHostedForm/Scripts/firstpay/firstpay.cryptogram.js';
-    $transaction_type = $has_is_recur ? ($is_cc ? 'Auth' : 'Vault') : ($is_cc ? 'Sale' : 'AchDebit');
-    $iframe_src = 'https://'.$iats_domain. '/secure/PaymentHostedForm/v3/' .($is_cc ? 'CreditCard' : 'Ach');
-    $iframe_style = 'width: 100%;'; // height: 100%;';
-    $markup = sprintf("<iframe id=\"firstpay-iframe\" src=\"%s\" style=\"%s\" data-transcenter-id=\"%s\" data-processor-id=\"%s\" data-transaction-type=\"%s\" data-manual-submit=\"false\"></iframe>\n", $iframe_src, $iframe_style,$credentials['transcenterId'], $credentials['processorId'], $transaction_type);
-    // $markup = "<iframe id=\"firstpay-iframe\" src=\"%s\" style=\"width: 100%; height: 100%\" data-transcenter-id=\"%s\" data-processor-id=\"%s\" data-transaction-type=\"%s\" data-manual-submit=\"false\"></iframe>\n";
-    // print_r('<pre>'.$markup.'</pre>'); die();
-    CRM_Core_Resources::singleton()->addScriptUrl($cryptojs);
-    // $markup = print_r($iats_processors, TRUE);
-    CRM_Core_Resources::singleton()->addScriptFile('com.iatspayments.faps', 'js/crypto.js', 10);
-    CRM_Core_Resources::singleton()->addStyleFile('com.iatspayments.faps', 'css/crypto.css', 10);
-    CRM_Core_Region::instance('page-body')->add(array(
+  // CRM_Core_Error::debug_var('generate cryptogram html', $faps_processors);
+  // CRM_Core_Error::debug_var('form class', $form_class);
+  // CRM_Core_Error::debug_var('form', $form);
+  $credentials = array(
+    'transcenterId' => $this_processor['password'],
+    'processorId' => $this_processor['user_name']
+  );
+  $iats_domain = parse_url($this_processor['url_site'], PHP_URL_HOST);
+  $cryptojs = 'https://'.$iats_domain.'/secure/PaymentHostedForm/Scripts/firstpay/firstpay.cryptogram.js';
+  $transaction_type = $has_is_recur ? ($is_cc ? 'Auth' : 'Vault') : ($is_cc ? 'Sale' : 'AchDebit');
+  $iframe_src = 'https://'.$iats_domain. '/secure/PaymentHostedForm/v3/' .($is_cc ? 'CreditCard' : 'Ach');
+  $iframe_style = 'width: 100%;'; // height: 100%;';
+  $markup = sprintf("<iframe id=\"firstpay-iframe\" src=\"%s\" style=\"%s\" data-transcenter-id=\"%s\" data-processor-id=\"%s\" data-transaction-type=\"%s\" data-manual-submit=\"false\"></iframe>\n", $iframe_src, $iframe_style,$credentials['transcenterId'], $credentials['processorId'], $transaction_type);
+  // $markup = "<iframe id=\"firstpay-iframe\" src=\"%s\" style=\"width: 100%; height: 100%\" data-transcenter-id=\"%s\" data-processor-id=\"%s\" data-transaction-type=\"%s\" data-manual-submit=\"false\"></iframe>\n";
+  // print_r('<pre>'.$markup.'</pre>'); die();
+  CRM_Core_Resources::singleton()->addScriptUrl($cryptojs);
+  // $markup = print_r($faps_processors, TRUE);
+  CRM_Core_Resources::singleton()->addScriptFile('com.iatspayments.civicrm', 'js/crypto.js', 10);
+  CRM_Core_Resources::singleton()->addStyleFile('com.iatspayments.civicrm', 'css/crypto.css', 10);
+  CRM_Core_Region::instance('page-body')->add(array(
           'name' => 'firstpay-iframe',
           'type' => 'markup',
           'markup' => $markup,
           'weight' => 11,
           'region' => 'page-body',
         )); 
-  }
 }
 
 /**
@@ -926,9 +907,9 @@ function iats_civicrm_buildForm_CreditCard_Backend(&$form) {
     return;
   }
   // Get all my swipe processors.
-  $swipe = iats_civicrm_processors($form->_processors, 'SWIPE');
+  $swipe = _iats_filter_payment_processors('iATSServiceSWIPE', $form->_processors);
   // Get all my ACH/EFT processors (should be 0, but I'm fixing old core bugs)
-  $acheft = iats_civicrm_processors($form->_processors, 'ACHEFT');
+  $acheft = _iats_filter_payment_processors('iATSServiceACHEFT', $form->_processors);
   // If an iATS SWIPE payment processor is enabled and default remove all other payment processors.
   $swipe_id_default = 0;
   if (0 < count($swipe)) {
@@ -968,6 +949,12 @@ function iats_civicrm_buildForm_CreditCard_Backend(&$form) {
       iats_swipe_form_customize($form);
     }
   }
+
+  // check if I'm using any faps processors
+  $faps = _iats_filter_payment_processors('Faps', $form->_processors);
+  if ($faps) {
+    iats_faps_form_customize($form, $faps);
+  }
 }
 
 /**
@@ -980,7 +967,7 @@ function iats_civicrm_buildForm_CRM_Contribute_Form_Search(&$form) {
     return;
   }
   $contactID = $form->_defaultValues['contact_id'];
-  $acheft = iats_civicrm_processors(NULL, 'ACHEFT', array('is_active' => 1, 'is_test' => 0));
+  $acheft = _iats_filter_payment_processors('iATSServiceACHEFT', array(), array('is_active' => 1, 'is_test' => 0));
   $acheft_backoffice_links = array();
   // For each ACH/EFT payment processor, try to provide a different mechanism for 'backoffice' type contributions
   // note: only offer payment pages that provide iATS ACH/EFT exclusively.
@@ -991,67 +978,8 @@ function iats_civicrm_buildForm_CRM_Contribute_Form_Search(&$form) {
       foreach ($result['values'] as $page) {
         $url = CRM_Utils_System::url('civicrm/contribute/transact', 'reset=1&cid=' . $contactID . '&id=' . $page['id']);
         $acheft_backoffice_links[] = array('url' => $url, 'title' => $page['title']);
-=======
- * Hook_civicrm_buildForm.
- * Do a Drupal 7 style thing so we can write smaller functions.
- */
-function iats_civicrm_buildForm($formName, &$form) {
-  // But start by grouping a few forms together for nicer code.
-  switch ($formName) {
-    case 'CRM_Event_Form_Participant':
-    case 'CRM_Member_Form_Membership':
-    case 'CRM_Contribute_Form_Contribution':
-      // Override normal convention, deal with all these backend credit card contribution forms the same way.
-      $fname = 'iats_civicrm_buildForm_Contribution';
-      break;
-
-    case 'CRM_Contribute_Form_Contribution_Main':
-    case 'CRM_Event_Form_Registration_Register':
-    case 'CRM_Financial_Form_Payment':
-      // Override normal convention, deal with all these front-end contribution forms the same way.
-      $fname = 'iats_civicrm_buildForm_Contribution';
-      break;
-    default:
-      $fname = 'iats_civicrm_buildForm_' . $formName;
-      break;
-  }
-  if (function_exists($fname)) {
-    $fname($form);
-  }
-  // Else echo $fname;.
-}
-
-/**
- * Add the magic sauce to cc and ach forms if I'm using FAPS
- */
-function iats_civicrm_buildForm_Contribution(&$form) {
-  // Skip if i don't have any processors.
-  // echo '<pre>'; print_r(array_keys(get_object_vars($form))); die();
-  if (empty($form->_processors)) {
-   // return;
-  }
-  $form_class = get_class($form);
-  //  die($form_class);
-
-  if ($form_class == 'CRM_Financial_Form_Payment') {
-    // We're on CRM_Financial_Form_Payment, we've got just one payment processor
-    $id = $form->_paymentProcessor['id'];
-    $iats_processors = iats_civicrm_processors(array($id => $form->_paymentProcessor), 'FAPS');
-  }
-  else {
-    // Handle the event and contribution page forms
-    if (empty($form->_paymentProcessors)) {
-      if (empty($form->_paymentProcessorIDs)) {
-        return;
-      }
-      else {
-        $form_payment_processors = array_fill_keys($form->_paymentProcessorIDs,1);
       }
     }
-    else {
-      $form_payment_processors = $form->_paymentProcessors;
-    }
-    $iats_processors = iats_civicrm_processors($form_payment_processors, 'FAPS');
   }
   if (count($acheft_backoffice_links)) {
     CRM_Core_Resources::singleton()->addVars('iatspayments', array('backofficeLinks' => $acheft_backoffice_links));
