@@ -832,7 +832,7 @@ function iats_civicrm_buildForm_Contribution_Frontend(&$form) {
       CRM_Core_Resources::singleton()->addScriptFile('com.iatspayments.civicrm', 'js/recur_start.js', 10);
     }
   }
-  
+
   // check if I'm using any faps processors w/ cryptogram
   if (count($faps) && !iats_get_setting('disable_cryptogram')) {
     iats_faps_form_customize($form, $faps);
@@ -1019,7 +1019,8 @@ function iats_civicrm_buildForm_CRM_Contribute_Form_UpdateSubscription(&$form) {
   }
   // Only mangle this form for recurring contributions using iATS
   $payment_processor_type = empty($form->_paymentProcessor) ? substr(get_class($form->_paymentProcessorObj),9) : $form->_paymentProcessor['class_name'];
-  if (0 !== strpos($payment_processor_type, 'Payment_iATSService')) {
+  if (  (0 !== strpos($payment_processor_type, 'Payment_iATSService'))
+     && (0 !== strpos($payment_processor_type, 'Payment_Faps')) ){
     return;
   }
   $settings = civicrm_api3('Setting', 'getvalue', array('name' => 'iats_settings'));
@@ -1063,7 +1064,7 @@ function iats_civicrm_buildForm_CRM_Contribute_Form_UpdateSubscription(&$form) {
   );
   $dupe_fields = array();
   // To be a good citizen, I check if core or another extension hasn't already added these fields 
-  // and remove them if they have.
+  // and don't add them again if they have.
   foreach (array_keys($edit_fields) as $fid) {
     if ($form->elementExists($fid)) {
       unset($edit_fields[$fid]);
@@ -1203,7 +1204,7 @@ function _iats_contributionrecur_next($from_time, $allow_mdays) {
  *   A high-level utility function for making a contribution payment from an existing recurring schedule
  *   Used in the Iatsrecurringcontributions.php job and the one-time ('card on file') form.
  *   
- *   Since 4.7.12, we can are using the new repeattransaction api.
+ *   Since 4.7.12, we are using the new repeattransaction api.
  */
 function _iats_process_contribution_payment(&$contribution, $options, $original_contribution_id) {
   // By default, don't use repeattransaction
