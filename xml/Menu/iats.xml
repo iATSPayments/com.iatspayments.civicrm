@@ -13,15 +13,9 @@
   </item>
   <item>
     <path>civicrm/admin/contribute/iatssettings</path>
-    <page_callback>CRM_Iats_Form_IatsSettings</page_callback>
+    <page_callback>CRM_Iats_Form_Settings</page_callback>
     <title>iATS Payments Settings</title>
     <access_arguments>access CiviContribute,administer CiviCRM</access_arguments>
-  </item>
-  <item>
-    <path>civicrm/admin/contribute/faps-settings</path>
-    <page_callback>CRM_Iats_Form_Settings</page_callback>
-    <title>Settings</title>
-    <access_arguments>access CiviCRM</access_arguments>
   </item>
   <item>
     <path>civicrm/contact/view/iatscustomerlink</path>
