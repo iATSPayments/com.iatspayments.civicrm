@@ -431,7 +431,7 @@ function iats_civicrm_pageRun_CRM_Contribute_Page_ContributionRecur($page) {
     $template->assign($key, $value);
   }
   CRM_Core_Region::instance('page-body')->add(array(
-    'template' => 'CRM/iATS/ContributionRecur.tpl',
+    'template' => 'CRM/Iats/ContributionRecur.tpl',
   ));
   CRM_Core_Resources::singleton()->addScriptFile('com.iatspayments.civicrm', 'js/subscription_view.js');
 }
@@ -659,7 +659,7 @@ function iats_acheft_form_customize($form) {
   // I'm handling an unexpected currency.
   elseif ($currency) {
     CRM_Core_Region::instance('billing-block')->add(array(
-      'template' => 'CRM/iATS/BillingBlockDirectDebitExtra_Other.tpl',
+      'template' => 'CRM/Iats/BillingBlockDirectDebitExtra_Other.tpl',
     ));
   }
 }
@@ -710,7 +710,7 @@ function iats_acheft_form_customize_USD($form) {
     $form->addRule('bank_identification_number', ts('%1 is a required field.', array(1 => ts('Bank Routing Number'))), 'required');
   }
   CRM_Core_Region::instance('billing-block')->add(array(
-    'template' => 'CRM/iATS/BillingBlockDirectDebitExtra_USD.tpl',
+    'template' => 'CRM/Iats/BillingBlockDirectDebitExtra_USD.tpl',
   ));
 }
 
@@ -738,7 +738,7 @@ function iats_acheft_form_customize_CAD($form) {
   $element = $form->getElement('bank_identification_number');
   $element->setLabel(ts('Bank Number + Transit Number'));
   CRM_Core_Region::instance('billing-block')->add(array(
-    'template' => 'CRM/iATS/BillingBlockDirectDebitExtra_CAD.tpl',
+    'template' => 'CRM/Iats/BillingBlockDirectDebitExtra_CAD.tpl',
   ));
 }
 
@@ -756,7 +756,7 @@ function iats_swipe_form_customize($form) {
   $form->addElement('textarea', 'encrypted_credit_card_number', ts('Encrypted'), array('cols' => '80', 'rows' => '8'));
   $form->addRule('encrypted_credit_card_number', ts('%1 is a required field.', array(1 => ts('Encrypted'))), 'required');
   CRM_Core_Region::instance('billing-block')->add(array(
-    'template' => 'CRM/iATS/BillingBlockSwipe.tpl',
+    'template' => 'CRM/Iats/BillingBlockSwipe.tpl',
   ));
 }
 
@@ -830,7 +830,7 @@ function iats_civicrm_buildForm_Contribution_Frontend(&$form) {
       $start_dates = _iats_get_future_monthly_start_dates(time(), $allow_days);
       $form->addElement('select', 'receive_date', ts('Date of first contribution'), $start_dates);
       CRM_Core_Region::instance('billing-block')->add(array(
-        'template' => 'CRM/iATS/BillingBlockRecurringExtra.tpl',
+        'template' => 'CRM/Iats/BillingBlockRecurringExtra.tpl',
       ));
       CRM_Core_Resources::singleton()->addScriptFile('com.iatspayments.civicrm', 'js/recur_start.js', 10);
     }
@@ -1176,7 +1176,7 @@ function iats_civicrm_buildForm_CRM_Contribute_Form_UpdateSubscription(&$form) {
   $form->addElement('static', 'payment_instrument', $label);
   $form->addElement('static', 'failure_count', $recur['failure_count']);
   CRM_Core_Region::instance('page-body')->add(array(
-    'template' => 'CRM/iATS/Subscription.tpl',
+    'template' => 'CRM/Iats/Subscription.tpl',
   ));
   CRM_Core_Resources::singleton()->addScriptFile('com.iatspayments.civicrm', 'js/subscription.js');
 }

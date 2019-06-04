@@ -411,7 +411,7 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
    * The default isSupported method is overridden above to achieve this.
    */
   public function updateSubscriptionBillingInfo(&$message = '', $params = array()) {
-    require_once('CRM/iATS/Form/IATSCustomerUpdateBillingInfo.php');
+    require_once('CRM/Iats/Form/IATSCustomerUpdateBillingInfo.php');
 
     $fakeForm = new IATSCustomerUpdateBillingInfo();
     $fakeForm->updatedBillingInfo = $params;
