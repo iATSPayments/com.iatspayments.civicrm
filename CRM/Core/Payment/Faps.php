@@ -11,7 +11,7 @@ class CRM_Core_Payment_Faps extends CRM_Core_Payment {
    * @static
    */
   protected $_mode = null;
-  protected $use_cryptogram = FALSE;
+  protected $disable_cryptogram = FALSE;
 
   /**
    * Constructor
@@ -24,7 +24,7 @@ class CRM_Core_Payment_Faps extends CRM_Core_Payment {
     $this->_mode             = $mode;
     $this->_paymentProcessor = $paymentProcessor;
     $this->_processorName    = ts('iATS Payments 1st American Payment System Interface');
-    $this->use_cryptogram   = faps_get_setting('use_cryptogram');
+    $this->disable_cryptogram   = iats_get_setting('disable_cryptogram');
   }
 
   /**
@@ -64,7 +64,7 @@ class CRM_Core_Payment_Faps extends CRM_Core_Payment {
    */
 
   protected function getCreditCardFormFields() {
-    $fields =  $this->use_cryptogram ? array('cryptogram') : parent::getCreditCardFormFields();
+    $fields =  $this->disable_cryptogram ? parent::getCreditCardFormFields() : array('cryptogram');
     return $fields;
   }
 
@@ -78,7 +78,7 @@ class CRM_Core_Payment_Faps extends CRM_Core_Payment {
    */
   public function getPaymentFormFieldsMetadata() {
     $metadata = parent::getPaymentFormFieldsMetadata();
-    if ($this->use_cryptogram) {
+    if (!$this->disable_cryptogram) {
       $metadata['cryptogram'] = array(
         'htmlType' => 'text',
         'cc_field' => TRUE,

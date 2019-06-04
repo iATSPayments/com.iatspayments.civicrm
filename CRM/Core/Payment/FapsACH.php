@@ -15,7 +15,7 @@ class CRM_Core_Payment_FapsACH extends CRM_Core_Payment_Faps {
     $this->_mode             = $mode;
     $this->_paymentProcessor = $paymentProcessor;
     $this->_processorName    = ts('iATS Payments 1st American Payment System Interface, ACH');
-    $this->use_cryptogram    = faps_get_setting('use_cryptogram');
+    $this->disable_cryptogram    = iats_get_setting('disable_cryptogram');
   }
 
   /**
@@ -26,7 +26,7 @@ class CRM_Core_Payment_FapsACH extends CRM_Core_Payment_Faps {
    */
 
   protected function getDirectDebitFormFields() {
-    $fields =  $this->use_cryptogram ? array('cryptogram') : parent::getDirectDebitFormFields();
+    $fields =  $this->disable_cryptogram ? parent::getDirectDebitFormFields() : array('cryptogram');
     return $fields;
   }
 
@@ -40,7 +40,7 @@ class CRM_Core_Payment_FapsACH extends CRM_Core_Payment_Faps {
    */
   public function getPaymentFormFieldsMetadata() {
     $metadata = parent::getPaymentFormFieldsMetadata();
-    if ($this->use_cryptogram) {
+    if (!$this->disable_cryptogram) {
       $metadata['cryptogram'] = array(
         'htmlType' => 'text',
         'cc_field' => TRUE,

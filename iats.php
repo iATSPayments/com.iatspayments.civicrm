@@ -22,6 +22,8 @@
 require_once 'iats.civix.php';
 use CRM_Iats_ExtensionUtil as E;
 
+/* First American requires a "category" for ACH transaction requests */
+
 define('FAPS_DEFAULT_ACH_CATEGORY_TEXT','CiviCRM ACH');
 
 /**
@@ -979,7 +981,8 @@ function iats_civicrm_buildForm_FapsIframe(&$form) {
   $is_cc = ($iats_processor['payment_instrument_id'] == 1);
   $is_test = ($iats_processor['is_test'] == 1);
   $has_is_recur = $form->elementExists('is_recur');
-  if (iats_get_setting('use_cryptogram')) {
+  /* by default, use the cryptogram, but allow it to be disabled */
+  if (!iats_get_setting('disable_cryptogram')) {
     // CRM_Core_Error::debug_var('generate cryptogram html', $iats_processors);
     // CRM_Core_Error::debug_var('form class', $form_class);
     // CRM_Core_Error::debug_var('form', $form);

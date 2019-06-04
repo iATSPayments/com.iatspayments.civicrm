@@ -1,67 +1,61 @@
 <?php
 
-/**
- * @file
- */
-
-require_once 'CRM/Core/Form.php';
+use CRM_Iats_ExtensionUtil as E;
 
 /**
- * Form controller class.
+ * Form controller class
  *
- * @see http://wiki.civicrm.org/confluence/display/CRMDOC43/QuickForm+Reference
+ * @see https://wiki.civicrm.org/confluence/display/CRMDOC/QuickForm+Reference
  */
 class CRM_Iats_Form_Settings extends CRM_Core_Form {
-
-  /**
-   *
-   */
   public function buildQuickForm() {
 
     // Add form elements.
     $this->add(
-    // Field type.
       'text',
-    // Field name.
       'email_recurring_failure_report',
       ts('Email Recurring Contribution failure reports to this Email address')
     );
     $this->addRule('email_recurring_failure_report', ts('Email address is not a valid format.'), 'email');
     $this->add(
-    // Field type.
       'text',
-    // Field name.
       'recurring_failure_threshhold',
       ts('When failure count is equal to or greater than this number, push the next scheduled contribution date forward')
     );
     $this->addRule('recurring_failure_threshhold', ts('Threshhold must be a positive integer.'), 'integer');
     $receipt_recurring_options =  array('0' => 'Never', '1' => 'Always', '2' => 'As set for a specific Contribution Series');
     $this->add(
-    // Field type.
       'select',
-    // Field name.
       'receipt_recurring',
       ts('Email receipt for a Contribution in a Recurring Series'),
       $receipt_recurring_options
     );
 
     $this->add(
-    // Field type.
       'checkbox',
-    // Field name.
+      'disable_cryptogram',
+      ts('Disable use of cryptogram (only applies to FirstAmerican).')
+    );
+    
+    $this->add(
+      'text',
+      'ach_category_text',
+      ts('ACH Category Text (only applies to FirstAmerican).')
+    );
+
+    $this->add(
+      'checkbox',
       'no_edit_extra',
       ts('Disable extra edit fields for Recurring Contributions')
     );
 
     $this->add(
-    // Field type.
       'checkbox',
-    // Field name.
       'enable_update_subscription_billing_info',
       ts('Enable self-service updates to recurring contribution Contact Billing Info.')
     );
 
-    /* These checkboxes are not yet implemented, ignore for now 
+    /* These checkboxes are not yet implemented, ignore for now
     $this->add(
       'checkbox', // field type
       'import_quick', // field name
@@ -97,9 +91,7 @@ class CRM_Iats_Form_Settings extends CRM_Core_Form {
       'required' => FALSE,
     );
     $day_select = $this->add(
-    // Field type.
       'select',
-    // Field name.
       'days',
       ts('Restrict allowable days of the month for Recurring Contributions'),
       $days,
@@ -122,23 +114,24 @@ class CRM_Iats_Form_Settings extends CRM_Core_Form {
     if (empty($defaults['recurring_failure_threshhold'])) {
       $defaults['recurring_failure_threshhold'] = 3;
     }
+    if (empty($defaults['ach_category_text'])) {
+      $defaults['ach_category_text'] = FAPS_DEFAULT_ACH_CATEGORY_TEXT;
+    }
     $this->setDefaults($defaults);
+
     $this->addButtons(array(
       array(
         'type' => 'submit',
-        'name' => ts('Submit'),
+        'name' => E::ts('Submit'),
         'isDefault' => TRUE,
       ),
     ));
 
-    // Export form elements.
+    // export form elements
     $this->assign('elementNames', $this->getRenderableElementNames());
     parent::buildQuickForm();
   }
 
-  /**
-   *
-   */
   public function postProcess() {
     $values = $this->exportValues();
     foreach (array('qfKey', '_qf_default', '_qf_Settings_submit', 'entryURL') as $key) {
@@ -162,6 +155,7 @@ class CRM_Iats_Form_Settings extends CRM_Core_Form {
     // the 'label'.
     $elementNames = array();
     foreach ($this->_elements as $element) {
+      /** @var HTML_QuickForm_Element $element */
       $label = $element->getLabel();
       if (!empty($label)) {
         $elementNames[] = $element->getName();
