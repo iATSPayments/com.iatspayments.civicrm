@@ -20,10 +20,9 @@ class CRM_Iats_Page_IATSCustomerLink extends CRM_Core_Page {
     $paymentProcessorId = CRM_Utils_Request::retrieve('paymentProcessorId', 'Positive');
     $is_test = CRM_Utils_Request::retrieve('is_test', 'Integer');
     $this->assign('customerCode', $customerCode);
-    require_once "CRM/iATS/iATSService.php";
-    $credentials = iATS_Service_Request::credentials($paymentProcessorId, $is_test);
+    $credentials = CRM_Iats_iATSServiceRequest::credentials($paymentProcessorId, $is_test);
     $iats_service_params = array('type' => 'customer', 'iats_domain' => $credentials['domain'], 'method' => 'get_customer_code_detail');
-    $iats = new iATS_Service_Request($iats_service_params);
+    $iats = new CRM_Iats_iATSServiceRequest($iats_service_params);
     // print_r($iats); die();
     $request = array('customerCode' => $customerCode);
     // Make the soap request.

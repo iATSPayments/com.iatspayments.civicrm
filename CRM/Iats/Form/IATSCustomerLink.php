@@ -64,10 +64,9 @@ class CRM_Iats_Form_IATSCustomerLink extends CRM_Core_Form {
    *
    */
   protected function getCustomerCodeDetail($params) {
-    require_once "CRM/iATS/iATSService.php";
-    $credentials = iATS_Service_Request::credentials($params['paymentProcessorId'], $params['is_test']);
+    $credentials = CRM_Iats_iATSServiceRequest::credentials($params['paymentProcessorId'], $params['is_test']);
     $iats_service_params = array('type' => 'customer', 'iats_domain' => $credentials['domain'], 'method' => 'get_customer_code_detail');
-    $iats = new iATS_Service_Request($iats_service_params);
+    $iats = new CRM_Iats_iATSServiceRequest($iats_service_params);
     // print_r($iats); die();
     $request = array('customerCode' => $params['customerCode']);
     // Make the soap request.
@@ -88,13 +87,12 @@ class CRM_Iats_Form_IATSCustomerLink extends CRM_Core_Form {
    *
    */
   protected function updateCreditCardCustomer($params) {
-    require_once "CRM/iATS/iATSService.php";
-    $credentials = iATS_Service_Request::credentials($params['paymentProcessorId'], $params['is_test']);
+    $credentials = CRM_Iats_iATSServiceRequest::credentials($params['paymentProcessorId'], $params['is_test']);
     unset($params['paymentProcessorId']);
     unset($params['is_test']);
     unset($params['domain']);
     $iats_service_params = array('type' => 'customer', 'iats_domain' => $credentials['domain'], 'method' => 'update_credit_card_customer');
-    $iats = new iATS_Service_Request($iats_service_params);
+    $iats = new CRM_Iats_iATSServiceRequest($iats_service_params);
     // print_r($iats); die();
     $params['updateCreditCardNum'] = (0 < strlen($params['creditCardNum']) && (FALSE === strpos($params['creditCardNum'], '*'))) ? 1 : 0;
     if (empty($params['updateCreditCardNum'])) {

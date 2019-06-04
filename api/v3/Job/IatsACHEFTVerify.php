@@ -52,7 +52,6 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
   }
 
   /* get "recent" approvals and rejects from iats and match them up with my pending list via the customer code */
-  require_once("CRM/Iats/iATSService.php");
   /* initialize some values so I can report at the end */
   $error_count = 0;
   $counter = 0; // number of reject/accept records from iats analysed
@@ -72,7 +71,7 @@ function civicrm_api3_job_iatsacheftverify($iats_service_params) {
       // it doesn't hurt, but on a live environment, this maybe should be limited to the past week, or less?
       // or, it could be configurable for the job
       $iats_service_params['method'] = $method;
-      $iats = new iATS_Service_Request($iats_service_params);
+      $iats = new CRM_Iats_iATSServiceRequest($iats_service_params);
       $credentials = $iats->credentials($dao->id);
       /* Initialize the default values for the iATS service request */
       /* note: iATS service is finicky about order! */

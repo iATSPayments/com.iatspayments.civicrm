@@ -14,7 +14,7 @@
  * TODO: provide logging options for the request, exception and response
  *
  * Expected usage:
- * $iats = new iATS_Service_Request($options)
+ * $iats = new iATSServiceRequest($options)
  * where options usually include
  *   type: 'report', 'customer', 'process'
  *   method: 'cc', etc. as appropriate for that type
@@ -28,7 +28,7 @@
 /**
  *
  */
-class iATS_Service_Request {
+class CRM_Iats_iATSServiceRequest {
 
   // iATS transaction mode definitions:
   const iATS_TXN_NS = 'xmlns';

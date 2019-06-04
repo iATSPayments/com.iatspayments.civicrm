@@ -18,7 +18,7 @@
  * You should have received a copy of the GNU Affero General Public
  * License with this program; if not, see http://www.gnu.org/licenses/
  *
- * This code provides glue between CiviCRM payment model and the iATS Payment model encapsulated in the iATS_Service_Request object
+ * This code provides glue between CiviCRM payment model and the iATS Payment model encapsulated in the CRM_Iats_iATSServiceRequest object
  */
 
 /**

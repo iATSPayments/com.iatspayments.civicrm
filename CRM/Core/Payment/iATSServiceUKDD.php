@@ -18,7 +18,7 @@
  * You should have received a copy of the GNU Affero General Public
  * License with this program; if not, see http://www.gnu.org/licenses/
  *
- * This code provides glue between CiviCRM payment model and the iATS Payment model encapsulated in the iATS_Service_Request object
+ * This code provides glue between CiviCRM payment model and the iATS Payment model encapsulated in the CRM_Iats_iATSServiceRequest object
  * for UK Direct Debit Recurring contributions ONLY
  */
 
@@ -160,8 +160,7 @@ class CRM_Core_Payment_iATSServiceUKDD extends CRM_Core_Payment {
     }
     // $params['start_date'] = $params['receive_date'];
     // use the iATSService object for interacting with iATS.
-    require_once "CRM/iATS/iATSService.php";
-    $iats = new iATS_Service_Request(array('type' => 'customer', 'method' => 'direct_debit_create_acheft_customer_code', 'iats_domain' => $this->_profile['iats_domain'], 'currencyID' => $params['currencyID']));
+    $iats = new CRM_Iats_iATSServiceRequest(array('type' => 'customer', 'method' => 'direct_debit_create_acheft_customer_code', 'iats_domain' => $this->_profile['iats_domain'], 'currencyID' => $params['currencyID']));
     $schedule = $this->getSchedule($params);
     // Assume an error object to return.
     if (!is_array($schedule)) {

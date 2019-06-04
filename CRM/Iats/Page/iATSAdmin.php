@@ -16,8 +16,7 @@ class CRM_Iats_Page_iATSAdmin extends CRM_Core_Page {
    */
   public function run() {
     // Reset the saved version of the extension.
-    require_once 'CRM/iATS/iATSService.php';
-    $iats_extension_version = iATS_Service_Request::iats_extension_version(1);
+    $iats_extension_version = CRM_Iats_iATSServiceRequest::iats_extension_version(1);
     // The current time.
     $this->assign('currentVersion', $iats_extension_version);
     $this->assign('currentTime', date('Y-m-d H:i:s'));
@@ -76,7 +75,6 @@ class CRM_Iats_Page_iATSAdmin extends CRM_Core_Page {
     $className = get_class($dao);
     $internal = array_keys(get_class_vars($className));
     // Get some customer data while i'm at it
-    // require_once("CRM/iATS/iATSService.php");
     // todo: fix iats_domain below
     // $iats_service_params = array('type' => 'customer', 'method' => 'get_customer_code_detail', 'iats_domain' => 'www.iatspayments.com');.
     while ($dao->fetch()) {

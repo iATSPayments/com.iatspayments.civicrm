@@ -60,10 +60,9 @@ class CRM_Iats_Form_IATSOneTimeCharge extends CRM_Core_Form {
    *
    */
   protected function getCustomerCodeDetail($params) {
-    require_once "CRM/iATS/iATSService.php";
-    $credentials = iATS_Service_Request::credentials($params['paymentProcessorId'], $params['is_test']);
+    $credentials = CRM_Iats_iATSServiceRequest::credentials($params['paymentProcessorId'], $params['is_test']);
     $iats_service_params = array('type' => 'customer', 'iats_domain' => $credentials['domain'], 'method' => 'get_customer_code_detail');
-    $iats = new iATS_Service_Request($iats_service_params);
+    $iats = new CRM_Iats_iATSServiceRequest($iats_service_params);
     // print_r($iats); die();
     $request = array('customerCode' => $params['customerCode']);
     // Make the soap request.

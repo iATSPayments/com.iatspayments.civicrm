@@ -1580,7 +1580,6 @@ function _iats_process_contribution_payment(&$contribution, $options, $original_
  *   A low-level utility function for triggering a transaction on iATS.
  */
 function _iats_process_transaction($contribution, $options) {
-  require_once "CRM/iATS/iATSService.php";
   switch ($options['subtype']) {
     case 'ACHEFT':
       $method = 'acheft_with_customer_code';
@@ -1593,9 +1592,9 @@ function _iats_process_transaction($contribution, $options) {
       $contribution_status_id = 1;
       break;
   }
-  $credentials = iATS_Service_Request::credentials($contribution['payment_processor'], $contribution['is_test']);
+  $credentials = CRM_Iats_iATSServiceRequest::credentials($contribution['payment_processor'], $contribution['is_test']);
   $iats_service_params = array('method' => $method, 'type' => 'process', 'iats_domain' => $credentials['domain']);
-  $iats = new iATS_Service_Request($iats_service_params);
+  $iats = new CRM_Iats_iATSServiceRequest($iats_service_params);
   // Build the request array.
   $request = array(
     'customerCode' => $options['customer_code'],
