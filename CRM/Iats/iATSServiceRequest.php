@@ -92,9 +92,8 @@ class CRM_Iats_iATSServiceRequest {
             }
           }
           elseif ('direct_debit' == substr($method, 0, 12)) {
-            if (in_array($options['currencyID'], array('GBP'))) {
-              $valid = TRUE;
-            }
+            // discontinued, generate an error
+            $valid = FALSE;
           }
           break;
       }

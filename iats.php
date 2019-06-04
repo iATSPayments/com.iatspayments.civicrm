@@ -340,16 +340,6 @@ function iats_civicrm_buildForm($formName, &$form) {
       $fname = 'iats_civicrm_buildForm_Contribution_Frontend';
       break;
 
-    case 'CRM_Contribute_Form_Contribution_Confirm':
-      // On the confirmation form, we know the processor, so only do processor specific customizations.
-      $fname = 'iats_civicrm_buildForm_Contribution_Confirm_' . $form->_paymentProcessor['class_name'];
-      break;
-
-    case 'CRM_Contribute_Form_Contribution_ThankYou':
-      // On the confirmation form, we know the processor, so only do processor specific customizations.
-      $fname = 'iats_civicrm_buildForm_Contribution_ThankYou_' . $form->_paymentProcessor['class_name'];
-      break;
-
     default:
       $fname = 'iats_civicrm_buildForm_' . $formName;
       break;
@@ -519,16 +509,6 @@ function iats_civicrm_pre($op, $objectName, $objectId, &$params) {
           }
           break;
 
-        // UK DD contribution: update the payment instrument, fix the receive date.
-        case 'iATSServiceUKDDContribution':
-          if ($params['payment_instrument_id'] <= 1) {
-            $params['payment_instrument_id'] = 2;
-          }
-          if ($start_date = strtotime($_POST['payer_validate_start_date'])) {
-            $params['receive_date'] = date('Ymd', $start_date) . '120000';
-          }
-          break;
-
       }
     }
     // watchdog('iats_civicrm','ignoring hook_civicrm_pre for objectName @id',array('@id' => $objectName));.
@@ -536,7 +516,7 @@ function iats_civicrm_pre($op, $objectName, $objectId, &$params) {
   // If I've set fixed monthly recurring dates, force any iats (non uk dd) recurring contribution schedule records to comply.
   if (('ContributionRecur' == $objectName) && ('create' == $op || 'edit' == $op) && !empty($params['payment_processor_id'])) {
     if ($type = _iats_civicrm_is_iats($params['payment_processor_id'])) {
-      if ($type != 'iATSServiceUKDD' && !empty($params['next_sched_contribution_date'])) {
+      if (!empty($params['next_sched_contribution_date'])) {
         $settings = CRM_Core_BAO_Setting::getItem('iATS Payments Extension', 'iats_settings');
         $allow_days = empty($settings['days']) ? array('-1') : $settings['days'];
         // Force one of the fixed days, and set the cycle_day at the same time.
@@ -781,71 +761,6 @@ function iats_swipe_form_customize($form) {
 }
 
 /**
- * Customize direct debit billing block for UK Direct Debit.
- *
- * This could be handled by iats_acheft_form_customize, except there's some tricky multi-page stuff for the payer validate step.
- */
-function iats_ukdd_form_customize($form) {
-  /* uk direct debits have to start 16 days after the initial request is made */
-  if (!$form->elementExists('is_recur')) {
-    // Todo generate an error on the page.
-    return;
-  }
-  define('IATS_UKDD_START_DELAY', 16 * 24 * 60 * 60);
-  /* For batch efficiencies, restrict to a specific set of days of the month, less than 28 */
-  // you can change these if you're sensible and careful.
-  $start_days = array('1', '15');
-  $start_dates = _iats_get_future_monthly_start_dates(time() + IATS_UKDD_START_DELAY, $start_days);
-  $service_user_number = $form->_paymentProcessor['signature'];
-  $payee = _iats_civicrm_domain_info('name');
-  $phone = _iats_civicrm_domain_info('domain_phone');
-  $email = _iats_civicrm_domain_info('domain_email');
-  $form->addRule('is_recur', ts('You can only use this form to make recurring contributions.'), 'required');
-  /* declaration checkbox at the top */
-  $form->addElement('checkbox', 'payer_validate_declaration', ts('I wish to start a Direct Debit'));
-  $form->addElement('static', 'payer_validate_contact', ts(''), ts('Organization: %1, Phone: %2, Email: %3', array('%1' => $payee, '%2' => $phone['phone'], '%3' => $email)));
-  $form->addElement('select', 'payer_validate_start_date', ts('Date of first collection'), $start_dates);
-  $form->addRule('payer_validate_declaration', ts('%1 is a required field.', array(1 => ts('The Declaration'))), 'required');
-  $form->addRule('installments', ts('%1 is a required field.', array(1 => ts('Number of installments'))), 'required');
-  /* customization of existing elements */
-  $element = $form->getElement('account_holder');
-  $element->setLabel(ts('Account Holder Name'));
-  if (empty($form->billingFieldSets['direct_debit']['fields']['bank_identification_number']['is_required'])) {
-    $form->addRule('account_holder', ts('%1 is a required field.', array(1 => ts('Name of Account Holder'))), 'required');
-  }
-  $element = $form->getElement('bank_account_number');
-  $element->setLabel(ts('Account Number'));
-  if (empty($form->billingFieldSets['direct_debit']['fields']['bank_identification_number']['is_required'])) {
-    $form->addRule('bank_account_number', ts('%1 is a required field.', array(1 => ts('Account Number'))), 'required');
-  }
-  $element = $form->getElement('bank_identification_number');
-  $element->setLabel(ts('Sort Code'));
-  if (empty($form->billingFieldSets['direct_debit']['fields']['bank_identification_number']['is_required'])) {
-    $form->addRule('bank_identification_number', ts('%1 is a required field.', array(1 => ts('Sort Code'))), 'required');
-  }
-  /* new payer validation elements */
-  $form->addElement('textarea', 'payer_validate_address', ts('Name and full postal address of your Bank or Building Society'), array('rows' => '6', 'columns' => '30'));
-  $form->addElement('text', 'payer_validate_service_user_number', ts('Service User Number'));
-  $form->addElement('text', 'payer_validate_reference', ts('Reference'), array());
-  // Date on which the validation happens, reference.
-  $form->addElement('text', 'payer_validate_date', ts('Today\'s Date'), array());
-  $form->addElement('static', 'payer_validate_instruction', ts('Instruction to your Bank or Building Society'), ts('Please pay %1 Direct Debits from the account detailed in this instruction subject to the safeguards assured by the Direct Debit Guarantee. I understand that this instruction may remain with TestingTest and, if so, details will be passed electronically to my Bank / Building Society.', array('%1' => "<strong>$payee</strong>")));
-  // $form->addRule('bank_name', ts('%1 is a required field.', array(1 => ts('Bank Name'))), 'required');
-  // $form->addRule('bank_account_type', ts('%1 is a required field.', array(1 => ts('Account type'))), 'required');
-  /* only allow recurring contributions, set date */
-  $form->setDefaults(array(
-    'is_recur' => 1,
-    'payer_validate_date' => date('F j, Y'),
-    'payer_validate_start_date' => current(array_keys($start_dates)),
-    'payer_validate_service_user_number' => $service_user_number,
-  // Make recurring contrib default to true.
-  ));
-  CRM_Core_Region::instance('billing-block')->add(array(
-    'template' => 'CRM/iATS/BillingBlockDirectDebitExtra_GBP.tpl',
-  ));
-}
-
-/**
  * Modifications to a (public/frontend) contribution forms.
  * 1. set recurring to be the default, if enabled (ACH/EFT) [previously forced recurring, removed in 1.2.4]
  * 2. add extra fields/modify labels.
@@ -892,9 +807,6 @@ function iats_civicrm_buildForm_Contribution_Frontend(&$form) {
         $swipe[$id] = $processor;
         break;
 
-      case 'Payment_iATSServiceUKDD':
-        $ukdd[$id] = $processor;
-        break;
     }
   }
   // Include the required javascripts for available customized selections
@@ -907,13 +819,6 @@ function iats_civicrm_buildForm_Contribution_Frontend(&$form) {
   }
   if (0 < count($swipe)) {
     CRM_Core_Resources::singleton()->addScriptFile('com.iatspayments.civicrm', 'js/swipe.js', 10);
-  }
-  if (0 < count($ukdd)) {
-    CRM_Core_Resources::singleton()->addScriptFile('com.iatspayments.civicrm', 'js/dd_uk.js', 10);
-    if (isset($form->_elementIndex['is_recur'])) {
-      // Make recurring contrib default to true.
-      $form->setDefaults(array('is_recur' => 1));
-    }
   }
 
   // If enabled on a page with monthly recurring contributions enabled, provide a way to set future contribution dates. 
@@ -941,11 +846,6 @@ function iats_civicrm_buildForm_Contribution_Frontend(&$form) {
     }
     elseif (!empty($swipe[$id])) {
       iats_swipe_form_customize($form);
-    }
-    /* UK Direct debit option */
-    elseif (!empty($ukdd[$id])) {
-      iats_ukdd_form_customize($form);
-      // watchdog('iats_acheft',kprint_r($form,TRUE));.
     }
   }
 
@@ -1179,44 +1079,6 @@ function iats_civicrm_buildForm_CRM_Contribute_Form_CancelSubscription(&$form) {
 }
 
 /**
- * Modify the contribution Confirm screen for iATS UK DD
- * 1. display extra field data injected earlier for payer validation.
- */
-function iats_civicrm_buildForm_Contribution_Confirm_Payment_iATSServiceUKDD(&$form) {
-  $form->addElement('textarea', 'payer_validate_address', ts('Name and full postal address of your Bank or Building Society'), array('rows' => '6', 'columns' => '30'));
-  $form->addElement('text', 'payer_validate_service_user_number', ts('Service User Number'));
-  $form->addElement('text', 'payer_validate_reference', ts('Reference'));
-  // Date on which the validation happens, reference.
-  $form->addElement('text', 'payer_validate_date', ts('Today\'s Date'), array());
-  $form->addElement('text', 'payer_validate_start_date', ts('Date of first collection'));
-  $form->addElement('static', 'payer_validate_instruction', ts('Instruction to your Bank or Building Society'), ts('Please pay %1 Direct Debits from the account detailed in this instruction subject to the safeguards assured by the Direct Debit Guarantee. I understand that this instruction may remain with TestingTest and, if so, details will be passed electronically to my Bank / Building Society.', array('%1' => "<strong>$payee</strong>")));
-  $defaults = array(
-    'payer_validate_date' => date('F j, Y'),
-  );
-  foreach (array('address', 'service_user_number', 'reference', 'date', 'start_date') as $k) {
-    $key = 'payer_validate_' . $k;
-    $defaults[$key] = $form->_params[$key];
-  };
-  $form->setDefaults($defaults);
-  CRM_Core_Region::instance('contribution-confirm-billing-block')->add(array(
-    'template' => 'CRM/iATS/ContributeConfirmExtra_UKDD.tpl',
-  ));
-}
-
-/**
- * Modify the contribution Thank You screen for iATS UK DD.
- */
-function iats_civicrm_buildForm_Contribution_ThankYou_Payment_iATSServiceUKDD(&$form) {
-  foreach (array('address', 'service_user_number', 'reference', 'date', 'start_date') as $k) {
-    $key = 'payer_validate_' . $k;
-    $form->addElement('static', $key, $key, $form->_params[$key]);
-  };
-  CRM_Core_Region::instance('contribution-thankyou-billing-block')->add(array(
-    'template' => 'CRM/iATS/ContributeThankYouExtra_UKDD.tpl',
-  ));
-}
-
-/**
  * Add some functionality to the update subscription form for recurring contributions.
  */
 function iats_civicrm_buildForm_CRM_Contribute_Form_UpdateSubscription(&$form) {
@@ -1227,12 +1089,9 @@ function iats_civicrm_buildForm_CRM_Contribute_Form_UpdateSubscription(&$form) {
   if (!CRM_Core_Permission::check('edit contributions')) {
     return;
   }
-  // Only mangle this form for recurring contributions using iATS, (and not the UKDD version)
+  // Only mangle this form for recurring contributions using iATS
   $payment_processor_type = empty($form->_paymentProcessor) ? substr(get_class($form->_paymentProcessorObj),9) : $form->_paymentProcessor['class_name'];
   if (0 !== strpos($payment_processor_type, 'Payment_iATSService')) {
-    return;
-  }
-  if ('Payment_iATSServiceUKDD' == $payment_processor_type) {
     return;
   }
   $settings = civicrm_api3('Setting', 'getvalue', array('name' => 'iats_settings'));
