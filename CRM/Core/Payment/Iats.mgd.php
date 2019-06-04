@@ -27,6 +27,7 @@ return array(
       'is_recur' => 1,
       'payment_type' => 1,
     ),
+  ),
   1 =>
     array(
     'module' => 'com.iatspayments.civicrm',
@@ -49,6 +50,7 @@ return array(
       'payment_type' => 2,
       'payment_instrument_id' => '2', /* "Debit Card"  */
     ),
+  ),
   2 =>
     array(
     'module' => 'com.iatspayments.civicrm',
@@ -70,4 +72,5 @@ return array(
       'is_recur' => 1,
       'payment_type' => 1,
     ),
-  );
+  ),
+);
