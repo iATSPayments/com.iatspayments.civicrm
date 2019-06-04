@@ -262,14 +262,6 @@ function _iats_civicrm_domain_info($key) {
 /* START utility functions to allow this extension to work with different civicrm version */
 
 /**
- * Does this version of Civi implement repeattransaction well?
- */
-function _iats_civicrm_use_repeattransaction() {
-  $version = CRM_Utils_System::version();
-  return (version_compare($version, '4.7.12') < 0) ? FALSE : TRUE;
-}
-
-/**
  * Set js config values, version dependent. Access is also version dependent.
  */
 function _iats_civicrm_varset($vars) {
@@ -1461,7 +1453,7 @@ function _iats_process_contribution_payment(&$contribution, $options, $original_
     // 1. if we want it
     // 2. if we don't already have a contribution id
     // 3. if we trust it
-    $use_repeattransaction = $is_recurrence && empty($contribution['id']) && _iats_civicrm_use_repeattransaction();
+    $use_repeattransaction = $is_recurrence && empty($contribution['id']);
   }
   if ($use_repeattransaction) {
     // We processed it successflly and I can try to use repeattransaction. 
