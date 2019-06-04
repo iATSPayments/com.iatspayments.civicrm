@@ -1134,15 +1134,6 @@ function iats_civicrm_buildForm_CRM_Contribute_Form_UpdateBilling(&$form) {
 }
 
 /**
- * Implementation of hook_civicrm_alterSettingsFolders.
- *
- * @link http://wiki.civicrm.org/confluence/display/CRMDOC/hook_civicrm_alterSettingsFolders
- */
-function iats_civicrm_alterSettingsFolders(&$metaDataFolders = NULL) {
-  _iats_civix_civicrm_alterSettingsFolders($metaDataFolders);
-}
-
-/**
  * For a recurring contribution, find a reasonable candidate for a template, where possible.
  */
 function _iats_civicrm_getContributionTemplate($contribution) {
