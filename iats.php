@@ -18,13 +18,13 @@
  * You should have received a copy of the GNU Affero General Public
  * License with this program; if not, see http://www.gnu.org/licenses/
  */
-
+// opcache_reset();
 require_once 'iats.civix.php';
 use CRM_Iats_ExtensionUtil as E;
 
 /* First American requires a "category" for ACH transaction requests */
 
-define('FAPS_DEFAULT_ACH_CATEGORY_TEXT','CiviCRM ACH');
+define('FAPS_DEFAULT_ACH_CATEGORY_TEXT', 'CiviCRM ACH');
 
 /**
  * Implements hook_civicrm_config().
@@ -610,7 +610,7 @@ function _iats_filter_payment_processors($class, $processors = array(), $params 
   $params['sequential'] = FALSE; // return list indexed by processor id
   $result = civicrm_api3('PaymentProcessor', 'get', $params);
   if (0 == $result['is_error'] && count($result['values']) > 0) {
-    $list = (0 < count($processors)) ? array_intersect_key($results['values'], $processors) : $results['values'];
+    $list = (0 < count($processors)) ? array_intersect_key($result['values'], $processors) : $result['values'];
   }
   return $list;
 }
@@ -789,7 +789,7 @@ function iats_swipe_form_customize($form) {
  */
 function iats_civicrm_buildForm_Contribution_Frontend(&$form) {
 
-  $processors = _iats_get_payment_processors($form);
+  $processors = _iats_get_form_payment_processors($form);
   $acheft = _iats_filter_payment_processors('iATSServiceACHEFT', $processors);
   // If a form allows ACH/EFT and enables recurring, set recurring to the default.
   if (0 < count($acheft)) {
@@ -817,7 +817,7 @@ function iats_civicrm_buildForm_Contribution_Frontend(&$form) {
   }
   // now get all iATS (+ FAPS) processors for this page
   $iats = _iats_filter_payment_processors('iATSService', $processors);
-  $faps = _iats_filter_payment_processors('FAPS', $processors);
+  $faps = _iats_filter_payment_processors('Faps', $processors);
   // If any of them is enabled on a page with monthly recurring contributions enabled, provide a way to set future contribution dates. 
   // Uses javascript to hide/reset unless they have recurring contributions checked.
   if ((count($iats) || count($faps)) && isset($form->_elementIndex['is_recur'])) {
@@ -860,37 +860,51 @@ function iats_faps_form_customize($form, $faps_processors) {
   else {
     $payment_processor_id = $form->_submitValues['payment_processor_id'];
   }
-  $this_processor = $faps_processors[$payment_processor_id];
-  $is_cc = ($this_processor['payment_instrument_id'] == 1);
-  $is_test = ($this_processor['is_test'] == 1);
-  $has_is_recur = $form->elementExists('is_recur');
-  /* by default, use the cryptogram, but allow it to be disabled */
-  // CRM_Core_Error::debug_var('generate cryptogram html', $faps_processors);
-  // CRM_Core_Error::debug_var('form class', $form_class);
-  // CRM_Core_Error::debug_var('form', $form);
-  $credentials = array(
-    'transcenterId' => $this_processor['password'],
-    'processorId' => $this_processor['user_name']
-  );
-  $iats_domain = parse_url($this_processor['url_site'], PHP_URL_HOST);
-  $cryptojs = 'https://'.$iats_domain.'/secure/PaymentHostedForm/Scripts/firstpay/firstpay.cryptogram.js';
-  $transaction_type = $has_is_recur ? ($is_cc ? 'Auth' : 'Vault') : ($is_cc ? 'Sale' : 'AchDebit');
-  $iframe_src = 'https://'.$iats_domain. '/secure/PaymentHostedForm/v3/' .($is_cc ? 'CreditCard' : 'Ach');
-  $iframe_style = 'width: 100%;'; // height: 100%;';
-  $markup = sprintf("<iframe id=\"firstpay-iframe\" src=\"%s\" style=\"%s\" data-transcenter-id=\"%s\" data-processor-id=\"%s\" data-transaction-type=\"%s\" data-manual-submit=\"false\"></iframe>\n", $iframe_src, $iframe_style,$credentials['transcenterId'], $credentials['processorId'], $transaction_type);
-  // $markup = "<iframe id=\"firstpay-iframe\" src=\"%s\" style=\"width: 100%; height: 100%\" data-transcenter-id=\"%s\" data-processor-id=\"%s\" data-transaction-type=\"%s\" data-manual-submit=\"false\"></iframe>\n";
-  // print_r('<pre>'.$markup.'</pre>'); die();
-  CRM_Core_Resources::singleton()->addScriptUrl($cryptojs);
-  // $markup = print_r($faps_processors, TRUE);
-  CRM_Core_Resources::singleton()->addScriptFile('com.iatspayments.civicrm', 'js/crypto.js', 10);
-  CRM_Core_Resources::singleton()->addStyleFile('com.iatspayments.civicrm', 'css/crypto.css', 10);
-  CRM_Core_Region::instance('page-body')->add(array(
-          'name' => 'firstpay-iframe',
-          'type' => 'markup',
-          'markup' => $markup,
-          'weight' => 11,
-          'region' => 'page-body',
-        )); 
+  // I need to add an iframe for each available processor id on the form
+  // My js needs to be smarter to hide it when the corresponding processor is
+  // not selected.
+  foreach ($faps_processors as $this_processor) {
+
+    /* if (empty($faps_processors[$payment_processor_id])) {
+      // continue;
+      return;
+    } */
+    // $this_processor = $faps_processors[$payment_processor_id];
+
+    $is_cc = ($this_processor['payment_instrument_id'] == 1);
+    $is_test = ($this_processor['is_test'] == 1);
+    $has_is_recur = $form->elementExists('is_recur');
+    /* by default, use the cryptogram, but allow it to be disabled */
+    // CRM_Core_Error::debug_var('generate cryptogram html', $faps_processors);
+    // CRM_Core_Error::debug_var('form class', $form_class);
+    // CRM_Core_Error::debug_var('form', $form);
+    $credentials = array(
+      'transcenterId' => $this_processor['password'],
+      'processorId' => $this_processor['user_name'],
+    );
+    // print_r($this_processor); die();
+    $iats_domain = parse_url($this_processor['url_site'], PHP_URL_HOST);
+    $cryptojs = 'https://' . $iats_domain . '/secure/PaymentHostedForm/Scripts/firstpay/firstpay.cryptogram.js';
+    $transaction_type = $has_is_recur ? ($is_cc ? 'Auth' : 'Vault') : ($is_cc ? 'Sale' : 'AchDebit');
+    $iframe_src = 'https://' . $iats_domain . '/secure/PaymentHostedForm/v3/' . ($is_cc ? 'CreditCard' : 'Ach');
+    $iframe_style = 'width: 100%;'; // height: 100%;';
+    $markup = sprintf("<iframe id=\"firstpay-iframe\" src=\"%s\" style=\"%s\" data-transcenter-id=\"%s\" data-processor-id=\"%s\" data-transaction-type=\"%s\" data-manual-submit=\"false\"></iframe>\n", $iframe_src, $iframe_style,$credentials['transcenterId'], $credentials['processorId'], $transaction_type);
+    // $markup = "<iframe id=\"firstpay-iframe\" src=\"%s\" style=\"width: 100%;
+    // height: 100%\" data-transcenter-id=\"%s\" data-processor-id=\"%s\"
+    // data-transaction-type=\"%s\" data-manual-submit=\"false\"></iframe>\n";
+    // print_r('<pre>'.$markup.'</pre>'); die();
+    CRM_Core_Resources::singleton()->addScriptUrl($cryptojs);
+    // $markup = print_r($faps_processors, TRUE);
+    CRM_Core_Resources::singleton()->addScriptFile('com.iatspayments.civicrm', 'js/crypto.js', 10);
+    CRM_Core_Resources::singleton()->addStyleFile('com.iatspayments.civicrm', 'css/crypto.css', 10);
+    CRM_Core_Region::instance('page-body')->add(array(
+            'name' => 'firstpay-iframe',
+            'type' => 'markup',
+            'markup' => $markup,
+            'weight' => 11,
+            'region' => 'page-body',
+          )); 
+  }
 }
 
 /**
