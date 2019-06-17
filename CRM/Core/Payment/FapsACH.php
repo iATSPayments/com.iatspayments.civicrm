@@ -30,45 +30,50 @@ class CRM_Core_Payment_FapsACH extends CRM_Core_Payment_Faps {
     return $fields;
   }
 
-  /**
-   * Return an array of all the details about the fields potentially required for payment fields.
+/**
+   * Opportunity for the payment processor to override the entire form build.
    *
-   * Only those determined by getPaymentFormFields will actually be assigned to the form
+   * @param CRM_Core_Form $form
    *
-   * @return array
-   *   field metadata
+   * @return bool
+   *   Should form building stop at this point?
+   *
+   * return (!empty($form->_paymentFields));
+   * @throws \Civi\Payment\Exception\PaymentProcessorException
    */
-  public function getPaymentFormFieldsMetadata() {
-    $metadata = parent::getPaymentFormFieldsMetadata();
-    if (!$this->disable_cryptogram) {
-      $metadata['cryptogram'] = array(
-        'htmlType' => 'text',
-        'cc_field' => TRUE,
-        'name' => 'cryptogram',
-        'title' => ts('Cryptogram'),
-        'attributes' => array(
-          'class' => 'cryptogram',
-          'size' => 30,
-          'maxlength' => 60,
-        ),
-        'is_required' => TRUE,
-      );
+  public function buildForm(&$form) {
+    /* by default, use the cryptogram, but allow it to be disabled */
+    if (iats_get_setting('disable_cryptogram')) {
+      return;
     }
-    return $metadata;
+    // otherwise, generate some js settings that will allow the included
+    // crypto.js to generate the required iframe.
+    $iats_domain = parse_url($this->_paymentProcessor['url_site'], PHP_URL_HOST);
+    $cryptojs = 'https://' . $iats_domain . '/secure/PaymentHostedForm/Scripts/firstpay/firstpay.cryptogram.js';
+    $iframe_src = 'https://' . $iats_domain . '/secure/PaymentHostedForm/v3/Ach';
+    $jsVariables = [
+      'paymentProcessorId' => $this->_paymentProcessor['id'], 
+      'transcenterId' => $this->_paymentProcessor['password'],
+      'processorId' => $this->_paymentProcessor['user_name'],
+      'currency' => $form->getCurrency(),
+      'is_test' => $this->_is_test,
+      'title' => $form->getTitle(),
+      'iframe_src' => $iframe_src,
+      'paymentInstrumentId' => 2,
+    ];
+    CRM_Core_Resources::singleton()->addVars('iats', $jsVariables);
+    CRM_Core_Resources::singleton()->addScriptUrl($cryptojs);
+    CRM_Core_Resources::singleton()->addScriptFile('com.iatspayments.civicrm', 'js/crypto.js', 10);
+    CRM_Core_Resources::singleton()->addStyleFile('com.iatspayments.civicrm', 'css/crypto.css', 10);
+    return FALSE;
   }
+
 
   /**
    * function doDirectPayment
    *
    * This is the function for taking a payment using a core payment form of any kind.
    *
-   * Here's the thing: if we are using the cryptogram with recurring, then the cryptogram
-   * needs to be configured for use with the vault. The cryptogram iframe is created before
-   * I know whether the contribution will be recurring or not, so that forces me to always
-   * use the vault, if recurring is an option.
-   * 
-   * So: the best we can do is to avoid the use of the vault if I'm not using the cryptogram, or if I'm on a page that
-   * doesn't offer recurring contributions.
    */
   public function doDirectPayment(&$params) {
     // CRM_Core_Error::debug_var('doDirectPayment params', $params);
@@ -77,11 +82,7 @@ class CRM_Core_Payment_FapsACH extends CRM_Core_Payment_Faps {
     if ('USD' != $params['currencyID']) {
       return self::error('Invalid currency selection: ' . $params['currencyID']);
     }
-    // flow is special when using hasIsRecur and usingCrypto, I have to use the vault
-    // This is true even if the user has not chosen recur, because I have to choose the crypto iframe type when the page is generated.
     $isRecur = CRM_Utils_Array::value('is_recur', $params) && $params['contributionRecurID'];
-    $hasIsRecur = (CRM_Utils_Array::value('frequency_interval', $params) > 0);
-    $usingCrypto = !empty($params['cryptogram']);
     $ipAddress = (function_exists('ip_address') ? ip_address() : $_SERVER['REMOTE_ADDR']);
     $credentials = array(
       'merchantKey' => $this->_paymentProcessor['signature'],
@@ -94,7 +95,7 @@ class CRM_Core_Payment_FapsACH extends CRM_Core_Payment_Faps {
     $params['ach_category_text'] = self::getCategoryText($credentials, $is_test, $ipAddress);
 
     $vault_key = $vault_id = '';
-    if (($hasIsRecur  && $usingCrypto) || $isRecur) {
+    if ($isRecur) {
       // Store the params in a vault before attempting payment
       $options = array(
         'action' => 'VaultCreateAchRecord',
@@ -191,7 +192,7 @@ class CRM_Core_Payment_FapsACH extends CRM_Core_Payment_Faps {
     if (!empty($ach_category_text_saved)) {
       return $ach_category_text_saved;
     } 
-    $ach_category_text = faps_get_setting('ach_category_text');
+    $ach_category_text = iats_get_setting('ach_category_text');
     $ach_category_text = empty($ach_category_text) ? FAPS_DEFAULT_ACH_CATEGORY_TEXT : $ach_category_text;
     $ach_category_exists = FALSE;
     // check if it's setup
