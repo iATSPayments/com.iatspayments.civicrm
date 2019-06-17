@@ -13,9 +13,9 @@ return array(
       'params' =>
         array(
           'version' => 3,
-          'title' => 'iATS Payment FAPS Credit Card',
-          'name' => 'iATS Payment FAPS Credit Card',
-          'description' => 'iATS Payment Credit Card Processor using 1stPay',
+          'title' => 'iATS Payments FAPS Credit Card',
+          'name' => 'iATS Payments FAPS Credit Card',
+          'description' => 'iATS Payments Credit Card Processor using 1stPay',
           'user_name_label' => 'Processor ID',
           'password_label' => 'Transaction Center ID',
           'signature_label' => 'Merchant Key',
@@ -38,9 +38,9 @@ return array(
       'params' =>
         array(
           'version' => 3,
-          'title' => 'iATS Payment FAPS ACH',
-          'name' => 'iATS Payment FAPS ACH',
-          'description' => 'iATS Payment ACH Processor using 1stPay',
+          'title' => 'iATS Payments FAPS ACH',
+          'name' => 'iATS Payments FAPS ACH',
+          'description' => 'iATS Payments ACH Processor using 1stPay',
           'user_name_label' => 'Processor ID',
           'password_label' => 'Transaction Center ID',
           'signature_label' => 'Merchant Key',
