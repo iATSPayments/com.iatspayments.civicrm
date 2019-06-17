@@ -95,6 +95,48 @@ class CRM_Core_Payment_Faps extends CRM_Core_Payment {
     return $metadata;
   }
 
+
+/**
+   * Opportunity for the payment processor to override the entire form build.
+   *
+   * @param CRM_Core_Form $form
+   *
+   * @return bool
+   *   Should form building stop at this point?
+   *
+   * For this class, I include some js that will allow the form to dynamically
+   * build the right iframe via jquery.
+   *
+   * return (!empty($form->_paymentFields));
+   * @throws \Civi\Payment\Exception\PaymentProcessorException
+   */
+  public function buildForm(&$form) {
+    /* by default, use the cryptogram, but allow it to be disabled */
+    if (iats_get_setting('disable_cryptogram')) {
+      return;
+    }
+    // otherwise, generate some js settings that will allow the included
+    // crypto.js to generate the required iframe.
+    $iats_domain = parse_url($this->_paymentProcessor['url_site'], PHP_URL_HOST);
+    $cryptojs = 'https://' . $iats_domain . '/secure/PaymentHostedForm/Scripts/firstpay/firstpay.cryptogram.js';
+    $iframe_src = 'https://' . $iats_domain . '/secure/PaymentHostedForm/v3/CreditCard';
+    $jsVariables = [
+      'paymentProcessorId' => $this->_paymentProcessor['id'], 
+      'transcenterId' => $this->_paymentProcessor['password'],
+      'processorId' => $this->_paymentProcessor['user_name'],
+      'currency' => $form->getCurrency(),
+      'is_test' => $this->_is_test,
+      'title' => $form->getTitle(),
+      'iframe_src' => $iframe_src,
+      'paymentInstrumentId' => 1,
+    ];
+    CRM_Core_Resources::singleton()->addVars('iats', $jsVariables);
+    CRM_Core_Resources::singleton()->addScriptUrl($cryptojs);
+    CRM_Core_Resources::singleton()->addScriptFile('com.iatspayments.civicrm', 'js/crypto.js', 10);
+    CRM_Core_Resources::singleton()->addStyleFile('com.iatspayments.civicrm', 'css/crypto.css', 10);
+    return FALSE;
+  }
+
   /**
    * function doDirectPayment
    *
@@ -111,14 +153,12 @@ class CRM_Core_Payment_Faps extends CRM_Core_Payment {
   public function doDirectPayment(&$params) {
     // CRM_Core_Error::debug_var('doDirectPayment params', $params);
 
-    // Check for valid currency
+    // Check for valid currency [todo: we have C$ support, but how do we check,
+    // or should we?]
     if ('USD' != $params['currencyID']) {
       return self::error('Invalid currency selection: ' . $params['currencyID']);
     }
-    // flow is special when using hasIsRecur and usingCrypto, I have to use the vault
-    // This is true even if the user has not chosen recur, because I have to choose the crypto iframe type when the page is generated.
     $isRecur = CRM_Utils_Array::value('is_recur', $params) && $params['contributionRecurID'];
-    $hasIsRecur = (CRM_Utils_Array::value('frequency_interval', $params) > 0);
     $usingCrypto = !empty($params['cryptogram']);
     $ipAddress = (function_exists('ip_address') ? ip_address() : $_SERVER['REMOTE_ADDR']);
     $credentials = array(
@@ -126,7 +166,7 @@ class CRM_Core_Payment_Faps extends CRM_Core_Payment {
       'processorId' => $this->_paymentProcessor['user_name']
     );
     $vault_key = $vault_id = '';
-    if (($hasIsRecur  && $usingCrypto) || $isRecur) {
+    if ($isRecur) {
       // Store the params in a vault before attempting payment
       // I first have to convert the Auth crypto into a token.
       $options = array(
@@ -181,7 +221,7 @@ class CRM_Core_Payment_Faps extends CRM_Core_Payment {
         'test' => ($this->_mode == 'test' ? 1 : 0),
       );
     }
-    else { // no recurring options in sight, set the simple sale option for taking the money
+    else { // not recurring, use the simple sale option for taking the money
       $options = array(
         'action' => 'Sale',
         'test' => ($this->_mode == 'test' ? 1 : 0),
