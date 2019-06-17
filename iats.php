@@ -18,7 +18,9 @@
  * You should have received a copy of the GNU Affero General Public
  * License with this program; if not, see http://www.gnu.org/licenses/
  */
-// opcache_reset();
+
+//opcache_reset();
+
 require_once 'iats.civix.php';
 use CRM_Iats_ExtensionUtil as E;
 
@@ -345,6 +347,7 @@ function iats_civicrm_buildForm($formName, &$form) {
       break;
   }
   if (function_exists($fname)) {
+    // CRM_Core_Error::debug_var('overridden formName',$formName);
     $fname($form);
   }
   // Else echo $fname;.
@@ -539,7 +542,7 @@ function iats_civicrm_pre($op, $objectName, $objectId, &$params) {
 function iats_get_setting($key = NULL) {
   static $settings;
   if (empty($settings)) { 
-    $settings = CRM_Core_BAO_Setting::getItem('iATS FAPS Payments Extension', 'iats_settings');
+    $settings = CRM_Core_BAO_Setting::getItem('iATS Payments Extension', 'iats_settings');
   }
   return empty($key) ?  $settings : (isset($settings[$key]) ? $settings[$key] : '');
 }
@@ -833,78 +836,6 @@ function iats_civicrm_buildForm_Contribution_Frontend(&$form) {
     }
   }
 
-  // check if I'm using any faps processors w/ cryptogram
-  if (count($faps) && !iats_get_setting('disable_cryptogram')) {
-    iats_faps_form_customize($form, $faps);
-  }
-
-}
-
-/**
- * Add the FAPS iframe
- * This is still a placeholder - need to invoke with more argument at the right
- * place.
- */
-function iats_faps_form_customize($form, $faps_processors) {
-
-  // die('test');
-  if (empty($form->_submitValues['payment_processor_id'])) {
-    if (empty($form->_defaults['payment_processor_id'])) {
-      $payment_processor_ids = array_keys($iats_processors);
-      $payment_processor_id = reset($payment_processor_ids);
-    }
-    else {
-      $payment_processor_id = $form->_defaults['payment_processor_id'];
-    }
-  }
-  else {
-    $payment_processor_id = $form->_submitValues['payment_processor_id'];
-  }
-  // I need to add an iframe for each available processor id on the form
-  // My js needs to be smarter to hide it when the corresponding processor is
-  // not selected.
-  foreach ($faps_processors as $this_processor) {
-
-    /* if (empty($faps_processors[$payment_processor_id])) {
-      // continue;
-      return;
-    } */
-    // $this_processor = $faps_processors[$payment_processor_id];
-
-    $is_cc = ($this_processor['payment_instrument_id'] == 1);
-    $is_test = ($this_processor['is_test'] == 1);
-    $has_is_recur = $form->elementExists('is_recur');
-    /* by default, use the cryptogram, but allow it to be disabled */
-    // CRM_Core_Error::debug_var('generate cryptogram html', $faps_processors);
-    // CRM_Core_Error::debug_var('form class', $form_class);
-    // CRM_Core_Error::debug_var('form', $form);
-    $credentials = array(
-      'transcenterId' => $this_processor['password'],
-      'processorId' => $this_processor['user_name'],
-    );
-    // print_r($this_processor); die();
-    $iats_domain = parse_url($this_processor['url_site'], PHP_URL_HOST);
-    $cryptojs = 'https://' . $iats_domain . '/secure/PaymentHostedForm/Scripts/firstpay/firstpay.cryptogram.js';
-    $transaction_type = $has_is_recur ? ($is_cc ? 'Auth' : 'Vault') : ($is_cc ? 'Sale' : 'AchDebit');
-    $iframe_src = 'https://' . $iats_domain . '/secure/PaymentHostedForm/v3/' . ($is_cc ? 'CreditCard' : 'Ach');
-    $iframe_style = 'width: 100%;'; // height: 100%;';
-    $markup = sprintf("<iframe id=\"firstpay-iframe\" src=\"%s\" style=\"%s\" data-transcenter-id=\"%s\" data-processor-id=\"%s\" data-transaction-type=\"%s\" data-manual-submit=\"false\"></iframe>\n", $iframe_src, $iframe_style,$credentials['transcenterId'], $credentials['processorId'], $transaction_type);
-    // $markup = "<iframe id=\"firstpay-iframe\" src=\"%s\" style=\"width: 100%;
-    // height: 100%\" data-transcenter-id=\"%s\" data-processor-id=\"%s\"
-    // data-transaction-type=\"%s\" data-manual-submit=\"false\"></iframe>\n";
-    // print_r('<pre>'.$markup.'</pre>'); die();
-    CRM_Core_Resources::singleton()->addScriptUrl($cryptojs);
-    // $markup = print_r($faps_processors, TRUE);
-    CRM_Core_Resources::singleton()->addScriptFile('com.iatspayments.civicrm', 'js/crypto.js', 10);
-    CRM_Core_Resources::singleton()->addStyleFile('com.iatspayments.civicrm', 'css/crypto.css', 10);
-    CRM_Core_Region::instance('page-body')->add(array(
-            'name' => 'firstpay-iframe',
-            'type' => 'markup',
-            'markup' => $markup,
-            'weight' => 11,
-            'region' => 'page-body',
-          )); 
-  }
 }
 
 /**
@@ -964,11 +895,6 @@ function iats_civicrm_buildForm_CreditCard_Backend(&$form) {
     }
   }
 
-  // check if I'm using any faps processors
-  $faps = _iats_filter_payment_processors('Faps', $form->_processors);
-  if ($faps) {
-    iats_faps_form_customize($form, $faps);
-  }
 }
 
 /**
