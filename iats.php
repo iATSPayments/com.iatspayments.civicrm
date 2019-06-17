@@ -818,23 +818,6 @@ function iats_civicrm_buildForm_Contribution_Frontend(&$form) {
       iats_swipe_form_customize($form);
     }
   }
-  // now get all iATS (+ FAPS) processors for this page
-  $iats = _iats_filter_payment_processors('iATSService', $processors);
-  $faps = _iats_filter_payment_processors('Faps', $processors);
-  // If any of them is enabled on a page with monthly recurring contributions enabled, provide a way to set future contribution dates. 
-  // Uses javascript to hide/reset unless they have recurring contributions checked.
-  if ((count($iats) || count($faps)) && isset($form->_elementIndex['is_recur'])) {
-    $settings = CRM_Core_BAO_Setting::getItem('iATS Payments Extension', 'iats_settings');
-    if (!empty($settings['enable_public_future_recurring_start'])) {
-      $allow_days = empty($settings['days']) ? array('-1') : $settings['days'];
-      $start_dates = _iats_get_future_monthly_start_dates(time(), $allow_days);
-      $form->addElement('select', 'receive_date', ts('Date of first contribution'), $start_dates);
-      CRM_Core_Region::instance('billing-block')->add(array(
-        'template' => 'CRM/Iats/BillingBlockRecurringExtra.tpl',
-      ));
-      CRM_Core_Resources::singleton()->addScriptFile('com.iatspayments.civicrm', 'js/recur_start.js', 10);
-    }
-  }
 
 }
 
