@@ -49,6 +49,8 @@ class CRM_Core_Payment_FapsACH extends CRM_Core_Payment_Faps {
     // otherwise, generate some js settings that will allow the included
     // crypto.js to generate the required iframe.
     $iats_domain = parse_url($this->_paymentProcessor['url_site'], PHP_URL_HOST);
+    // cryptojs is url of the firstpay script that needs to get loaded after the iframe
+    // is generated.
     $cryptojs = 'https://' . $iats_domain . '/secure/PaymentHostedForm/Scripts/firstpay/firstpay.cryptogram.js';
     $iframe_src = 'https://' . $iats_domain . '/secure/PaymentHostedForm/v3/Ach';
     $jsVariables = [
@@ -59,10 +61,10 @@ class CRM_Core_Payment_FapsACH extends CRM_Core_Payment_Faps {
       'is_test' => $this->_is_test,
       'title' => $form->getTitle(),
       'iframe_src' => $iframe_src,
+      'cryptojs' => $cryptojs,
       'paymentInstrumentId' => 2,
     ];
     CRM_Core_Resources::singleton()->addVars('iats', $jsVariables);
-    CRM_Core_Resources::singleton()->addScriptUrl($cryptojs);
     CRM_Core_Resources::singleton()->addScriptFile('com.iatspayments.civicrm', 'js/crypto.js', 10);
     CRM_Core_Resources::singleton()->addStyleFile('com.iatspayments.civicrm', 'css/crypto.css', 10);
     return FALSE;

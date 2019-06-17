@@ -11,6 +11,14 @@ cj(function ($) {
   var isRecur = cj('#is_recur').prop('checked');
   generateFirstpayIframe(isRecur);
   cj('#is_recur').click(function() {
+    // remove any existing iframe and message handlers first
+    cj('#firstpay-iframe').remove();
+    if (window.addEventListener) {
+      window.removeEventListener("message",fapsIframeMessage);
+    }
+    else {
+      window.detachEvent("onmessage", fapsIframeMessage);
+    }
     isRecur = this.checked;
     generateFirstpayIframe(isRecur);
   });
@@ -26,17 +34,7 @@ cj(function ($) {
       var transactionType = isRecur ? 'Vault' : 'AchDebit';
     }
     // console.log(transactionType);
-    // var transactionType = $has_is_recur ? ($is_cc ? 'Auth' : 'Vault') : ($is_cc ? 'Sale' : 'AchDebit');
-    // generate or update an iframe below the cryptgram field
-    // The iframe details will depend on cc vs. ach and also non-vs-recur
-    // remove any existing iframe and message handlers first
-    cj('#firstpay-iframe').remove();
-    if (window.addEventListener) {
-      window.removeEventListener("message",fapsIframeMessage);
-    }
-    else {
-      window.detachEvent("onmessage", fapsIframeMessage);
-    }
+    // generate an iframe below the cryptgram field
     cj('<iframe>', {
       'src': iatsSettings.iframe_src,
       'id':  'firstpay-iframe',
@@ -48,6 +46,9 @@ cj(function ($) {
       'style': 'width: 100%',
       'scrolling': 'no'
     }).insertAfter('#payment_information .billing_mode-group .cryptogram-section');
+    // load the cryptojs script - this needs to get loaded after the iframe is
+    // generated.
+    cj.getScript(iatsSettings.cryptojs);
     // handle "firstpay" messages (from iframes), supporting multiple javascript versions
     if (window.addEventListener) {
       window.addEventListener("message",fapsIframeMessage, false);
