@@ -65,6 +65,139 @@ class CRM_Core_Payment_iATSServiceACHEFT extends CRM_Core_Payment_iATSService {
   }
 
   /**
+   * Get array of fields that should be displayed on the payment form for ACH/EFT (badly named as debit cards).
+   *
+   * @return array
+   */
+
+  protected function getDirectDebitFormFields() {
+    $fields = parent::getDirectDebitFormFields();
+    $fields[] = 'bank_account_type';
+    // print_r($fields); die();
+    return $fields;
+  }
+
+  /**
+   * Return an array of all the details about the fields potentially required for payment fields.
+   *
+   * Only those determined by getPaymentFormFields will actually be assigned to the form
+   *
+   * @return array
+   *   field metadata
+   */
+  public function getPaymentFormFieldsMetadata() {
+    $metadata = parent::getPaymentFormFieldsMetadata();
+    $metadata['bank_account_type'] = [
+      'htmlType' => 'Select',
+      'name' => 'bank_account_type',
+      'title' => ts('Account type'),
+      'is_required' => TRUE,
+      'attributes' => ['CHECKING' => 'Chequing', 'SAVING' => 'Savings'],
+    ];
+    return $metadata;
+  }
+
+
+  /**
+   * Opportunity for the payment processor to override the entire form build.
+   *
+   * @param CRM_Core_Form $form
+   *
+   * @return bool
+   *   Should form building stop at this point?
+   *
+   * Add ACH/EFT per currency instructions, also do parent (cc) form building to allow future
+   * recurring on public pages.
+   *
+   * return (!empty($form->_paymentFields));
+   * @throws \Civi\Payment\Exception\PaymentProcessorException
+   */
+  public function buildForm(&$form) {
+    // If a form allows ACH/EFT and enables recurring, set recurring to the default. 
+    if (isset($form->_elementIndex['is_recur'])) {
+      // Make recurring contrib default to true.
+      $form->setDefaults(array('is_recur' => 1));
+    }
+    $currency = iats_getCurrency($form);
+    // my javascript will (should, not yet) use the currency to rewrite some labels
+    $jsVariables = [
+      'currency' => $currency,
+    ];
+    CRM_Core_Resources::singleton()->addVars('iats', $jsVariables);
+    CRM_Core_Resources::singleton()->addScriptFile('com.iatspayments.civicrm', 'js/dd_acheft.js', 10);
+    // add in a billing block template in a currency dependent way.
+    $fname = 'buildForm_' . $currency;
+    if ($currency && method_exists($this,$fname)) {
+      // add in the common fields and rules first to allow modifications
+      //$this->addCommonFields($form, $form->_paymentFields);
+      //$this->addRules($form, $form->_paymentFields);
+      $this->$fname($form);
+    }
+    // Else, I'm handling an unexpected currency.
+    elseif ($currency) {
+      CRM_Core_Region::instance('billing-block')->add(array(
+        'template' => 'CRM/Iats/BillingBlockDirectDebitExtra_Other.tpl',
+      ));
+    }
+    return parent::buildForm($form);
+  }
+
+
+  /**
+   * Customization for USD ACH-EFT billing block.
+   */
+  protected function buildForm_USD(&$form) {
+    /*
+    $element = $form->getElement('account_holder');
+    $element->setLabel(ts('Name of Account Holder'));
+    $element = $form->getElement('bank_account_number');
+    $element->setLabel(ts('Bank Account Number'));
+    $element = $form->getElement('bank_identification_number');
+    $element->setLabel(ts('Bank Routing Number')); */
+    /* if (empty($form->billingFieldSets['direct_debit']['fields']['bank_identification_number']['is_required'])) {
+      $form->addRule('bank_identification_number', ts('%1 is a required field.', array(1 => ts('Bank Routing Number'))), 'required');
+  } */
+    CRM_Core_Region::instance('billing-block')->add(array(
+      'template' => 'CRM/Iats/BillingBlockDirectDebitExtra_USD.tpl',
+    ));
+  }
+  
+  /**
+   * Customization for CAD ACH-EFT billing block.
+   *
+   * Add some elements (bank number and transit number) that are used to
+   * generate the bank identification number, which is hidden.
+   * I can't do this in the usual way because it's currency-specific.
+   * Note that this is really just an interface convenience, the ACH/EFT
+   * North American interbank system is consistent across US and Canada.
+   */
+  protected function buildForm_CAD(&$form) {
+    $form->addElement('text', 'cad_bank_number', ts('Bank Number (3 digits)'));
+    $form->addRule('cad_bank_number', ts('%1 is a required field.', array(1 => ts('Bank Number'))), 'required');
+    $form->addRule('cad_bank_number', ts('%1 must contain only digits.', array(1 => ts('Bank Number'))), 'numeric');
+    $form->addRule('cad_bank_number', ts('%1 must be of length 3.', array(1 => ts('Bank Number'))), 'rangelength', array(3, 3));
+    $form->addElement('text', 'cad_transit_number', ts('Transit Number (5 digits)'));
+    $form->addRule('cad_transit_number', ts('%1 is a required field.', array(1 => ts('Transit Number'))), 'required');
+    $form->addRule('cad_transit_number', ts('%1 must contain only digits.', array(1 => ts('Transit Number'))), 'numeric');
+    $form->addRule('cad_transit_number', ts('%1 must be of length 5.', array(1 => ts('Transit Number'))), 'rangelength', array(5, 5));
+    /* minor customization of labels + make them required  */
+    /* $element = $form->getElement('account_holder');
+    $element->setLabel(ts('Name of Account Holder'));
+    $element = $form->getElement('bank_account_number');
+    $element->setLabel(ts('Account Number'));
+    $form->addRule('bank_account_number', ts('%1 must contain only digits.', array(1 => ts('Bank Account Number'))), 'numeric'); */
+    /* the bank_identification_number is hidden and then populated using jquery, in the custom template  */
+    /* $element = $form->getElement('bank_identification_number');
+    $element->setLabel(ts('Bank Number + Transit Number')); */
+    // print_r($form); die();
+    CRM_Core_Resources::singleton()->addScriptFile('com.iatspayments.civicrm', 'js/dd_cad.js', 10);
+    CRM_Core_Region::instance('billing-block')->add(array(
+      'template' => 'CRM/Iats/BillingBlockDirectDebitExtra_CAD.tpl',
+    ));
+  }
+
+
+  /**
    *
    */
   public function doDirectPayment(&$params) {
