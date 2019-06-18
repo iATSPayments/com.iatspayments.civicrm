@@ -73,4 +73,67 @@ class CRM_Core_Payment_iATSServiceSWIPE extends CRM_Core_Payment_iATSService {
     // Override the default and don't do any validation because my values are encrypted.
   }
 
+  /**
+   * Get array of fields that should be displayed on the payment form for credit cards.
+   * Replace cvv and card type fields with (hidden) swipe field.
+   *
+   * @return array
+   */
+
+  protected function getCreditCardFormFields() {
+    return [
+      'credit_card_number',
+      'credit_card_exp_date',
+      'encrypted_credit_card_number'
+    ];
+  }
+
+  /**
+   * Return an array of all the details about the fields potentially required for payment fields.
+   *
+   * Only those determined by getPaymentFormFields will actually be assigned to the form
+   *
+   * @return array
+   *   field metadata
+   */
+  public function getPaymentFormFieldsMetadata() {
+    $metadata = parent::getPaymentFormFieldsMetadata();
+    $metadata['encrypted_credit_card_number'] = [
+        'htmlType' => 'textarea',
+        'name' => 'encrypted_credit_card_number',
+        'title' => ts('Encrypted Credit Card Details'),
+        'is_required' => TRUE,
+        'attributes' => [
+          'cols' => 80,
+          'rows' => 8,
+          'autocomplete' => 'off',
+          'id' => 'encrypted_credit_card_number',
+        ],
+      ];
+    return $metadata;
+  }
+
+
+  /**
+   * Opportunity for the payment processor to override the entire form build.
+   *
+   * @param CRM_Core_Form $form
+   *
+   * @return bool
+   *   Should form building stop at this point?
+   *
+   * Add SWIPE instructions, also do parent (non-swipe) form building.
+   *
+   * return (!empty($form->_paymentFields));
+   * @throws \Civi\Payment\Exception\PaymentProcessorException
+   */
+  public function buildForm(&$form) {
+    CRM_Core_Resources::singleton()->addScriptFile('com.iatspayments.civicrm', 'js/swipe.js', 10);
+    CRM_Core_Region::instance('billing-block')->add(array(
+      'template' => 'CRM/Iats/BillingBlockSwipe.tpl',
+    ));
+    return parent::buildForm($form);
+  }
+
+
 }

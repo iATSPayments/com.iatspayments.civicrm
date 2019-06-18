@@ -328,13 +328,6 @@ function iats_civicrm_navigationMenu(&$navMenu) {
 function iats_civicrm_buildForm($formName, &$form) {
   // But start by grouping a few forms together for nicer code.
   switch ($formName) {
-    case 'CRM_Event_Form_Participant':
-    case 'CRM_Member_Form_Membership':
-    case 'CRM_Contribute_Form_Contribution':
-      // Override normal convention, deal with all these backend credit card contribution forms the same way.
-      $fname = 'iats_civicrm_buildForm_CreditCard_Backend';
-      break;
-
     case 'CRM_Contribute_Form_Contribution_Main':
     case 'CRM_Event_Form_Registration_Register':
     case 'CRM_Financial_Form_Payment':
@@ -360,17 +353,6 @@ function iats_civicrm_pageRun(&$page) {
   $fname = 'iats_civicrm_pageRun_' . $page->getVar('_name');
   if (function_exists($fname)) {
     $fname($page);
-  }
-}
-
-/**
- *
- */
-function iats_civicrm_pageRun_CRM_Contact_Page_View_Summary(&$page) {
-  // Because of AJAX loading, I need to load my backend swipe js here.
-  $swipe = _iats_filter_payment_processors('iATSServiceSWIPE', array(), array('is_default' => 1));
-  if (count($swipe) > 0) {
-    CRM_Core_Resources::singleton()->addScriptFile('com.iatspayments.civicrm', 'js/swipe.js', 10);
   }
 }
 
@@ -764,24 +746,6 @@ function iats_acheft_form_customize_CAD($form) {
 }
 
 /**
- * Contribution form customization for iATS secure swipe.
- */
-function iats_swipe_form_customize($form) {
-  // Remove two fields that are replaced by the swipe code data
-  // we need to remove them from the _paymentFields as well or they'll sneak back in!
-  $form->removeElement('credit_card_type', TRUE);
-  $form->removeElement('cvv2', TRUE);
-  unset($form->_paymentFields['credit_card_type']);
-  unset($form->_paymentFields['cvv2']);
-  // Add a single text area to store/display the encrypted cc number that the swipe device will fill.
-  $form->addElement('textarea', 'encrypted_credit_card_number', ts('Encrypted'), array('cols' => '80', 'rows' => '8'));
-  $form->addRule('encrypted_credit_card_number', ts('%1 is a required field.', array(1 => ts('Encrypted'))), 'required');
-  CRM_Core_Region::instance('billing-block')->add(array(
-    'template' => 'CRM/Iats/BillingBlockSwipe.tpl',
-  ));
-}
-
-/**
  * Modifications to a (public/frontend) contribution forms.
  * 1. set recurring to be the default, if enabled (ACH/EFT) [previously forced recurring, removed in 1.2.4]
  * 2. add extra fields/modify labels.
@@ -801,80 +765,13 @@ function iats_civicrm_buildForm_Contribution_Frontend(&$form) {
       $form->setDefaults(array('is_recur' => 1));
     }
   }
-  // Include extra javascript for SWIPE
-  $swipe = _iats_filter_payment_processors('iATSServiceSWIPE', $processors);
-  if (0 < count($swipe)) {
-    CRM_Core_Resources::singleton()->addScriptFile('com.iatspayments.civicrm', 'js/swipe.js', 10);
-  }
-  /* Mangle the ajax bit of the form for swipe and ach */
+  /* Mangle the ajax bit of the form for ach */
   if (!empty($form->_paymentProcessor['id'])) {
     $id = $form->_paymentProcessor['id'];
     /* Note that Ach/Eft is currency dependent */
     if (!empty($acheft[$id])) {
       iats_acheft_form_customize($form);
       // watchdog('iats_acheft',kprint_r($form,TRUE));.
-    }
-    elseif (!empty($swipe[$id])) {
-      iats_swipe_form_customize($form);
-    }
-  }
-
-}
-
-/**
- * Fix the backend credit card contribution forms
- * Includes CRM_Contribute_Form_Contribution, CRM_Event_Form_Participant, CRM_Member_Form_Membership
- * 1. Remove my ACH/EFT processors
- * Now fixed in core for contribution forms: https://issues.civicrm.org/jira/browse/CRM-14442
- * 2. Force SWIPE (i.e. remove all others) if it's the default, and mangle the form accordingly.
- * For now, this form doesn't refresh when you change payment processors, so I can't use swipe if it's not the default, so i have to remove it.
- */
-function iats_civicrm_buildForm_CreditCard_Backend(&$form) {
-  // Skip if i don't have any processors.
-  if (empty($form->_processors)) {
-    return;
-  }
-  // Get all my swipe processors.
-  $swipe = _iats_filter_payment_processors('iATSServiceSWIPE', $form->_processors);
-  // Get all my ACH/EFT processors (should be 0, but I'm fixing old core bugs)
-  $acheft = _iats_filter_payment_processors('iATSServiceACHEFT', $form->_processors);
-  // If an iATS SWIPE payment processor is enabled and default remove all other payment processors.
-  $swipe_id_default = 0;
-  if (0 < count($swipe)) {
-    foreach ($swipe as $id => $pp) {
-      if ($pp['is_default']) {
-        $swipe_id_default = $id;
-        break;
-      }
-    }
-  }
-  // Find the available pp options form element (update this if we ever switch from quickform, uses a quickform internals)
-  // not all invocations of the form include this, so check for non-empty value first.
-  if (!empty($form->_elementIndex['payment_processor_id'])) {
-    $pp_form_id = $form->_elementIndex['payment_processor_id'];
-    // Now cycle through them, either removing everything except the default swipe or just removing the ach/eft.
-    $element = $form->_elements[$pp_form_id]->_options;
-    foreach ($element as $option_id => $option) {
-      // Key is set to payment processor id.
-      $pp_id = $option['attr']['value'];
-      if ($swipe_id_default) {
-        // Remove any that are not my swipe default pp.
-        if ($pp_id != $swipe_id_default) {
-          $form->_elements[$pp_form_id]->_options[$option_id]['attr']['disabled'] = 'disabled';
-        }
-      }
-      elseif (!empty($acheft[$pp_id]) || !empty($swipe[$pp_id])) {
-        // Disable my ach/eft and swipe, which both require form changes.
-        $form->_elements[$pp_form_id]->_options[$option_id]['attr']['disabled'] = 'disabled';
-      }
-    }
-  }
-
-  // If i'm using swipe as default and I've got a billing section, then customize it.
-  if ($swipe_id_default) {
-    CRM_Core_Resources::singleton()->addScriptFile('com.iatspayments.civicrm', 'js/swipe.js', 10);
-    if (!empty($form->_elementIndex['credit_card_exp_date'])) {
-      iats_swipe_form_customize($form);
     }
   }
 

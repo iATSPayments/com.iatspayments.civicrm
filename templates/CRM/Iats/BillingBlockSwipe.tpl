@@ -8,15 +8,10 @@
         <div class="content"><img width=220 height=220 src="{crmResURL ext=com.iatspayments.civicrm file=templates/CRM/Iats/usb_reader.jpg}"></div>
         <div class="clear"></div>
       </div>
-      <div class="crm-section encrypted-credit-card-section">
-        <div class="label">{$form.encrypted_credit_card_number.label}</div>
-        <div class="content">{$form.encrypted_credit_card_number.html}</div>
-        <div class="clear"></div>
-      </div>
 </div>
 {literal}<script type="text/javascript">
-  cj(function ($) {
-    iatsSWIPERefresh();
+  CRM.$(function ($) {
+    $.getScript("{crmResURL ext=com.iatspayments.civicrm file=js/swipe.js}");
   });
 </script>
 {/literal}
