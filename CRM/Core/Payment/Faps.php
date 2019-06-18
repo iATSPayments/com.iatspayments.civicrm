@@ -157,7 +157,10 @@ class CRM_Core_Payment_Faps extends CRM_Core_Payment {
 
     // Check for valid currency [todo: we have C$ support, but how do we check,
     // or should we?]
-    if ('USD' != $params['currencyID']) {
+    if (
+        'USD' != $params['currencyID']
+     && 'CAD' != $params['currencyID']
+    ) {
       return self::error('Invalid currency selection: ' . $params['currencyID']);
     }
     $isRecur = CRM_Utils_Array::value('is_recur', $params) && $params['contributionRecurID'];
