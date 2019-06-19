@@ -8,11 +8,11 @@
 
 cj(function ($) {
   'use strict';
-  var isRecur = cj('#is_recur').prop('checked');
+  var isRecur = $('#is_recur').prop('checked');
   generateFirstpayIframe(isRecur);
-  cj('#is_recur').click(function() {
+  $('#is_recur').click(function() {
     // remove any existing iframe and message handlers first
-    cj('#firstpay-iframe').remove();
+    $('#firstpay-iframe').remove();
     if (window.addEventListener) {
       window.removeEventListener("message",fapsIframeMessage);
     }
@@ -35,7 +35,7 @@ cj(function ($) {
     }
     // console.log(transactionType);
     // generate an iframe below the cryptgram field
-    cj('<iframe>', {
+    $('<iframe>', {
       'src': iatsSettings.iframe_src,
       'id':  'firstpay-iframe',
       'data-transcenter-id': iatsSettings.transcenterId,
@@ -46,16 +46,17 @@ cj(function ($) {
       'style': 'width: 100%',
       'scrolling': 'no'
     }).insertAfter('#payment_information .billing_mode-group .cryptogram-section');
-    // load the cryptojs script - this needs to get loaded after the iframe is
-    // generated.
-    cj.getScript(iatsSettings.cryptojs);
-    // handle "firstpay" messages (from iframes), supporting multiple javascript versions
-    if (window.addEventListener) {
-      window.addEventListener("message",fapsIframeMessage, false);
-    }
-    else {
-      window.attachEvent("onmessage", fapsIframeMessage);
-    }
+    // load the cryptojs script and install event listeners - this needs to happen
+    // after the iframe is generated.
+    $.getScript(iatsSettings.cryptojs,  function(data, textStatus, jqxhr) {
+      // handle "firstpay" messages (from iframes), supporting multiple javascript versions
+      if (window.addEventListener) {
+        window.addEventListener("message",fapsIframeMessage, false);
+      }
+      else {
+        window.attachEvent("onmessage", fapsIframeMessage);
+      }
+    });
   }
 
 });
@@ -79,7 +80,7 @@ var fapsIframeMessage = function (event) {
         break;
       case 'cryptogramFailed':
         // alert user
-        $('#cryptogram').crmError(ts(event.data.message));
+        cj('#cryptogram').crmError(ts(event.data.message));
         break;
     }
   }
