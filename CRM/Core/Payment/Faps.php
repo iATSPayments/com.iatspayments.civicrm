@@ -25,6 +25,7 @@ class CRM_Core_Payment_Faps extends CRM_Core_Payment {
     $this->_paymentProcessor = $paymentProcessor;
     $this->_processorName    = ts('iATS Payments 1st American Payment System Interface');
     $this->disable_cryptogram   = iats_get_setting('disable_cryptogram');
+    $this->is_test = ($this->_mode == 'test' ? 1 : 0);
   }
 
   /**
@@ -128,7 +129,7 @@ class CRM_Core_Payment_Faps extends CRM_Core_Payment {
       'transcenterId' => $this->_paymentProcessor['password'],
       'processorId' => $this->_paymentProcessor['user_name'],
       'currency' => $form->getCurrency(),
-      'is_test' => $this->_is_test,
+      'is_test' => $this->is_test,
       'title' => $form->getTitle(),
       'iframe_src' => $iframe_src,
       'cryptojs' => $cryptojs,
@@ -179,7 +180,7 @@ class CRM_Core_Payment_Faps extends CRM_Core_Payment {
       // I first have to convert the Auth crypto into a token.
       $options = array(
         'action' => 'GenerateTokenFromCreditCard',
-        'test' => ($this->_mode == 'test' ? 1 : 0),
+        'test' => $this->is_test,
       );
       $token_request = new CRM_Iats_FapsRequest($options);
       $request = $this->convertParams($params, $options['action']);
@@ -201,7 +202,7 @@ class CRM_Core_Payment_Faps extends CRM_Core_Payment {
       }
       $options = array(
         'action' => 'VaultCreateCCRecord',
-        'test' => ($this->_mode == 'test' ? 1 : 0),
+        'test' => $this->is_test,
       );
       $vault_request = new CRM_Iats_FapsRequest($options);
       // auto-generate a compliant vault key  
@@ -226,13 +227,13 @@ class CRM_Core_Payment_Faps extends CRM_Core_Payment {
       // now set the options for taking the money
       $options = array(
         'action' => 'SaleUsingVault',
-        'test' => ($this->_mode == 'test' ? 1 : 0),
+        'test' => $this->is_test,
       );
     }
     else { // not recurring, use the simple sale option for taking the money
       $options = array(
         'action' => 'Sale',
-        'test' => ($this->_mode == 'test' ? 1 : 0),
+        'test' => $this->is_test,
       );
     }
     // now take the money
