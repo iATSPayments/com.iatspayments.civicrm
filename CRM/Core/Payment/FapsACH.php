@@ -65,6 +65,8 @@ class CRM_Core_Payment_FapsACH extends CRM_Core_Payment_Faps {
       'paymentInstrumentId' => 2,
     ];
     CRM_Core_Resources::singleton()->addVars('iats', $jsVariables);
+    // preload the cryptojs script, which gets re-loaded by our crypto.js script
+    CRM_Core_Resources::singleton()->addScriptUrl($cryptojs, 10);
     CRM_Core_Resources::singleton()->addScriptFile('com.iatspayments.civicrm', 'js/crypto.js', 10);
     CRM_Core_Resources::singleton()->addStyleFile('com.iatspayments.civicrm', 'css/crypto.css', 10);
     return FALSE;
