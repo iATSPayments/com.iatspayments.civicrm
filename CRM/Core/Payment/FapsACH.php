@@ -16,6 +16,7 @@ class CRM_Core_Payment_FapsACH extends CRM_Core_Payment_Faps {
     $this->_paymentProcessor = $paymentProcessor;
     $this->_processorName    = ts('iATS Payments 1st American Payment System Interface, ACH');
     $this->disable_cryptogram    = iats_get_setting('disable_cryptogram');
+    $this->is_test = ($this->_mode == 'test' ? 1 : 0); 
   }
 
   /**
@@ -58,7 +59,7 @@ class CRM_Core_Payment_FapsACH extends CRM_Core_Payment_Faps {
       'transcenterId' => $this->_paymentProcessor['password'],
       'processorId' => $this->_paymentProcessor['user_name'],
       'currency' => $form->getCurrency(),
-      'is_test' => $this->_is_test,
+      'is_test' => $this->is_test,
       'title' => $form->getTitle(),
       'iframe_src' => $iframe_src,
       'cryptojs' => $cryptojs,
@@ -92,18 +93,17 @@ class CRM_Core_Payment_FapsACH extends CRM_Core_Payment_Faps {
       'merchantKey' => $this->_paymentProcessor['signature'],
       'processorId' => $this->_paymentProcessor['user_name']
     );
-    $is_test = ($this->_mode == 'test' ? 1 : 0); 
     // FAPS has a funny thing called a 'category' that needs to be included with any ACH request.
     // The category is auto-generated in the getCategoryText function, using some default settings that can be overridden on the FAPS settings page.
     // Store it in params, will be used by my convert request call(s) later
-    $params['ach_category_text'] = self::getCategoryText($credentials, $is_test, $ipAddress);
+    $params['ach_category_text'] = self::getCategoryText($credentials, $this->is_test, $ipAddress);
 
     $vault_key = $vault_id = '';
     if ($isRecur) {
       // Store the params in a vault before attempting payment
       $options = array(
         'action' => 'VaultCreateAchRecord',
-        'test' => $is_test,
+        'test' => $this->is_test,
       );
       $vault_request = new CRM_Iats_FapsRequest($options);
       $request = $this->convertParams($params, $options['action']);
@@ -131,13 +131,13 @@ class CRM_Core_Payment_FapsACH extends CRM_Core_Payment_Faps {
       // now set the options for taking the money
       $options = array(
         'action' => 'AchDebitUsingVault',
-        'test' => ($this->_mode == 'test' ? 1 : 0),
+        'test' => $this->is_test,
       );
     }
     else { // set the simple sale option for taking the money
       $options = array(
         'action' => 'AchDebit',
-        'test' => ($this->_mode == 'test' ? 1 : 0),
+        'test' => $this->is_test,
       );
     }
     // now take the money
