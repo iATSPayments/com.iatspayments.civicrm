@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS `civicrm_iats_faps_journal` (
   `recur_id` int(10) unsigned DEFAULT '0' COMMENT 'CiviCRM recurring_contribution table id',
   `verify_datetime` datetime COMMENT 'Date time of verification',
   PRIMARY KEY ( `id` ),
-  UNIQUE KEY (`transactionId`),
+  UNIQUE KEY (`transactionId`,`processorId`,`authResponse`),
   KEY (`authCode`),
   KEY (`isAch`),
   KEY (`cardType`),
