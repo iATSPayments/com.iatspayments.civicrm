@@ -88,6 +88,7 @@ class CRM_Core_Payment_Faps extends CRM_Core_Payment {
           'class' => 'cryptogram',
           'size' => 30,
           'maxlength' => 60,
+          'autocomplete' => 'off',
         ),
         'is_required' => TRUE,
       );
