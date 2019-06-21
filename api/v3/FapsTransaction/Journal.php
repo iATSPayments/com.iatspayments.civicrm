@@ -46,7 +46,7 @@ function civicrm_api3_faps_transaction_journal($params) {
     }
     $cardType = isset($params['ccInfo']['cardType']) ? $params['ccInfo']['cardType'] : '';
     $isAch = empty($params['isAch']) ? 0 : 1;
-    $status_id = $data['isSuccessful'] ? 1 : 4; // 1 = complete, 4 = fail
+    $status_id = $data['isSuccessful'] ? ($data['authResponse'] == 'Pending' ? 2 : 1) : 4; // 1 = complete, 2 = pending, 4 = fail
     $query_params = array(
       2 => array($data['authCode'], 'String'),
       3 => array($isAch, 'Integer'),
