@@ -117,7 +117,7 @@ function civicrm_api3_job_iatsverify($params) {
     foreach ($contributions_verify['values'] as $contribution) {
       // first check the legacy journal if I've used it recently
       if (!empty($iats_journal_date)) {
-        $iats_journal_matches = civicrm_api3('IatsPayments', 'get_journal', array(
+        $journal_matches = civicrm_api3('IatsPayments', 'get_journal', array(
           'sequential' => 1,
           'inv' => $contribution['invoice_id'],
         ));
@@ -130,12 +130,12 @@ function civicrm_api3_job_iatsverify($params) {
       }
       if (!$iats_transaction_id && !empty($iats_faps_journal_date)) {
         // try the FAPS journal
-        $faps_journal_matches = civicrm_api3('FapsTransaction', 'get_journal', array(
+        $journal_matches = civicrm_api3('FapsTransaction', 'get_journal', array(
           'sequential' => 1,
           'orderId' => $contribution['invoice_id'],
         ));
-        if ($faps_journal_matches['count'] > 0) {
-          $journal_entry = reset($faps_journal_matches['values']);
+        if ($journal_matches['count'] > 0) {
+          $journal_entry = reset($journal_matches['values']);
           $iats_transaction_id = $journal_entry['transactionId'];
           $client_code = $journal_entry['cimRefNumber'];
           $auth_result = $journal_entry['authResponse'];
