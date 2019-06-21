@@ -46,6 +46,7 @@ function civicrm_api3_faps_transaction_journal($params) {
     }
     $cardType = isset($params['ccInfo']['cardType']) ? $params['ccInfo']['cardType'] : '';
     $isAch = empty($params['isAch']) ? 0 : 1;
+    $status_id = $data['isSuccessful'] ? 1 : 4; // 1 = complete, 4 = fail
     $query_params = array(
       2 => array($data['authCode'], 'String'),
       3 => array($isAch, 'Integer'),
@@ -57,10 +58,11 @@ function civicrm_api3_faps_transaction_journal($params) {
       9 => array($data['amount'], 'String'),
       10 => array($data['authResponse'], 'String'),
       11 => array($params['currency'], 'String'),
+      12 => array($status_id, 'Integer'),
     );
     $result = CRM_Core_DAO::executeQuery($sql_action . " civicrm_iats_faps_journal
-        (transactionId, authCode, isAch, cardType, processorId, cimRefNumber, orderId, transDateAndTime, amount, authResponse, currency) 
-        VALUES ($transactionId, %2, %3, %4, %5, %6, %7, %8, %9, %10, %11)", $query_params);
+        (transactionId, authCode, isAch, cardType, processorId, cimRefNumber, orderId, transDateAndTime, amount, authResponse, currency, status_id) 
+        VALUES ($transactionId, %2, %3, %4, %5, %6, %7, %8, %9, %10, %11, %12)", $query_params);
   }
   catch (Exception $e) {
     CRM_Core_Error::debug_var('query params', $query_params);
