@@ -105,24 +105,47 @@ function civicrm_api3_job_iatsverify($params) {
   if ($invoice_id) {
     $select_params['invoice_id'] = $invoice_id;
   }
-
+  // use these two settings to see if it's worth checking their respective
+  // journal tables.
+  $iats_journal_date = CRM_Core_BAO_Setting::getItem('iATS Payments Extension', 'iats_journal');
+  $iats_faps_journal_date = CRM_Core_BAO_Setting::getItem('iATS Payments Extension', 'iats_faps_journal');
   $message = '';
   try {
     $contributions_verify = civicrm_api3('Contribution', 'get', $select_params);
     $message .= '<br />' . ts('Found %1 contributions to verify.', array(1 => count($contributions_verify['values'])));
     // CRM_Core_Error::debug_var('Verifying contributions', $contributions_verify);
     foreach ($contributions_verify['values'] as $contribution) {
-      $journal_matches = civicrm_api3('IatsPayments', 'get_journal', array(
-        'sequential' => 1,
-        'inv' => $contribution['invoice_id'],
-      ));
-      if ($journal_matches['count'] > 0) {
-        /* found a matching journal entry, we can approve or fail it */
+      // first check the legacy journal if I've used it recently
+      if (!empty($iats_journal_date)) {
+        $iats_journal_matches = civicrm_api3('IatsPayments', 'get_journal', array(
+          'sequential' => 1,
+          'inv' => $contribution['invoice_id'],
+        ));
+        if ($journal_matches['count'] > 0) {
+          $journal_entry = reset($journal_matches['values']);
+          $iats_transaction_id = $journal_entry['tnid'];
+          $client_code = $journal_entry['cstc'];
+          $auth_result = $journal_entry['rst'];
+        }
+      }
+      if (!$iats_transaction_id && !empty($iats_faps_journal_date)) {
+        // try the FAPS journal
+        $faps_journal_matches = civicrm_api3('FapsTransaction', 'get_journal', array(
+          'sequential' => 1,
+          'orderId' => $contribution['invoice_id'],
+        ));
+        if ($faps_journal_matches['count'] > 0) {
+          $journal_entry = reset($faps_journal_matches['values']);
+          $iats_transaction_id = $journal_entry['transactionId'];
+          $client_code = $journal_entry['cimRefNumber'];
+          $auth_result = $journal_entry['authResponse'];
+        }
+      }
+      if ($iats_transaction_id) {
+        /* found a matching journal entry with a transaction id, we can approve or fail it */
         $is_recur = empty($contribution['contribution_recur_id']) ? FALSE : TRUE;
         // I only use the first one to determine the new status of the contribution.
         // TODO, deal with multiple partial payments
-        $journal_entry = reset($journal_matches['values']);
-        $transaction_id = $journal_entry['tnid'];
         $contribution_status_id = (int) $journal_entry['status_id'];
         // Keep track of how many of each time I've processed.
         $processed[$contribution_status_id]++;
@@ -131,7 +154,7 @@ function civicrm_api3_job_iatsverify($params) {
             // Updating a contribution status to complete needs some extra bookkeeping.
             // Note that I'm updating the timestamp portion of the transaction id here, since this might be useful at some point
             // Should I update the receive date to when it was actually received? Would that confuse membership dates?
-            $trxn_id = $transaction_id . ':' . time();
+            $trxn_id = $iats_transaction_id . ':' . time();
             $complete = array('version' => 3, 'id' => $contribution['id'], 'trxn_id' => $trxn_id, 'receive_date' => $contribution['receive_date']);
             if ($is_recur) {
               // For email receipting, use either my iats extension global, or the specific setting for this schedule.
@@ -171,11 +194,11 @@ function civicrm_api3_job_iatsverify($params) {
         }
         // Always log these requests in my cutom civicrm table for auditing type purposes
         $query_params = array(
-          1 => array($journal_entry['cstc'], 'String'),
+          1 => array($client_code, 'String'),
           2 => array($contribution['contact_id'], 'Integer'),
           3 => array($contribution['id'], 'Integer'),
           4 => array($contribution_status_id, 'Integer'),
-          5 => array($journal_entry['rst'], 'String'),
+          5 => array($authResponse, 'String'),
           6 => array($contribution['contribution_recur_id'], 'Integer'),
         );
         if (empty($contribution['contribution_recur_id'])) {
