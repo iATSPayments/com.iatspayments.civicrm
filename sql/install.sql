@@ -118,6 +118,7 @@ CREATE TABLE `civicrm_iats_faps_journal` (
   KEY (`isAch`),
   KEY (`cardType`),
   KEY (`authResponse`),
+  KEY (`orderId`),
   KEY (`transDateAndTime`),
   KEY (`financial_trxn_id`),
   KEY (`contribution_id`),
