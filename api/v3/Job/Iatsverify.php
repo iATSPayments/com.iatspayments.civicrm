@@ -77,7 +77,7 @@ function civicrm_api3_job_iatsverify($params) {
   // And see if they are approved in my iATS Journal.
   // This could include ACH/EFT approvals, as well as CC contributions that were completed but didn't get back from iATS.
   // Count the number of each kind found.
-  $processed = array(1 => 0, 4 => 0);
+  $processed = array(1 => 0, 2 => 0, 4 => 0);
   // Save all my api error result messages.
   $error_log = array();
   $select_params = array(
@@ -198,7 +198,7 @@ function civicrm_api3_job_iatsverify($params) {
           2 => array($contribution['contact_id'], 'Integer'),
           3 => array($contribution['id'], 'Integer'),
           4 => array($contribution_status_id, 'Integer'),
-          5 => array($authResponse, 'String'),
+          5 => array($auth_result, 'String'),
           6 => array($contribution['contribution_recur_id'], 'Integer'),
         );
         if (empty($contribution['contribution_recur_id'])) {
@@ -221,10 +221,11 @@ function civicrm_api3_job_iatsverify($params) {
       1 => count($error_log),
     )
   );
-  $message .= '<br />' . ts('Processed %1 approvals and %2 rejection records from the previous ' . IATS_VERIFY_DAYS . ' days.',
+  $message .= '<br />' . ts('Processed %1 approvals, %2 pending and %4 rejection records from the previous ' . IATS_VERIFY_DAYS . ' days.',
     array(
       1 => $processed[1],
-      2 => $processed[4],
+      2 => $processed[2],
+      3 => $processed[4],
     )
   );
   // If errors ..

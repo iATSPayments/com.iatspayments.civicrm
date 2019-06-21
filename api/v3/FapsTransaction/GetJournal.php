@@ -96,14 +96,14 @@ function civicrm_api3_faps_transaction_get_journal($params) {
   try {
     $dao = CRM_Core_DAO::executeQuery($select, $args);
     while ($dao->fetch()) {
-      /* We index in the transactionId */
+      /* We index in the id */
       $record = array();
       foreach (get_object_vars($dao) as $key => $value) {
         if ('N' != $key && (0 !== strpos($key, '_'))) {
           $record[$key] = $value;
         }
       }
-      $key = $dao->tnid;
+      $key = $dao->id;
       $values[$key] = $record;
     }
   }
