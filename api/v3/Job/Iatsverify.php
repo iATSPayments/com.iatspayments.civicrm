@@ -128,7 +128,7 @@ function civicrm_api3_job_iatsverify($params) {
           $auth_result = $journal_entry['rst'];
         }
       }
-      if (!$iats_transaction_id && !empty($iats_faps_journal_date)) {
+      if (empty($iats_transaction_id) && !empty($iats_faps_journal_date)) {
         // try the FAPS journal
         $journal_matches = civicrm_api3('FapsTransaction', 'get_journal', array(
           'sequential' => 1,
@@ -141,7 +141,7 @@ function civicrm_api3_job_iatsverify($params) {
           $auth_result = $journal_entry['authResponse'];
         }
       }
-      if ($iats_transaction_id) {
+      if (!empty($iats_transaction_id)) {
         /* found a matching journal entry with a transaction id, we can approve or fail it */
         $is_recur = empty($contribution['contribution_recur_id']) ? FALSE : TRUE;
         // I only use the first one to determine the new status of the contribution.
