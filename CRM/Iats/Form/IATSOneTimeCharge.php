@@ -87,7 +87,7 @@ class CRM_Iats_Form_IATSOneTimeCharge extends CRM_Core_Form {
     // Generate another (possibly) recurring contribution, matching our recurring template with submitted value.
     $is_recurrence = !empty($values['is_recurrence']);
     $total_amount = $values['amount'];
-    $contribution_template = _iats_civicrm_getContributionTemplate(array('contribution_recur_id' => $values['crid']));
+    $contribution_template = CRM_Iats_Transaction::getContributionTemplate(array('contribution_recur_id' => $values['crid']));
     $contact_id = $values['cid'];
     $hash = md5(uniqid(rand(), TRUE));
     $contribution_recur_id    = $values['crid'];
@@ -110,11 +110,6 @@ class CRM_Iats_Form_IATSOneTimeCharge extends CRM_Core_Form {
     foreach (array('payment_instrument_id', 'currency', 'financial_type_id') as $key) {
       $contribution[$key] = $contribution_template[$key];
     }
-    $options = array(
-      'is_email_receipt' => (empty($values['is_email_receipt']) ? '0' : '1'),
-      'customer_code' => $values['customerCode'],
-      'subtype' => $subtype,
-    );
     if ($is_recurrence) {
       $contribution['source'] = "iATS Payments $subtype Recurring Contribution (id=$contribution_recur_id)";
       // We'll use the repeattransaction if the total amount is the same
@@ -125,8 +120,13 @@ class CRM_Iats_Form_IATSOneTimeCharge extends CRM_Core_Form {
       unset($contribution['contribution_recur_id']);
       $contribution['source'] = "iATS Payments $subtype One-Time Contribution (using id=$contribution_recur_id)";
     }
+    $contribution['original_contribution_id'] = $original_contribution_id;
+    $contribution['is_email_receipt'] = empty($values['is_email_receipt']) ? '0' : '1');
+    /* todo:  'customer_code' => $values['customerCode'],
+      'subtype' => $subtype,
+    ); */
     // Now all the hard work in this function, recycled from the original recurring payment job.
-    $result = _iats_process_contribution_payment($contribution, $options, $original_contribution_id);
+    $result = CRM_Iats_Transaction::process_contribution_payment($contribution, $paymentProcessor);
     return $result;
   }
 

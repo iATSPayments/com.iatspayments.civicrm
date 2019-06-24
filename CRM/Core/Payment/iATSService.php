@@ -141,7 +141,7 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
       $settings = CRM_Core_BAO_Setting::getItem('iATS Payments Extension', 'iats_settings');
       if (!empty($settings['enable_public_future_recurring_start'])) {
         $allow_days = empty($settings['days']) ? array('-1') : $settings['days'];
-        $start_dates = _iats_get_future_monthly_start_dates(time(), $allow_days);
+        $start_dates = CRM_Iats_Transaction::get_future_monthly_start_dates(time(), $allow_days);
         $form->addElement('select', 'receive_date', ts('Date of first contribution'), $start_dates);
         CRM_Core_Region::instance('billing-block')->add(array(
           'template' => 'CRM/Iats/BillingBlockRecurringExtra.tpl',
@@ -259,7 +259,7 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
         // I've got a schedule to adhere to!
         else {
           // Note that the admin general setting restricting allowable days will overwrite any specific request.
-          $next_sched_contribution_timestamp = (max($allow_days) > 0) ? _iats_contributionrecur_next(time(), $allow_days) 
+          $next_sched_contribution_timestamp = (max($allow_days) > 0) ? CRM_Iats_Transaction::contributionrecur_next(time(), $allow_days) 
             : strtotime($params['receive_date']);
           // set the receieve time to 3:00 am for a better admin experience
           $update = array(

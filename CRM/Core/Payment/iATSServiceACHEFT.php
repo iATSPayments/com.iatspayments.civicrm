@@ -326,7 +326,7 @@ class CRM_Core_Payment_iATSServiceACHEFT extends CRM_Core_Payment_iATSService {
         else {    
           // Note that the admin general setting restricting allowable days may update a specific request.
           $receive_timestamp = empty($receive_date_request) ? time() : strtotime($receive_date_request);
-          $next_sched_contribution_timestamp = (max($allow_days) > 0) ? _iats_contributionrecur_next($receive_timestamp, $allow_days) 
+          $next_sched_contribution_timestamp = (max($allow_days) > 0) ? CRM_Iats_Transaction::contributionrecur_next($receive_timestamp, $allow_days) 
             : $receive_timestamp;
           // set the receieve time to 3:00 am for a better admin experience
           $update = array(
