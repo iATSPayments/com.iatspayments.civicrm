@@ -181,10 +181,15 @@ class CRM_Core_Payment_FapsACH extends CRM_Core_Payment_Faps {
 
   /**
    * Get the category text. 
-   * Before I return it, check that the category text exists, and create it if it doesn't.
+   * Before I return it, check that the category text exists, and create it if
+   * it doesn't.
    *
-   * FAPS has a funny thing called a 'category' that needs to be included with any ACH request.
-   * This function will test if a category text string exists and create it if it doesn't
+   * FAPS has a funny thing called a 'category' that needs to be included with
+   * any ACH request. This function will test if a category text string exists
+   * and create it if it doesn't.
+   *
+   * TODO: including the setup of the category on the FAPS system within this
+   * function is very funky, it should get done when the account is setup instead.
    *
    * @param string $ach_category_text
    * @param array $credentials
