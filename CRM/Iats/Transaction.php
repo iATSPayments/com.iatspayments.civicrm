@@ -1,11 +1,10 @@
 <?php
 /**
- * @file IATS Service transaction
+ * @file IATS Service transaction utility class
  *
- * A object to represent a transaction using one of the iATS Payments processors.
- *
- * Makes use of the lower level FAPS_Request object.
- * Includes various static utility functions as well.
+ * Various functions that used to live in the iats.php file,
+ * now converted into static functions of this class and generalised
+ * to work with both legacy and FAP processors.
  *
  **/
 
@@ -255,7 +254,7 @@ class CRM_Iats_Transaction {
    *
    *   A low-level utility function for triggering a payment transaction on iATS using a card on file.
    */
-  function process_payment($contribution, $paymentProcessor) {
+  static function process_payment($contribution, $paymentProcessor) {
     // set default result status
     $result = [
       'payment_status_id' => 1,
@@ -358,6 +357,7 @@ class CRM_Iats_Transaction {
         $response = $iats->request($credentials, $request);
         // Process the soap response into a readable result.
         $result['result'] = $iats->result($response);
+        //CRM_Core_Error::debug_var('result',$result['result']);
         $result['success'] = !empty($result['result']['status']);
         if ($result['success']) {
           $result['trxn_id'] = trim($result['result']['remote_id']) . ':' . time();
