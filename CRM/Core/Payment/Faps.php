@@ -97,6 +97,14 @@ class CRM_Core_Payment_Faps extends CRM_Core_Payment {
     return $metadata;
   }
 
+  /**
+   * Generate a safe, valid and unique vault key based on an email address.
+   * Used for Faps transactions.
+   */
+  static function generateVaultKey($email) {
+    $safe_email_key = preg_replace("/[^a-z0-9]/", '', strtolower($email));
+    return $safe_email_key . '!'.md5(uniqid(rand(), TRUE));
+  }
 
 /**
    * Opportunity for the payment processor to override the entire form build.
@@ -206,7 +214,7 @@ class CRM_Core_Payment_Faps extends CRM_Core_Payment {
       );
       $vault_request = new CRM_Iats_FapsRequest($options);
       // auto-generate a compliant vault key  
-      $vault_key = CRM_Iats_Transaction::generateVaultKey($request['ownerEmail']);
+      $vault_key = self::generateVaultKey($request['ownerEmail']);
       $request['vaultKey'] = $vault_key;
       $request['ipAddress'] = $ipAddress;
       // Make the request.
