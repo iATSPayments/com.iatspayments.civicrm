@@ -141,18 +141,18 @@ class CRM_Iats_Form_Report_Recur extends CRM_Report_Form {
           ),
         ),
       ),
-      'civicrm_iats_customer_codes' =>
+      'civicrm_payment_token' =>
         array(
           'dao' => 'CRM_Contribute_DAO_Contribution',
           'order_bys' => array(
-            'expiry' => array(
+            'expiry_date' => array(
               'title' => ts("Expiry Date"),
             ),
           ),
           'fields' =>
             array(
-              'customer_code' => array('title' => 'customer code', 'default' => TRUE),
-              'expiry' => array('title' => 'Expiry Date', 'default' => TRUE),
+              'token' => array('title' => 'customer code', 'default' => TRUE),
+              'expiry_date' => array('title' => 'Expiry Date', 'default' => TRUE),
             ),
         ),
       'civicrm_contribution_recur' => array(
@@ -397,8 +397,8 @@ class CRM_Iats_Form_Report_Recur extends CRM_Report_Form {
         ON ({$this->_aliases['civicrm_contact']}.id = {$this->_aliases['civicrm_phone']}.contact_id AND
           {$this->_aliases['civicrm_phone']}.is_primary = 1)";
     $this->_from .= "
-      LEFT JOIN civicrm_iats_customer_codes {$this->_aliases['civicrm_iats_customer_codes']}
-        ON ({$this->_aliases['civicrm_iats_customer_codes']}.recur_id = {$this->_aliases['civicrm_contribution_recur']}.id)";
+      LEFT JOIN civicrm_payment_token {$this->_aliases['civicrm_payment_token']}
+        ON ({$this->_aliases['civicrm_payment_token']}.id = {$this->_aliases['civicrm_contribution_recur']}.payment_token_id)";
   }
 
   /**
@@ -442,6 +442,7 @@ class CRM_Iats_Form_Report_Recur extends CRM_Report_Form {
       }
 
       // Handle expiry date.
+      /*
       if ($value = CRM_Utils_Array::value('civicrm_iats_customer_codes_expiry', $row)) {
         if ($rows[$rowNum]['civicrm_iats_customer_codes_expiry'] == '0000') {
           $rows[$rowNum]['civicrm_iats_customer_codes_expiry'] = ' ';
@@ -449,7 +450,7 @@ class CRM_Iats_Form_Report_Recur extends CRM_Report_Form {
         elseif ($rows[$rowNum]['civicrm_iats_customer_codes_expiry'] != '0000') {
           $rows[$rowNum]['civicrm_iats_customer_codes_expiry'] = '20' . substr($rows[$rowNum]['civicrm_iats_customer_codes_expiry'], 0, 2) . '/' . substr($rows[$rowNum]['civicrm_iats_customer_codes_expiry'], 2, 2);
         }
-      }
+  } */
 
       // Handle contribution status id.
       if ($value = CRM_Utils_Array::value('civicrm_contribution_recur_contribution_status_id', $row)) {

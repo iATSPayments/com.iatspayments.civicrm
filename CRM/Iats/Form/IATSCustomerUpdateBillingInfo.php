@@ -27,17 +27,12 @@ class IATSCustomerUpdateBillingInfo extends CRM_Iats_Form_IATSCustomerLink {
       'Amex' => 'AMX',
       'Discover' => 'DSC',
     );
-
-    $dao = CRM_Core_DAO::executeQuery("SELECT cr.payment_processor_id, cc.customer_code, cc.cid
-      FROM civicrm_contribution_recur cr
-      LEFT JOIN civicrm_iats_customer_codes cc ON cr.id = cc.recur_id
-      WHERE cr.id=%1", array(1 => array($crid, 'Int')));
-    $dao->fetch();
-
+    $contribution_recur = civicrm_api3('ContributionRecur', 'getsingle', ['id' => $crid]);
+    $payment_token = $result = civicrm_api3('PaymentToken', 'getsingle', ['id' => $contribution_recur['payment_token_id']]);
     $values = array(
-      'cid' => $dao->cid,
-      'customerCode' => $dao->customer_code,
-      'paymentProcessorId' => $dao->payment_processor_id,
+      'cid' => $contribution_recur['contact_id'],
+      'customerCode' => $payment_token['token']
+      'paymentProcessorId' => $contribution_recur['payment_processor_id'],
       'is_test' => 0,
       'creditCardCustomerName' => "{$ubi['first_name']} " . (!empty($ubi['middle_name']) ? "{$ubi['middle_name']} " : '') . $ubi['last_name'],
       'address' => $ubi['street_address'],

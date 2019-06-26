@@ -224,9 +224,25 @@ class CRM_Core_Payment_Faps extends CRM_Core_Payment {
       if (!empty($result['isSuccess'])) {
         $vault_id = $result['data']['id'];
         if ($isRecur) {
-          $update = array('processor_id' => ($vault_key.':'.$vault_id));
+          // save my vault key + vault id as a token
+          $token = $vault_key.':'.$vault_id;
+          $payment_token_params = [
+           'token' => $token,
+           'ip_address' => $request['ipAddress'],
+           'contact_id' => $params['contactID'],
+           'email' => $request['ownerEmail'],
+           'payment_processor_id' => $this->_paymentProcessor['id'],
+          ];
+          $token_result = civicrm_api3('PaymentToken', 'create', $payment_token_params);
+          // Upon success, save the token table's id back in the recurring record.
+          if (!empty($token_result['id'])) {
+            civicrm_api3('ContributionRecur', 'create', [
+              'id' => $params['contributionRecurID'],
+              'payment_token_id' => $token_result['id'],
+            ]);
+          }
           // updateRecurring, incluing updating the next scheduled contribution date, before taking payment.
-          $this->updateRecurring($params, $update);
+          $this->updateRecurring($params);
         }
       }
       else {
@@ -428,7 +444,7 @@ class CRM_Core_Payment_Faps extends CRM_Core_Payment {
    * This function will alter the recurring schedule as an intended side effect.
    * and return the modified the params.
    */
-  protected function updateRecurring($params, $update) {
+  protected function updateRecurring($params, $update = array()) {
     // If the recurring record already exists, let's fix the next contribution and start dates,
     // in case core isn't paying attention.
     // We also set the schedule to 'in-progress' (even for ACH/EFT when the first one hasn't been verified),
@@ -438,7 +454,6 @@ class CRM_Core_Payment_Faps extends CRM_Core_Payment {
       $recur_update = array(
         'id' => $recur_id,
         'contribution_status_id' => 'In Progress',
-        'processor_id' => $update['processor_id'],
       );
       // use the receive date to set the next sched contribution date.
       // By default, it's empty, unless we've got a future start date.

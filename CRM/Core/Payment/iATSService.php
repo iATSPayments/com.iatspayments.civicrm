@@ -193,13 +193,13 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
       }
     }
     else {
-      // Save the client info in my custom table, then (maybe) run the transaction.
+      // Save the customer info in the payment_token table, then (maybe) run the transaction.
       $customer = $iats->result($response, FALSE);
       // print_r($customer);
       if ($customer['status']) {
         $processresult = $response->PROCESSRESULT;
         $customer_code = (string) $processresult->CUSTOMERCODE;
-        $exp = sprintf('%02d%02d', ($params['year'] % 100), $params['month']);
+        $expiry_date = sprintf('%04d-%02d-01', $params['year'], $params['month']);
         $email = '';
         if (isset($params['email'])) {
           $email = $params['email'];
@@ -210,16 +210,22 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
         elseif (isset($params['email-Primary'])) {
           $email = $params['email-Primary'];
         }
-        $query_params = array(
-          1 => array($customer_code, 'String'),
-          2 => array($request['customerIPAddress'], 'String'),
-          3 => array($exp, 'String'),
-          4 => array($params['contactID'], 'Integer'),
-          5 => array($email, 'String'),
-          6 => array($params['contributionRecurID'], 'Integer'),
-        );
-        CRM_Core_DAO::executeQuery("INSERT INTO civicrm_iats_customer_codes
-          (customer_code, ip, expiry, cid, email, recur_id) VALUES (%1, %2, %3, %4, %5, %6)", $query_params);
+        $payment_token_params = [
+          'token' => $customer_code,
+          'ip_address' => $request['customerIPAddress'],
+          'expiry_date' => $expiry_date,
+          'contact_id' => $params['contactID'],
+          'email' => $email,
+          'payment_processor_id' => $this->_paymentProcessor['id'],
+        ];
+        $token_result = civicrm_api3('PaymentToken', 'create', $payment_token_params);
+        // Upon success, save the token table's id back in the recurring record.
+        if (!empty($token_result['id'])) {
+          civicrm_api3('ContributionRecur', 'create', [
+            'id' => $params['contributionRecurID'],
+            'payment_token_id' => $token_result['id'],
+          ]);
+        }
         // Test for admin setting that limits allowable transaction days
         $allow_days = $this->getSettings('days');
         // Also test for a specific recieve date request that is not today.

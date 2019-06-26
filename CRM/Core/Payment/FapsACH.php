@@ -120,9 +120,25 @@ class CRM_Core_Payment_FapsACH extends CRM_Core_Payment_Faps {
       if (!empty($result['isSuccess'])) {
         $vault_id = $result['data']['id'];
         if ($isRecur) {
-          $update = array('processor_id' => ($vault_key.':'.$vault_id));
+          // save my vaule key + vault id as a token
+          $token = $vault_key.':'.$vault_id;
+          $payment_token_params = [
+           'token' => $token,
+           'ip_address' => $request['ipAddress'],
+           'contact_id' => $params['contactID'],
+           'email' => $request['ownerEmail'],
+           'payment_processor_id' => $this->_paymentProcessor['id'],
+          ];
+          $token_result = civicrm_api3('PaymentToken', 'create', $payment_token_params);
+          // Upon success, save the token table's id back in the recurring record.
+          if (!empty($token_result['id'])) {
+            civicrm_api3('ContributionRecur', 'create', [
+              'id' => $params['contributionRecurID'],
+              'payment_token_id' => $token_result['id'],
+            ]);
+          }
           // updateRecurring, incluing updating the next scheduled contribution date, before taking payment.
-          $this->updateRecurring($params, $update);
+          $this->updateRecurring($params);
         }
       }
       else {

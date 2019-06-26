@@ -124,6 +124,7 @@ class CRM_Iats_Form_Report_ContributeDetail extends CRM_Report_Form {
             'no_display' => TRUE,
           ),
           'trxn_id' => NULL,
+          'invoice_id' => NULL,
           'receive_date' => array('default' => TRUE),
           'receipt_date' => NULL,
           'total_amount' => array(

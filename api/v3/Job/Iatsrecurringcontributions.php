@@ -59,9 +59,6 @@ function civicrm_api3_job_Iatsrecurringcontributions($params) {
   $fapsProcessors = _iats_filter_payment_processors('Faps%');
   $iatsProcessors = _iats_filter_payment_processors('iATS%');
   $paymentProcessors = $fapsProcessors + $iatsProcessors;
-  //CRM_Core_Error::debug_var('Recurring contributions for legacy processors', $fapsProcessors);
-  //CRM_Core_Error::debug_var('Recurring contributions for FAPS processors', $iatsProcessors);
-  //CRM_Core_Error::debug_var('Recurring contributions for processors', $paymentProcessors);
   if (empty($paymentProcessors)) {
     return;
   }
@@ -86,10 +83,11 @@ function civicrm_api3_job_Iatsrecurringcontributions($params) {
       'next_sched_contribution_date' => ['<=' => $dtCurrentDayEnd],
       'payment_processor_id' => ['IN' => array_keys($paymentProcessors)],
       'contribution_status_id' => ['IN' => ['In Progress']],
+      'payment_token_id' => ['>' => 0],
       'options' => ['limit' => 0],
       'return' => ['id', 'contact_id', 'amount', 'failure_count', 'payment_processor_id', 'next_sched_contribution_date',
         'payment_instrument_id', 'is_test', 'currency', 'financial_type_id','is_email_receipt',
-        'frequency_interval', 'frequency_unit'],
+        'frequency_interval', 'frequency_unit', 'payment_token_id'],
   );
   // additional filters that may be passed in as params
   if (!empty($params['recur_id'])) {
@@ -102,8 +100,8 @@ function civicrm_api3_job_Iatsrecurringcontributions($params) {
     $get['failure_count'] = $params['failure_count'];
   }
   $recurringContributions = civicrm_api3('ContributionRecur', 'get',  $get);
-  CRM_Core_Error::debug_var('Recurring contributions get params', $get);
-  CRM_Core_Error::debug_var('Recurring contributions to be generated for', $recurringContributions['values']);
+  //CRM_Core_Error::debug_var('Recurring contributions get params', $get);
+  //CRM_Core_Error::debug_var('Recurring contributions to be generated for', $recurringContributions['values']);
   $counter = 0;
   $error_count  = 0;
   $output  = [];
@@ -122,7 +120,7 @@ function civicrm_api3_job_Iatsrecurringcontributions($params) {
     $payment_processor_id = $recurringContribution['payment_processor_id'];
     // Try to get a contribution template for this contribution series - if none matches (e.g. if a donation amount has been changed), we'll just be naive about it.
     $contribution_template = CRM_Iats_Transaction::getContributionTemplate(['contribution_recur_id' => $contribution_recur_id, 'total_amount' => $total_amount]);
-    CRM_Core_Error::debug_var('Contribution Template', $contribution_template);
+    // CRM_Core_Error::debug_var('Contribution Template', $contribution_template);
     // generate my invoice id like CiviCRM does
     $hash = md5(uniqid(rand(), TRUE));
     $failure_count    = $recurringContribution['failure_count'];
@@ -137,17 +135,22 @@ function civicrm_api3_job_Iatsrecurringcontributions($params) {
     $receive_date = date("YmdHis", $receive_ts);
     // Check if we already have an error.
     $errors = array();
-    /* convert this to payment processor specific method?
-    if (empty($vault)) {
-      $errors[] = E::ts('Recur id %1 is missing a vault string.', array(1 => $contribution_recur_id));
+    if (!empty($recurringContribution['payment_token_id'])) {
+      try {
+        $payment_token = civicrm_api3('PaymentToken', 'getsingle', array('id' => $recurringContribution['payment_token_id']));
+        if (empty($payment_token['token'])) {
+          $errors[] = E::ts('Recur id %1 is missing a payment token.', array(1 => $contribution_recur_id));
+        }
+      }
+      catch (Exception $e) {
+        $errors[] = E::ts('Unexpected error getting a payment token for recurring schedule id %1', array(1 => $contribution_recur_id));
+        CRM_Core_Error::debug_var('Unexpected error getting payment token', $e);
+        $payment_token = array();
+      }
     }
-    elseif (0 === strpos($vault,':')) {
-      $errors[] = E::ts('Recur id %1 has an invalid vault string.', array(1 => $contribution_recur_id));
-    } */
-    // Todo: warn/check for expiry?
-    //if (($dao->icc_expiry != '0000') && ($dao->icc_expiry < $expiry_limit)) {
-      // $errors[] = ts('Recur id %1 is has an expired cc for the customer code.', array(1 => $contribution_recur_id));.
-    //}
+    else {
+      $errors[] = E::ts('Unexpected error, no payment token for recurring schedule id %1', array(1 => $contribution_recur_id));
+    }
     if (count($errors)) {
       $source .= ' Errors: ' . implode(' ', $errors);
     }
@@ -236,7 +239,7 @@ function civicrm_api3_job_Iatsrecurringcontributions($params) {
     /* calculate the next collection date, based on the recieve date (note effect of catchup mode, above)  */
     $next_collection_date = date('Y-m-d H:i:s', strtotime('+'.$recurringContribution['frequency_interval'].' '.$recurringContribution['frequency_unit'], $receive_ts));
     $contribution_recur_set = array('version' => 3, 'id' => $contribution['contribution_recur_id'], 'next_sched_contribution_date' => $next_collection_date);
-    $result = CRM_Iats_Transaction::process_contribution_payment($contribution, $paymentProcessor);
+    $result = CRM_Iats_Transaction::process_contribution_payment($contribution, $paymentProcessor, $payment_token);
     // append result message to report if I'm going to mail out a failures
     // report
     if ($email_failure_report && !$result['result']['success']) {

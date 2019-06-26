@@ -14,15 +14,6 @@
 class CRM_Iats_Transaction {
 
   /**
-   * Generate a safe, valid and unique vault key based on an email address.
-   * Used for Faps transactions.
-   */
-  static function generateVaultKey($email) {
-    $safe_email_key = preg_replace("/[^a-z0-9]/", '', strtolower($email));
-    return $safe_email_key . '!'.md5(uniqid(rand(), TRUE));
-  }
-
-  /**
    * For a recurring contribution, find a reasonable candidate for a template, where possible.
    */
   static function getContributionTemplate($contribution) {
@@ -79,18 +70,19 @@ class CRM_Iats_Transaction {
    * @param $contribution an array of a contribution to be created (or in case of future start date,
             possibly an existing pending contribution to recycle, if it already has a contribution id).
    * @param $paymentProcessor an array of a payment processor record to use
+   * @param $payment_token an array of a payment processor specific token data
+   *        code
    *
    *   A high-level utility function for making a contribution payment from an existing recurring schedule
    *   Used in the Iatsrecurringcontributions.php job and the one-time ('card on file') form.
    *   
    */
-  static function process_contribution_payment(&$contribution, $paymentProcessor) {
+  static function process_contribution_payment(&$contribution, $paymentProcessor, $payment_token) {
     // By default, don't use repeattransaction
     $use_repeattransaction = FALSE;
     $is_recurrence = !empty($contribution['original_contribution_id']);
     // First try and get the money, using my process_payment cover function.
-    $payment_result = self::process_payment($contribution, $paymentProcessor);
-    // CRM_Core_Error::debug_var('process transaction result',$result);
+    $payment_result = self::process_payment($contribution, $paymentProcessor, $payment_token);
     $success = $payment_result['success'];
     $auth_code = $payment_result['auth_code'];
     $auth_response = $payment_result['auth_response'];
@@ -117,7 +109,7 @@ class CRM_Iats_Transaction {
       // We processed it successflly and I can try to use repeattransaction. 
       // Requires the original contribution id.
       // Issues with this api call:
-      // 1. Always triggers an email and doesn't include trxn.
+      // 1. Always triggers an email [update: not anymore?] and doesn't include trxn.
       // 2. Date is wrong.
       try {
         // $status = $result['contribution_status_id'] == 1 ? 'Completed' : 'Pending';
@@ -243,6 +235,8 @@ class CRM_Iats_Transaction {
    *
    * @param $contribution an array of properties of a contribution to be processed
    * @param $paymentProcessor an array of a payment processor record
+   * @param $payment_token an array of a payment processor specific values for this
+   *        transaction, e.g. client or vault code
    *
    * return an array of return values
    *   success boolean
@@ -254,15 +248,15 @@ class CRM_Iats_Transaction {
    *
    *   A low-level utility function for triggering a payment transaction on iATS using a card on file.
    */
-  static function process_payment($contribution, $paymentProcessor) {
+  static function process_payment($contribution, $paymentProcessor, $payment_token) {
     // set default result status
     $result = [
       'payment_status_id' => 1,
     ];
     $request = [
     ];
-    switch ($paymentProcessor['class']) {
-      case 'FapsACH':
+    switch ($paymentProcessor['class_name']) {
+      case 'Payment_FapsACH':
         $paymentProcessorGroup = 'Faps';
         $action = 'AchDebitUsingVault';
         // Will complete later
@@ -274,7 +268,7 @@ class CRM_Iats_Transaction {
         );
         $request['categoryText'] = CRM_Core_Payment_FapsACH::getCategoryText($credentials, $contribution['is_test']);
         break;
-      case 'Faps':
+      case 'Payment_Faps':
         $paymentProcessorGroup = 'Faps';
         $action = 'SaleUsingVault';
         $credentials = array(
@@ -282,19 +276,20 @@ class CRM_Iats_Transaction {
           'processorId' => $paymentProcessor['user_name']
         );
         break;
-      case 'iATSACHEFT':
+      case 'Payment_iATSServiceACHEFT':
         $paymentProcessorGroup = 'iATS';
         $method = 'acheft_with_customer_code';
         // Will complete later.
         $result['payment_status_id'] = 2;
         break;
-      case 'iATS':
-      case 'iATSSWIPE':
+      case 'Payment_iATSService':
+      case 'Payment_iATSServiceSWIPE':
         $paymentProcessorGroup = 'iATS';
         $method = 'cc_with_customer_code';
         break;
-
-        // todo iATS
+      default:
+        CRM_Core_Error::debug_var('Unsupported processor class:', $paymentProcessor['class_name']);
+        throw new Exception(ts('Unsupported processor class %1', array(1 => $paymentProcessor['class_name'])));
     }
 
     // Two different "group" flows, either Faps or iATS Legacy
@@ -305,7 +300,7 @@ class CRM_Iats_Transaction {
         // Build the request array.
         // CRM_Core_Error::debug_var('options', $options);
         // TODO: Get the vault key!
-        list($vaultKey,$vaultId) = explode(':', $options['vault'], 2);
+        list($vaultKey,$vaultId) = explode(':', $payment_token['token'], 2);
         $request = $request + array(
           'vaultKey' => $vaultKey,
           'vaultId' => $vaultId,
@@ -344,20 +339,24 @@ class CRM_Iats_Transaction {
         }
         break;
       case 'iATS':
-        $credentials = CRM_Iats_iATSServiceRequest::credentials($contribution['payment_processor'], $contribution['is_test']);
+        $credentials = array(
+          'agentCode' => $paymentProcessor['user_name'],
+          'password' => $paymentProcessor['password'],
+          'domain' => parse_url($paymentProcessor['url_site'], PHP_URL_HOST),
+        );
         $iats_service_params = array('method' => $method, 'type' => 'process', 'iats_domain' => $credentials['domain']);
         $iats = new CRM_Iats_iATSServiceRequest($iats_service_params);
         // Build the request array.
         $request = array(
-          'customerCode' => $options['customer_code'],
+          'customerCode' => $payment_token['token'],
           'invoiceNum' => $contribution['invoice_id'],
           'total' => $contribution['total_amount'],
+          'customerIPAddress' => '',
         );
         // Make the soap request.
         $response = $iats->request($credentials, $request);
         // Process the soap response into a readable result.
         $result['result'] = $iats->result($response);
-        //CRM_Core_Error::debug_var('result',$result['result']);
         $result['success'] = !empty($result['result']['status']);
         if ($result['success']) {
           $result['trxn_id'] = trim($result['result']['remote_id']) . ':' . time();
@@ -367,6 +366,9 @@ class CRM_Iats_Transaction {
           $result['message'] = $result['result']['reasonMessage'];
         }
         break;
+      default:
+        CRM_Core_Error::debug_var('Unsupported processor group:', $paymentProcessorGroup);
+        throw new Exception(ts('Unsupported processor group %1', array(1 => $paymentProcessorGroup)));
     }
     return $result;
   }

@@ -168,6 +168,7 @@ class CRM_Iats_iATSServiceRequest {
         4 => array('', 'String'),
         5 => array($logged_request['total'], 'String'),
       );
+      // CRM_Core_Error::debug_var('query params to request log', $query_params);
       CRM_Core_DAO::executeQuery("INSERT INTO civicrm_iats_request_log
         (invoice_num, ip, cc, customer_code, total, request_datetime) VALUES (%1, %2, %3, %4, %5, NOW())", $query_params);
       if (!$this->is_ipv4($ip)) {
