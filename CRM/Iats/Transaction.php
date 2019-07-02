@@ -212,8 +212,7 @@ class CRM_Iats_Transaction {
         // Restore my source field that ipn code irritatingly overwrites, and make sure that the trxn_id is set also.
         civicrm_api3('contribution', 'setvalue', array('id' => $contribution['id'], 'value' => $contribution['source'], 'field' => 'source'));
         civicrm_api3('contribution', 'setvalue', array('id' => $contribution['id'], 'value' => $trxn_id, 'field' => 'trxn_id'));
-        $message = $is_recurrence ? ts('Successfully processed contribution in recurring series id %1: ', array(1 => $contribution['contribution_recur_id'])) : ts('Successfully processed one-time contribution: ');
-        return $message . $auth_response;
+        // $message = $is_recurrence ? ts('Successfully processed contribution in recurring series id %1: ', array(1 => $contribution['contribution_recur_id'])) : ts('Successfully processed one-time contribution: ');
       }
     }
     // Now return the appropriate message and code.
@@ -252,6 +251,7 @@ class CRM_Iats_Transaction {
     // set default result status
     $result = [
       'payment_status_id' => 1,
+      'auth_code' => '',
     ];
     $request = [
     ];
