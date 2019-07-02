@@ -158,6 +158,7 @@ class CRM_Iats_Upgrader extends CRM_Iats_Upgrader_Base {
     return TRUE;
   }
 
+  /* convert any iATS legacy iats_customer_codes to using the payment_token table */
   public function upgrade_1_7_002() {
     $this->ctx->log->info('Applying update 1_7_002');
     try {
@@ -168,6 +169,31 @@ class CRM_Iats_Upgrader extends CRM_Iats_Upgrader_Base {
         INNER JOIN civicrm_payment_token pt on pt.token = icc.customer_code SET cr.payment_token_id = pt.id';
       $dao = CRM_Core_DAO::executeQuery($update);
       $rename = 'RENAME TABLE `civicrm_iats_customer_codes` TO `backup_iats_customer_codes`';
+      $dao = CRM_Core_DAO::executeQuery($rename);
+    }
+    catch (Exception $e) {
+      $this->ctx->log->info($e->getMessage());
+    }
+    return TRUE;
+  }
+
+  /* convert any earlier versions of FAPS recurring payment records */
+  public function upgrade_1_7_003() {
+    $this->ctx->log->info('Applying update 1_7_003');
+    try {
+      $insert = 'INSERT INTO civicrm_payment_token (contact_id, payment_processor_id, token)
+        SELECT cr.contact_id, cr.payment_processor_id, cr.processor_id FROM civicrm_contribution_recur cr
+        INNER JOIN civicrm_payment_processor pp ON cr.payment_processor_id = pp.id
+        WHERE NOT(ISNULL(processor_id)) AND pp.class_name LIKE "Payment_Faps%"';
+      $dao = CRM_Core_DAO::executeQuery($insert);
+      $update = 'UPDATE civicrm_contribution_recur cr
+        INNER JOIN civicrm_payment_processor pp ON cr.payment_processor_id = pp.id
+        INNER JOIN civicrm_payment_token pt on pt.token = cr.processor_id
+        SET cr.payment_token_id = pt.id WHERE pp.class_name LIKE "Payment_Faps%"';
+      $dao = CRM_Core_DAO::executeQuery($update);
+      $rename = 'UPDATE civicrm_contribution_recur cr
+        INNER JOIN civicrm_payment_processor pp ON cr.payment_processor_id = pp.id
+        SET cr.processor_id = NULL WHERE pp.class_name LIKE "Payment_Faps%"';
       $dao = CRM_Core_DAO::executeQuery($rename);
     }
     catch (Exception $e) {
