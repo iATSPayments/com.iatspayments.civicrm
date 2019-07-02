@@ -9,33 +9,33 @@
  *
  * @param array $params
  *
- * Get entries from iATSPayments in the journal table
+ * Get entries from iATS FAPS in the faps_journal table
  */
-function _civicrm_api3_iats_payments_get_journal_spec(&$params) {
-  $params['tnid'] = array(
-    'name' => 'tnid',
-    'title' => 'Transaction string',
+function _civicrm_api3_faps_transaction_get_journal_spec(&$params) {
+  $params['transactionId'] = array(
+    'name' => 'transactionId',
+    'title' => 'FAPS Transaction Id',
     'api.required' => 0,
   );
-  $params['iats_id'] = array(
-    'name' => 'iats_id',
-    'title' => 'IatsPayments Journal Id',
+  $params['isAch'] = array(
+    'name' => 'isAch',
+    'title' => 'is ACH',
     'api.required' => 0,
   );
-  $params['tntyp'] = array(
-    'name' => 'tntyp',
-    'title' => 'Transaction type',
+  $params['cardType'] = array(
+    'name' => 'cardType',
+    'title' => 'Card Type',
     'api.required' => 0,
   );
-  $params['inv'] = array(
-    'name' => 'inv',
-    'title' => 'Invoice Reference',
+  $params['orderId'] = array(
+    'name' => 'orderId',
+    'title' => 'Order Id',
     'api.required' => 0,
   );
 }
 
 /**
- * Action IatsPayments GetJournal
+ * Action FapsTransaction GetJournal
  *
  * @param array $params
  *
@@ -48,17 +48,17 @@ function _civicrm_api3_iats_payments_get_journal_spec(&$params) {
 /**
  *
  */
-function civicrm_api3_iats_payments_get_journal($params) {
+function civicrm_api3_faps_transaction_get_journal($params) {
 
   // print_r($params); die();
-  $select = "SELECT * FROM civicrm_iats_journal WHERE TRUE ";
+  $select = "SELECT * FROM civicrm_iats_faps_journal WHERE TRUE ";
   $args = array();
 
   $select_params = array(
-    'tnid' => 'String',
-    'tn_type' => 'Integer',
-    'iats_id' => 'Integer',
-    'inv' => 'String',
+    'transactionId' => 'Integer',
+    'isAch' => 'Integer',
+    'CardType' => 'String',
+    'orderId' => 'String',
   );
   $i = 0;
   foreach ($params as $key => $value) {
@@ -82,7 +82,7 @@ function civicrm_api3_iats_payments_get_journal($params) {
     $select .= " ORDER BY %$i";
     $args[$i] = array($sort, 'String');
   }
-  else { // by default, get the most recent entry
+  else { // by default, get the "latest" entry
     $select .= " ORDER BY id DESC";
   }
   $limit = 1;
@@ -94,23 +94,22 @@ function civicrm_api3_iats_payments_get_journal($params) {
     $select .= " LIMIT %$i";
     $args[$i] = array($limit, 'Integer');
   }
-
   $values = array();
   try {
     $dao = CRM_Core_DAO::executeQuery($select, $args);
     while ($dao->fetch()) {
-      /* We index in the transaction_id */
+      /* We index in the id */
       $record = array();
       foreach (get_object_vars($dao) as $key => $value) {
         if ('N' != $key && (0 !== strpos($key, '_'))) {
           $record[$key] = $value;
         }
       }
-      $key = $dao->tnid;
       // also return some of this data in "normalized" field names
-      $record['transaction_id'] = $record['tnid'];
-      $record['client_code'] = $record['cstc'];
-      $record['auth_result'] = $record['rst'];
+      $record['transaction_id'] = $record['transactionId'];
+      $record['client_code'] = $record['cimRefNumber'];
+      $record['auth_result'] = $record['authResponse'];
+      $key = $dao->id;
       $values[$key] = $record;
     }
   }
