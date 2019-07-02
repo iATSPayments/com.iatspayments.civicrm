@@ -76,7 +76,16 @@ function civicrm_api3_faps_transaction_get_journal($params) {
       }
     }
   }
-  $limit = 25;
+  if (isset($params['options']['sort'])) {
+    $sort = $params['options']['sort'];
+    $i++;
+    $select .= " ORDER BY %$i";
+    $args[$i] = array($sort, 'String');
+  }
+  else { // by default, get the "latest" entry
+    $select .= " ORDER BY id DESC";
+  }
+  $limit = 1;
   if (isset($params['options']['limit'])) {
     $limit = (integer) $params['options']['limit'];
   }
@@ -85,13 +94,6 @@ function civicrm_api3_faps_transaction_get_journal($params) {
     $select .= " LIMIT %$i";
     $args[$i] = array($limit, 'Integer');
   }
-  if (isset($params['options']['sort'])) {
-    $sort = $params['options']['sort'];
-    $i++;
-    $select .= " ORDER BY %$i";
-    $args[$i] = array($sort, 'String');
-  }
-
   $values = array();
   try {
     $dao = CRM_Core_DAO::executeQuery($select, $args);
@@ -103,6 +105,10 @@ function civicrm_api3_faps_transaction_get_journal($params) {
           $record[$key] = $value;
         }
       }
+      // also return some of this data in "normalized" field names
+      $record['transaction_id'] = $record['transactionId'];
+      $record['client_code'] = $record['cimRefNumber'];
+      $record['auth_result'] = $record['authResponse'];
       $key = $dao->id;
       $values[$key] = $record;
     }
