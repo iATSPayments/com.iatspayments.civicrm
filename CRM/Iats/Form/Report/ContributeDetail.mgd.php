@@ -23,4 +23,18 @@ return array(
       'component' => 'CiviContribute',
     ),
   ),
+  1 =>
+  array(
+    'name' => 'CRM_Iats_Form_Report_ContributeDetailFaps',
+    'entity' => 'ReportTemplate',
+    'params' =>
+    array(
+      'version' => 3,
+      'label' => 'iATS Payments 1st American - Contribution Reconciliation',
+      'description' => 'Donor Report (Detail) Report with extra iATS 1st American Reconciliation fields.',
+      'class_name' => 'CRM_Iats_Form_Report_ContributeDetailFaps',
+      'report_url' => 'com.iatspayments.com/contributedetailfaps',
+      'component' => 'CiviContribute',
+    ),
+  ),
 );
