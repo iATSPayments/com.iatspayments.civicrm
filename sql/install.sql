@@ -76,7 +76,7 @@ CREATE TABLE `civicrm_iats_journal` (
   KEY (`financial_trxn_id`),
   KEY (`contribution_id`),
   KEY (`verify_datetime`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='Table to iATS journal transactions imported via the iATSPayments ReportLink.'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='Table to iATS journal transactions imported via the iATSPayments ReportLink.';
 
 CREATE TABLE `civicrm_iats_faps_journal` (
   `id` int unsigned NOT NULL AUTO_INCREMENT COMMENT 'CiviCRM Journal Id',
