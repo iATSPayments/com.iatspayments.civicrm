@@ -359,7 +359,7 @@ class CRM_Iats_Form_Report_ContributeDetailFaps extends CRM_Report_Form {
     $this->_columns['civicrm_iats_faps_journal'] = array(
           'fields' =>
             array(
-              'id' => array('title' => 'CiviCRM FAPS Journal Id', 'default' => TRUE),
+              'id' => array('title' => 'CiviCRM 1stPay Journal Id', 'default' => TRUE),
               'transactionId' => array('title' => 'Faps transactionId', 'default' => TRUE),
               'isAch' => array('title' => 'is ACH', 'default' => TRUE),
               'cardType' => array('title' => 'Card Type', 'default' => TRUE),
@@ -373,8 +373,8 @@ class CRM_Iats_Form_Report_ContributeDetailFaps extends CRM_Report_Form {
             ),
           'order_bys' => 
             array(
-              'id' => array('title' => ts('CiviCRM FAPS Journal Id'), 'default' => TRUE, 'default_order' => 'DESC'),
-              'transactionId' => array('title' => ts('FAPS Transaction Id')),
+              'id' => array('title' => ts('CiviCRM 1stPay Journal Id'), 'default' => TRUE, 'default_order' => 'DESC'),
+              'transactionId' => array('title' => ts('1stPay Transaction Id')),
               'transDateAndTime' => array('title' => ts('Transaction Date Time')),
             ),
           'filters' =>

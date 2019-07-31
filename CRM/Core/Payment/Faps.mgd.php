@@ -8,13 +8,13 @@
 return array(
    0 =>
     array(
-      'name' => 'iATS Payment FAPS Processor',
+      'name' => 'iATS Payments 1stPay Processor',
       'entity' => 'payment_processor_type',
       'params' =>
         array(
           'version' => 3,
-          'title' => 'iATS Payments FAPS Credit Card',
-          'name' => 'iATS Payments FAPS Credit Card',
+          'title' => 'iATS Payments 1stPay Credit Card',
+          'name' => 'iATS Payments 1stPay Credit Card',
           'description' => 'iATS Payments Credit Card Processor using 1stPay',
           'user_name_label' => 'Processor ID',
           'password_label' => 'Transaction Center ID',
@@ -33,13 +33,13 @@ return array(
     ),
    1 =>
     array(
-      'name' => 'iATS Payment FAPS ACH Processor',
+      'name' => 'iATS Payments 1stPay ACH Processor',
       'entity' => 'payment_processor_type',
       'params' =>
         array(
           'version' => 3,
-          'title' => 'iATS Payments FAPS ACH',
-          'name' => 'iATS Payments FAPS ACH',
+          'title' => 'iATS Payments 1stPay ACH',
+          'name' => 'iATS Payments 1stPay ACH',
           'description' => 'iATS Payments ACH Processor using 1stPay',
           'user_name_label' => 'Processor ID',
           'password_label' => 'Transaction Center ID',

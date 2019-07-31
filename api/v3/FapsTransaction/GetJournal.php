@@ -14,7 +14,7 @@
 function _civicrm_api3_faps_transaction_get_journal_spec(&$params) {
   $params['transactionId'] = array(
     'name' => 'transactionId',
-    'title' => 'FAPS Transaction Id',
+    'title' => '1stPay Transaction Id',
     'api.required' => 0,
   );
   $params['isAch'] = array(

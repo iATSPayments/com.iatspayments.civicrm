@@ -11,8 +11,8 @@ return array(
     'params' =>
     array(
       'version' => 3,
-      'name' => 'iATS/FAPS Query Transactions',
-      'description' => 'Call into iATS/FAPS to get transactions (for auditing and verifying).',
+      'name' => 'iATS Payments 1stPay Query Transactions',
+      'description' => 'Call into iATS Payments 1stPay to get transactions (for auditing and verifying).',
       'run_frequency' => 'Hourly',
       'api_entity' => 'Job',
       'api_action' => 'fapsquery',

@@ -37,7 +37,7 @@ class CRM_Iats_Form_Report_JournalFaps extends CRM_Report_Form {
           'fields' =>
             array(
               'id' => array('title' => 'CiviCRM Journal Id', 'default' => TRUE),
-              'transactionId' => array('title' => 'FAPS Transaction Id', 'default' => TRUE),
+              'transactionId' => array('title' => '1stPay Transaction Id', 'default' => TRUE),
               'isAch' => array('title' => 'isACH', 'default' => TRUE),
               'processorId' => array('title' => 'Processor Id', 'default' => TRUE),
               'cimRefNumber' => array('title' => 'Customer code', 'default' => TRUE),
@@ -51,7 +51,7 @@ class CRM_Iats_Form_Report_JournalFaps extends CRM_Report_Form {
           'order_bys' => 
             array(
               'id' => array('title' => ts('CiviCRM Journal Id'), 'default' => TRUE, 'default_order' => 'DESC'),
-              'transactionId' => array('title' => ts('iATS Journal Id')),
+              'transactionId' => array('title' => ts('1stPay Transaction Id')),
               'transDateAndTime' => array('title' => ts('Transaction Date Time')),
             ),
           'filters' =>

@@ -16,8 +16,8 @@ return array(
     'params' =>
     array(
       'version' => 3,
-      'label' => 'iATS FAPS - Journal',
-      'description' => 'iATS FAPS - Journal Report',
+      'label' => 'iATS Payments 1stPay - Journal',
+      'description' => 'iATS Payments 1stPay - Journal Report',
       'class_name' => 'CRM_Iats_Form_Report_JournalFaps',
       'report_url' => 'com.iatspayments.com/journalfaps',
       'component' => 'CiviContribute',
