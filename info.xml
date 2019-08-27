@@ -23,7 +23,7 @@
   <compatibility>
     <ver>5.0</ver>
   </compatibility>
-  <comments>This release adds new functionality for the FirstAmerican processsor.</comments>
+  <comments>This release adds new functionality for the iATS Payments 1stPay Processors.</comments>
   <civix>
     <namespace>CRM/Iats</namespace>
   </civix>
