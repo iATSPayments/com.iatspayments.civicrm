@@ -9,9 +9,11 @@
     <div class="clear"></div>
   </div>
 </div>
-{literal}<script type="text/javascript">
+<script type="text/javascript">
+  var ddAcheftJs = "{crmResURL ext=com.iatspayments.civicrm file=js/dd_acheft.js}";
+{literal}
   CRM.$(function ($) {
-    $.getScript("{crmResURL ext=com.iatspayments.civicrm file=js/dd_acheft.js}");
+    $.getScript(ddAcheftJs);
   });
-</script>
 {/literal}
+</script>

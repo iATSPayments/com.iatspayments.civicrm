@@ -19,10 +19,13 @@
         <div class="clear"></div>
       </div>
     </div>
-{literal}<script type="text/javascript">
+<script type="text/javascript">
+  var ddAcheftJs = "{crmResURL ext=com.iatspayments.civicrm file=js/dd_acheft.js}";
+  var ddCadJs = "{crmResURL ext=com.iatspayments.civicrm file=js/dd_cad.js}";
+{literal}
   CRM.$(function ($) {
-    $.getScript("{crmResURL ext=com.iatspayments.civicrm file=js/dd_acheft.js}");
-    $.getScript("{crmResURL ext=com.iatspayments.civicrm file=js/dd_cad.js}");
+    $.getScript(ddAcheftJs);
+    $.getScript(ddCadJs);
   });
-</script>
 {/literal}
+</script>
