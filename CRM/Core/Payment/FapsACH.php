@@ -65,11 +65,21 @@ class CRM_Core_Payment_FapsACH extends CRM_Core_Payment_Faps {
       'cryptojs' => $cryptojs,
       'paymentInstrumentId' => 2,
     ];
-    CRM_Core_Resources::singleton()->addVars('iats', $jsVariables);
-    // preload the cryptojs script, which gets re-loaded by our crypto.js script
-    CRM_Core_Resources::singleton()->addScriptUrl($cryptojs, 10);
-    CRM_Core_Resources::singleton()->addScriptFile('com.iatspayments.civicrm', 'js/crypto.js', 10);
-    CRM_Core_Resources::singleton()->addStyleFile('com.iatspayments.civicrm', 'css/crypto.css', 10);
+    $resources = CRM_Core_Resources::singleton();
+    $cryptoCss = $resources->getUrl('com.iatspayments.civicrm', 'css/crypto.css');
+    $markup = '<link type="text/css" rel="stylesheet" href="'.$cryptoCss.'" media="all" /><script type="text/javascript" src="'.$cryptojs.'"></script>';
+    CRM_Core_Region::instance('billing-block')->add(array(
+      'markup' => $markup,
+    ));
+    // the cryptojs above is the one on the 1pay server, now I load and invoke the extension's crypto.js
+    $myCryptoJs = $resources->getUrl('com.iatspayments.civicrm', 'js/crypto.js');
+    // after manually doing what addVars('iats', $jsVariables) would normally do
+    $script = 'var iatsSettings = ' . json_encode($jsVariables) . ';';
+    $script .= 'var cryptoJs = "'.$myCryptoJs.'";';
+    $script .= 'CRM.$(function ($) { $.getScript(cryptoJs); });';
+    CRM_Core_Region::instance('billing-block')->add(array(
+      'script' => $script,
+    ));
     return FALSE;
   }
 

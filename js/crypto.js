@@ -24,7 +24,7 @@ cj(function ($) {
   });
 
   function generateFirstpayIframe(isRecur) {
-    var iatsSettings = CRM.vars.iats;
+    // we get iatsSettings from global scope
     // we have four potential "transaction types" that generate different
     // iframes
     if (iatsSettings.paymentInstrumentId == '1') {
