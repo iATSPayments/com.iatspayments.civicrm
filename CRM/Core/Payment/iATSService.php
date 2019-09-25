@@ -444,28 +444,83 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
    * This functionality will apply to back-end and front-end,
    * so it's only enabled when configured as on via the iATS admin settings.
    * The default isSupported method is overridden above to achieve this.
+   *
+   * Return TRUE on success or an error.
    */
   public function updateSubscriptionBillingInfo(&$message = '', $params = array()) {
-    require_once('CRM/Iats/Form/IATSCustomerUpdateBillingInfo.php');
 
-    $fakeForm = new IATSCustomerUpdateBillingInfo();
-    $fakeForm->updatedBillingInfo = $params;
+    // Fix billing form update bug https://github.com/iATSPayments/com.iatspayments.civicrm/issues/252 by getting crid from _POST
+    if (empty($params['crid'])) {
+      $params['crid'] = !empty($_POST['crid']) ? (int) $_POST['crid'] : (!empty($_GET['crid']) ? (int) $_GET['crid'] : 0);
+      if (empty($params['crid']) && !empty($params['entryURL'])) {
+        $components = parse_url($params['entryURL']); 
+        parse_str(html_entity_decode($components['query']), $entryURLquery); 
+        $params['crid'] = $entryURLquery['crid'];
+      }
+    }
+    // updatedBillingInfo array changed sometime after 4.7.27
+    $crid = !empty($params['crid']) ? $params['crid'] : $params['recur_id'];
+    if (empty($crid)) {
+      $alert = ts('This system is unable to perform self-service updates to credit cards. Please contact the administrator of this site.');
+      throw new Exception($alert);
+    } 
+    $mop = array(
+      'Visa' => 'VISA',
+      'MasterCard' => 'MC',
+      'Amex' => 'AMX',
+      'Discover' => 'DSC',
+    );
+    $contribution_recur = civicrm_api3('ContributionRecur', 'getsingle', ['id' => $crid]);
+    $payment_token = $result = civicrm_api3('PaymentToken', 'getsingle', ['id' => $contribution_recur['payment_token_id']]);
+    // construct the array of data that I'll submit to the iATS Payments server.
+    $state_province = civicrm_api3('StateProvince', 'getsingle', ['return' => ["abbreviation"], 'id' => $params['state_province_id']]);
+    $submit_values = array(
+      'cid' => $contribution_recur['contact_id'],
+      'customerCode' => $payment_token['token'],
+      'creditCardCustomerName' => "{$params['first_name']} " . (!empty($params['middle_name']) ? "{$params['middle_name']} " : '') . $params['last_name'],
+      'address' => $params['street_address'],
+      'city' => $params['city'],
+      'state' => $state_province['abbreviation'],
+      'zipCode' => $params['postal_code'],
+      'creditCardNum' => $params['credit_card_number'],
+      'creditCardExpiry' => sprintf('%02d/%02d', $params['month'], $params['year'] % 100),
+      'mop' => $mop[$params['credit_card_type']],
+    );
+
+    $credentials = CRM_Iats_iATSServiceRequest::credentials($contribution_recur['payment_processor_id'], 0);
+    $iats_service_params = array('type' => 'customer', 'iats_domain' => $credentials['domain'], 'method' => 'update_credit_card_customer');
+    $iats = new CRM_Iats_iATSServiceRequest($iats_service_params);
+    $submit_values['customerIPAddress'] = (function_exists('ip_address') ? ip_address() : $_SERVER['REMOTE_ADDR']);
+    // Make the soap request.
     try {
-      $fakeForm->postProcess();
+      $response = $iats->request($credentials, $submit_values);
+      // note: don't log this to the iats_response table.
+      $iats_result = $iats->result($response, TRUE);
+      // CRM_Core_Error::debug_var('iats result', $iats_result);
+      if ('OK' == $iats_result['AUTHORIZATIONRESULT']) {
+        // Update my copy of the expiry date.
+        $result = civicrm_api3('PaymentToken', 'get', [
+          'return' => ['id'],
+          'token' => $values['customerCode'],
+        ]);
+        if (count($result['values'])) {
+          list($month, $year) = explode('/', $values['creditCardExpiry']);
+          $expiry_date = sprintf('20%02d-%02d-01', $year, $month);
+          foreach(array_keys($result['values']) as $id) {
+            civicrm_api3('PaymentToken', 'create', [
+              'id' => $id,
+              'expiry_date' => $expiry_date,
+            ]);
+          }
+        }
+        return TRUE;
+      }
+      return $this->error('9002','Authorization failed');
     }
     catch (Exception $error) { // what could go wrong? 
       $message = $error->getMessage();
-      CRM_Core_Session::setStatus($message, ts('Warning'), 'alert');
-      $e = CRM_Core_Error::singleton();
-      return $e; 
+      return $this->error('9002', $message);
     }
-    if ('OK' == $fakeForm->getAuthorizationResult()) {
-      return TRUE;
-    }
-    $message = $fakeForm->getResultMessage();
-    CRM_Core_Session::setStatus($message, ts('Warning'), 'alert');
-    $e = CRM_Core_Error::singleton();
-    return $e;
   }
   
   /*
