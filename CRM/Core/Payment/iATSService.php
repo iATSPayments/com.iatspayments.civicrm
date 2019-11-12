@@ -124,35 +124,6 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
   } 
 
   /**
-   * Opportunity for the payment processor to override the entire form build.
-   *
-   * @param CRM_Core_Form $form
-   *
-   * @return bool
-   *   Should form building stop at this point?
-   *
-   * Test if we have an is_recur option, and future recurring start date feature enabled.
-   *
-   * return (!empty($form->_paymentFields));
-   * @throws \Civi\Payment\Exception\PaymentProcessorException
-   */
-  public function buildForm(&$form) {
-    if (isset($form->_values['is_recur'])) {
-      $settings = CRM_Core_BAO_Setting::getItem('iATS Payments Extension', 'iats_settings');
-      if (!empty($settings['enable_public_future_recurring_start'])) {
-        $allow_days = empty($settings['days']) ? array('-1') : $settings['days'];
-        $start_dates = CRM_Iats_Transaction::get_future_monthly_start_dates(time(), $allow_days);
-        $form->addElement('select', 'receive_date', ts('Date of first contribution'), $start_dates);
-        CRM_Core_Region::instance('billing-block')->add(array(
-          'template' => 'CRM/Iats/BillingBlockRecurringExtra.tpl',
-        ));
-        CRM_Core_Resources::singleton()->addScriptFile('com.iatspayments.civicrm', 'js/recur_start.js', 10);
-      }
-    }
-    return FALSE;
-  }
-
-  /**
    *
    */
   public function doDirectPayment(&$params) {
