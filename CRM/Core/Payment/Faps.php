@@ -161,6 +161,17 @@ class CRM_Core_Payment_Faps extends CRM_Core_Payment {
   }
 
   /**
+   * The first payment date is configurable when setting up back office recurring payments.
+   * For iATSPayments, this is also true for front-end recurring payments.
+   *
+   * @return bool
+   */
+  public function supportsFutureRecurStartDate() {
+    return FALSE;
+  } 
+
+
+  /**
    * function doDirectPayment
    *
    * This is the function for taking a payment using a core payment form of any kind.
