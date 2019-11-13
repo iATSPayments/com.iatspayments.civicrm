@@ -152,9 +152,7 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
       $result = $iats->result($response);
       if ($result['status']) {
         // Success.
-        $params['contribution_status_id'] = 1;
-        // For versions >= 4.6.6, the proper key.
-        $params['payment_status_id'] = 1;
+        $params['payment_status_id'] = 'Completed';
         $params['trxn_id'] = trim($result['remote_id']) . ':' . time();
         $params['gross_amount'] = $params['amount'];
         return $params;
@@ -219,14 +217,16 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
           $response = $iats->request($credentials, $request);
           $result = $iats->result($response);
           if ($result['status']) {
-            // Add a time string to iATS short authentication string to ensure uniqueness and provide helpful referencing.
+            // Add a time string to iATS short authentication string to ensure 
+            // uniqueness and provide helpful referencing.
             $update = array(
               'trxn_id' => trim($result['remote_id']) . ':' . time(),
               'gross_amount' => $params['amount'],
-              'payment_status_id' => '1',
+              'payment_status_id' => 'Completed',
             );
-            // Setting the next_sched_contribution_date param doesn't do anything, commented out, work around in setRecurReturnParams
-            $params = $this->setRecurReturnParams($params, $update);
+            // do some cleanups to the recurring record in updateRecurring
+            $this->updateRecurring($params, $update);
+            $params = array_merge($params, $update);
             return $params;
           }
           else {
@@ -243,7 +243,10 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
             'payment_status_id' => 'Pending',
             'receive_date' => date('Ymd', $next_sched_contribution_timestamp) . '030000',
           );
-          $params = $this->setRecurReturnParams($params, $update);
+          // Setting the next_sched_contribution_date param doesn't do anything, 
+          // work around in updateRecurring
+          $this->updateRecurring($params, $update);
+          $params = array_merge($params, $update);
           return $params;
         }
         return self::error('Unexpected error');
@@ -495,19 +498,16 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
   }
   
   /*
-   * Set the return params for recurring contributions.
+   * Update the recurring contribution record.
    *
-   * Implemented as a function so I can do some cleanup and implement
+   * Do some cleanup and implement
    * the ability to set a future start date for recurring contributions.
    * This functionality will apply to back-end and front-end,
    * As enabled when configured via the iATS admin settings.
    *
-   * This function will alter the recurring schedule as an intended side effect.
-   * and return the modified the params.
+   * Returns result of api request if a change is made, usually ignored.
    */
-  protected function setRecurReturnParams($params, $update) {
-    // Merge in the updates
-    $params = array_merge($params, $update);
+  protected function updateRecurring($params, $update) {
     // If the recurring record already exists, let's fix the next contribution and start dates,
     // in case core isn't paying attention.
     // We also set the schedule to 'in-progress' (even for ACH/EFT when the first one hasn't been verified), 
@@ -533,6 +533,7 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
       }
       try {
         $result = civicrm_api3('ContributionRecur', 'create', $recur_update);
+        return $result;
       }
       catch (CiviCRM_API3_Exception $e) {
         // Not a critical error, just log and continue.
@@ -543,7 +544,7 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
     else {
       Civi::log()->info('Unexpectedly unable to update the next scheduled contribution date, missing id.');
     }
-    return $params;
+    return FALSE;
   }
   
 }
