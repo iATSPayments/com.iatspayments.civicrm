@@ -305,7 +305,7 @@ class CRM_Core_Payment_Faps extends CRM_Core_Payment {
           if ($receive_date !== $today) {
             // set the receieve time to 3:00 am for a better admin experience
             $update = array(
-              'payment_status_id' => 'Pending',
+              'payment_status_id' => 2,
               'receive_date' => date('Ymd', $receive_ts) . '030000',
             );
             // update the recurring and contribution records with the receive date,
@@ -353,7 +353,7 @@ class CRM_Core_Payment_Faps extends CRM_Core_Payment {
       // put the old version of the return param in just to be sure
       $params['contribution_status_id'] = 1;
       // For versions >= 4.6.6, the proper key.
-      $params['payment_status_id'] = 'Completed';
+      $params['payment_status_id'] = 1;
       $params['trxn_id'] = trim($result['data']['referenceNumber']).':'.time();
       $params['gross_amount'] = $params['amount'];
       return $params;

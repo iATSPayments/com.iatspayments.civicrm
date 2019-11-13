@@ -180,10 +180,7 @@ class CRM_Core_Payment_FapsACH extends CRM_Core_Payment_Faps {
     // CRM_Core_Error::debug_var('result', $result);
     $success = (!empty($result['isSuccess']));
     if ($success) {
-      // put the old return param in just to be sure
-      $params['contribution_status_id'] = 'Pending';
-      // For versions >= 4.6.6, the proper key.
-      $params['payment_status_id'] = 'Pending';
+      $params['payment_status_id'] = 2;
       $params['trxn_id'] = trim($result['data']['referenceNumber']).':'.time();
       $params['gross_amount'] = $params['amount'];
       // Core assumes that a pending result will have no transaction id, but we have a useful one.
