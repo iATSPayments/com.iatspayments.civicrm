@@ -223,9 +223,6 @@ class CRM_Core_Payment_iATSServiceACHEFT extends CRM_Core_Payment_iATSService {
       // Process the soap response into a readable result, logging any transaction.
       $result = $iats->result($response);
       if ($result['status']) {
-        // Always set pending status.
-        $params['contribution_status_id'] = 2;
-        // For future versions, the proper key.
         $params['payment_status_id'] = 2;
         $params['trxn_id'] = trim($result['remote_id']) . ':' . time();
         $params['gross_amount'] = $params['amount'];
@@ -281,16 +278,41 @@ class CRM_Core_Payment_iATSServiceACHEFT extends CRM_Core_Payment_iATSService {
             'payment_token_id' => $token_result['id'],
           ]);
         }
+        // Test for admin setting that limits allowable transaction days
         $allow_days = $this->getSettings('days');
-        // Also test for a specific recieve date request that is not today.
-        $receive_date_request = CRM_Utils_Array::value('receive_date', $params);
-        $today = date('Ymd');
-        // If the receive_date is set to sometime today, unset it.
-        if (!empty($receive_date_request) && 0 === strpos($receive_date_request, $today)) {
-          unset($receive_date_request);
+        // Test for a specific receive date request and convert to a timestamp, default now
+        $receive_date = CRM_Utils_Array::value('receive_date', $params);
+        // my front-end addition to will get stripped out of the params, do a
+        // work-around
+        if (empty($receive_date)) {
+          $receive_date = CRM_Utils_Array::value('receive_date', $_POST);
         }
-        // Normally, run the (first) transaction immediately, unless the admin setting is in force or a specific request is being made.
-        if (max($allow_days) <= 0 && empty($receive_date_request)) {
+        $receive_ts = empty($receive_date) ? time() : strtotime($receive_date);
+        // If the admin setting is in force, ensure it's compatible.
+        if (max($allow_days) > 0) {
+          $receive_ts = CRM_Iats_Transaction::contributionrecur_next($receive_ts, $allow_days);
+        }
+        // convert to a reliable format
+        $receive_date = date('Ymd', $receive_ts);
+        $today = date('Ymd');
+        // If the receive_date is NOT today, then
+        // create a pending contribution and adjust the next scheduled date.
+        if ($receive_date !== $today) {
+          // I've got a schedule to adhere to!
+          // set the receieve time to 3:00 am for a better admin experience
+          $update = array(
+            'payment_status_id' => 2,
+            'receive_date' => date('Ymd', $receive_ts) . '030000',
+          );
+          // update the recurring and contribution records with the receive date,
+          // i.e. make up for what core doesn't do
+          $this->updateRecurring($params, $update);
+          $this->updateContribution($params, $update);
+          // and now return the updates to core via the params
+          $params = array_merge($params, $update);
+          return $params;
+        }
+        else {
           $iats = new CRM_Iats_iATSServiceRequest(array('type' => 'process', 'method' => 'acheft_with_customer_code', 'iats_domain' => $this->_profile['iats_domain'], 'currencyID' => $params['currencyID']));
           $request = array('invoiceNum' => $params['invoiceID']);
           $request['total'] = sprintf('%01.2f', CRM_Utils_Rule::cleanMoney($params['amount']));
@@ -303,10 +325,12 @@ class CRM_Core_Payment_iATSServiceACHEFT extends CRM_Core_Payment_iATSService {
             $update = array(
               'trxn_id' => trim($result['remote_id']) . ':' . time(),
               'gross_amount' => $params['amount'],
-              'payment_status_id' => 2
+              'payment_status_id' => 2,
             );
-            // Setting the next_sched_contribution_date param setting is not doing anything, commented out.
-            $this->setRecurReturnParams($params, $update);
+            // Setting the next_sched_contribution_date param doesn't do anything, 
+            // work around in updateRecurring
+            $this->updateRecurring($params, $update);
+            $params = array_merge($params, $update);
             // Core assumes that a pending result will have no transaction id, but we have a useful one.
             if (!empty($params['contributionID'])) {
               $contribution_update = array('id' => $params['contributionID'], 'trxn_id' => $update['trxn_id']);
@@ -324,20 +348,6 @@ class CRM_Core_Payment_iATSServiceACHEFT extends CRM_Core_Payment_iATSService {
           else {
             return self::error($result['reasonMessage']);
           }
-        }
-        // Otherwise, I have a schedule to adhere to.
-        else {    
-          // Note that the admin general setting restricting allowable days may update a specific request.
-          $receive_timestamp = empty($receive_date_request) ? time() : strtotime($receive_date_request);
-          $next_sched_contribution_timestamp = (max($allow_days) > 0) ? CRM_Iats_Transaction::contributionrecur_next($receive_timestamp, $allow_days) 
-            : $receive_timestamp;
-          // set the receieve time to 3:00 am for a better admin experience
-          $update = array(
-            'payment_status_id' => 2,
-            'receive_date' => date('Ymd', $next_sched_contribution_timestamp) . '030000',
-          );
-          $this->setRecurReturnParams($params, $update);
-          return $params;
         }
       }
       return $params;

@@ -334,6 +334,45 @@ function iats_civicrm_buildForm($formName, &$form) {
   // Else echo $fname;.
 }
 
+
+/**
+ * Modifications to a (public/frontend) contribution financial forms for iATS
+ * procesors.
+ * 1. enable public selection of future recurring contribution start date.
+ * 
+ * We're only handling financial payment class forms here. Note that we can no
+ * longer test for whether the page has/is recurring or not. 
+ */
+
+function iats_civicrm_buildForm_CRM_Financial_Form_Payment(&$form) {
+  // We're on CRM_Financial_Form_Payment, we've got just one payment processor
+  // Skip this if it's not an iATS-type of processor
+  $type = _iats_civicrm_is_iats($form->_paymentProcessor['id']);
+  if (empty($type)) {
+    return;
+  }
+
+  // If enabled provide a way to set future contribution dates. 
+  // Uses javascript to hide/reset unless they have recurring contributions checked.
+  $settings = CRM_Core_BAO_Setting::getItem('iATS Payments Extension', 'iats_settings');
+  if (!empty($settings['enable_public_future_recurring_start'])
+    && $form->_paymentObject->supportsFutureRecurStartDate()
+  ) {
+    $allow_days = empty($settings['days']) ? array('-1') : $settings['days'];
+    $start_dates = CRM_Iats_Transaction::get_future_monthly_start_dates(time(), $allow_days);
+    $form->addElement('select', 'receive_date', ts('Date of first contribution'), $start_dates);
+    CRM_Core_Region::instance('billing-block')->add(array(
+      'template' => 'CRM/Iats/BillingBlockRecurringExtra.tpl',
+    ));
+    $recurStartJs = CRM_Core_Resources::singleton()->getUrl('com.iatspayments.civicrm', 'js/recur_start.js');
+    $script = 'var recurStartJs = "' . $recurStartJs . '";';
+    $script .= 'CRM.$(function ($) { $.getScript(recurStartJs); });';
+    CRM_Core_Region::instance('billing-block')->add(array(
+      'script' => $script,
+    ));
+  }
+}
+
 /**
  *
  */
@@ -346,7 +385,7 @@ function iats_civicrm_pageRun(&$page) {
 
 /**
  * Modify the recurring contribution (subscription) page.
- * Display extra information about recurring contributions using iATS, and
+ * Display extra information about recurring contributions using Legacy iATS, and
  * link to iATS CustomerLink display and editing pages.
  */
 function iats_civicrm_pageRun_CRM_Contribute_Page_ContributionRecur($page) {
@@ -361,7 +400,7 @@ function iats_civicrm_pageRun_CRM_Contribute_Page_ContributionRecur($page) {
     return;
   }
   $type = _iats_civicrm_is_iats($recur['payment_processor_id']);
-  if (!$type || empty($recur['payment_token_id'])) {
+  if ((0 !== strpos($type,'iATSService')) || empty($recur['payment_token_id'])) {
     return;
   }
   try {
@@ -428,56 +467,7 @@ function iats_civicrm_merge($type, &$data, $mainId = NULL, $otherId = NULL, $tab
  * TODO: CiviCRM should have nicer ways to handle this.
  */
 function iats_civicrm_pre($op, $objectName, $objectId, &$params) {
-  // Since this function gets called a lot, quickly determine if I care about the record being created.
-  if (('create' == $op) && ('Contribution' == $objectName) && !empty($params['contribution_status_id'])) {
-    // watchdog('iats_civicrm','hook_civicrm_pre for Contribution <pre>@params</pre>',array('@params' => print_r($params));
-    // figure out the payment processor id, not nice.
-    $version = CRM_Utils_System::version();
-    $payment_processor_id = !empty($params['payment_processor']) ? $params['payment_processor'] :
-                                (!empty($params['contribution_recur_id']) ? _iats_civicrm_get_payment_processor_id($params['contribution_recur_id']) :
-                                 0);
-    if ($type = _iats_civicrm_is_iats($payment_processor_id)) {
-      $settings = CRM_Core_BAO_Setting::getItem('iATS Payments Extension', 'iats_settings');
-      $allow_days = empty($settings['days']) ? array('-1') : $settings['days'];
-      switch ($type . $objectName) {
-        // Cc contribution, test if it's been set to status 2 on a recurring contribution.
-        case 'iATSServiceContribution':
-        case 'iATSServiceSWIPEContribution':
-          // For civi version before 4.6.6, we had to force the status to 1.
-          if ((2 == $params['contribution_status_id'])
-            && !empty($params['contribution_recur_id'])
-            && (max($allow_days) <= 0)
-            && (version_compare($version, '4.6.6') < 0)
-          ) {
-            // But only for the first one.
-            $count = civicrm_api3('Contribution', 'getcount', array('contribution_recur_id' => $params['contribution_recur_id']));
-            if (
-              (is_array($count) && empty($count['result']))
-              || empty($count)
-            ) {
-              // watchdog('iats_civicrm','hook_civicrm_pre updating status_id for objectName @id, count <pre>!count</pre>, params <pre>!params</pre>, ',array('@id' => $objectName, '!count' => print_r($count,TRUE),'!params' => print_r($params,TRUE)));.
-              $params['contribution_status_id'] = 1;
-            }
-          }
-          break;
-
-        case 'iATSServiceACHEFTContribution':
-          // ach/eft contribution: update the payment instrument if it's still showing cc or empty
-          if ($params['payment_instrument_id'] <= 1) {
-            $params['payment_instrument_id'] = 2;
-          }
-          // And push the status to 2 if civicrm thinks it's 1, i.e. for one-time contributions
-          // in other words, never create ach/eft contributions as complete, always push back to pending and verify.
-          if ($params['contribution_status_id'] == 1) {
-            $params['contribution_status_id'] = 2;
-          }
-          break;
-
-      }
-    }
-    // watchdog('iats_civicrm','ignoring hook_civicrm_pre for objectName @id',array('@id' => $objectName));.
-  }
-  // If I've set fixed monthly recurring dates, force any iats (non uk dd) recurring contribution schedule records to comply.
+  // If I've set fixed monthly recurring dates, force any iats recurring contribution schedule records to comply.
   if (('ContributionRecur' == $objectName) && ('create' == $op || 'edit' == $op) && !empty($params['payment_processor_id'])) {
     if ($type = _iats_civicrm_is_iats($params['payment_processor_id'])) {
       if (!empty($params['next_sched_contribution_date'])) {
@@ -546,14 +536,16 @@ function _iats_civicrm_is_iats($payment_processor_id) {
   }
   catch (CiviCRM_API3_Exception $e) {
     return FALSE;
+    // TODO: log error?.
   }
   if (empty($result['class_name'])) {
     return FALSE;
-    // TODO: log error.
+    // TODO: log error?.
   }
-  $type = substr($result['class_name'], 0, 19);
-  $subtype = substr($result['class_name'], 19);
-  return ('Payment_iATSService' == $type) ? 'iATSService' . $subtype : FALSE;
+  // type is class name with Payment_ stripped from the front
+  $type = substr($result['class_name'], 8);
+  $is_iats = (0 == strpos($type, 'iATSService')) || (0 == strpos($type, 'Faps'));
+  return ($is_iats ? $type : FALSE);
 }
 
 /**
