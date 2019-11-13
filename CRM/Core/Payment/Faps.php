@@ -353,7 +353,7 @@ class CRM_Core_Payment_Faps extends CRM_Core_Payment {
       // put the old version of the return param in just to be sure
       $params['contribution_status_id'] = 1;
       // For versions >= 4.6.6, the proper key.
-      $params['payment_status_id'] = 1;
+      $params['payment_status_id'] = 'Completed';
       $params['trxn_id'] = trim($result['data']['referenceNumber']).':'.time();
       $params['gross_amount'] = $params['amount'];
       return $params;
