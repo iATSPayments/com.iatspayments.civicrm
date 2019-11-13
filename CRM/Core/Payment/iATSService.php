@@ -152,7 +152,7 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
       $result = $iats->result($response);
       if ($result['status']) {
         // Success.
-        $params['payment_status_id'] = 'Completed';
+        $params['payment_status_id'] = 1;
         $params['trxn_id'] = trim($result['remote_id']) . ':' . time();
         $params['gross_amount'] = $params['amount'];
         return $params;
@@ -197,18 +197,41 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
         }
         // Test for admin setting that limits allowable transaction days
         $allow_days = $this->getSettings('days');
-        // Also test for a specific recieve date request that is not today.
-        $receive_date_request = CRM_Utils_Array::value('receive_date', $params);
-        // If the receive_date is set to sometime today, unset it.
-        if (!empty($receive_date_request)) {
-          $today = date('Ymd');
-          $receive_date_formatted= date('Ymd',strtotime($receive_date_request));
-          if ($receive_date_formatted === $today) {
-            unset($receive_date_request);
-          }
+        // Test for a specific receive date request and convert to a timestamp, default now
+        $receive_date = CRM_Utils_Array::value('receive_date', $params);
+        // my front-end addition to will get stripped out of the params, do a
+        // work-around
+        if (empty($receive_date)) {
+          $receive_date = CRM_Utils_Array::value('receive_date', $_POST);
         }
-        // Normally, run the (first) transaction immediately, unless the admin setting is in force or a specific request is being made.
-        if (max($allow_days) <= 0 && empty($receive_date_request)) {
+        $receive_ts = empty($receive_date) ? time() : strtotime($receive_date);
+        // If the admin setting is in force, ensure it's compatible.
+        if (max($allow_days) > 0) {
+          $receive_ts = CRM_Iats_Transaction::contributionrecur_next($receive_ts, $allow_days);
+        }
+        // convert to a reliable format
+        $receive_date = date('Ymd', $receive_ts);
+        $today = date('Ymd');
+        // If the receive_date is NOT today, then
+        // create a pending contribution and adjust the next scheduled date.
+        CRM_Core_Error::debug_var('receive_date', $receieve_date);
+        if ($receive_date !== $today) {
+          // I've got a schedule to adhere to!
+          // set the receieve time to 3:00 am for a better admin experience
+          $update = array(
+            'payment_status_id' => 2,
+            'receive_date' => date('Ymd', $receive_ts) . '030000',
+          );
+          // update the recurring and contribution records with the receive date,
+          // i.e. make up for what core doesn't do
+          $this->updateRecurring($params, $update);
+          $this->updateContribution($params, $update);
+          // and now return the updates to core via the params
+          $params = array_merge($params, $update);
+          return $params;
+        }
+        else {
+          // run the (first) transaction immediately
           $iats = new CRM_Iats_iATSServiceRequest(array('type' => 'process', 'method' => 'cc_with_customer_code', 'iats_domain' => $this->_profile['iats_domain'], 'currencyID' => $params['currencyID']));
           $request = array('invoiceNum' => $params['invoiceID']);
           $request['total'] = sprintf('%01.2f', CRM_Utils_Rule::cleanMoney($params['amount']));
@@ -222,7 +245,7 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
             $update = array(
               'trxn_id' => trim($result['remote_id']) . ':' . time(),
               'gross_amount' => $params['amount'],
-              'payment_status_id' => 'Completed',
+              'payment_status_id' => 1,
             );
             // do some cleanups to the recurring record in updateRecurring
             $this->updateRecurring($params, $update);
@@ -232,22 +255,6 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
           else {
             return self::error($result['reasonMessage']);
           }
-        }
-        // I've got a schedule to adhere to!
-        else {
-          // Note that the admin general setting restricting allowable days will overwrite any specific request.
-          $next_sched_contribution_timestamp = (max($allow_days) > 0) ? CRM_Iats_Transaction::contributionrecur_next(time(), $allow_days) 
-            : strtotime($params['receive_date']);
-          // set the receieve time to 3:00 am for a better admin experience
-          $update = array(
-            'payment_status_id' => 'Pending',
-            'receive_date' => date('Ymd', $next_sched_contribution_timestamp) . '030000',
-          );
-          // Setting the next_sched_contribution_date param doesn't do anything, 
-          // work around in updateRecurring
-          $this->updateRecurring($params, $update);
-          $params = array_merge($params, $update);
-          return $params;
         }
         return self::error('Unexpected error');
       }
@@ -546,5 +553,31 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
     }
     return FALSE;
   }
-  
+
+  /*
+   * Update the contribution record.
+   *
+   * This function will alter the civi contribution record.
+   * Implemented only to update the receive date.
+   */
+  protected function updateContribution($params, $update = array()) {
+    if (!empty($params['contributionID'])  && !empty($update['receive_date'])) {
+      $contribution_id = $params['contributionID'];
+      $update = array(
+        'id' => $contribution_id,
+        'receive_date' => $update['receive_date']
+      );
+      try {
+        $result = civicrm_api3('Contribution', 'create', $update);
+        return $result;
+      }
+      catch (CiviCRM_API3_Exception $e) {
+        // Not a critical error, just log and continue.
+        $error = $e->getMessage();
+        Civi::log()->info('Unexpected error updating the contribution date for id {id}: {error}', array('id' => $contribution_id, 'error' => $error));
+      }
+    }
+    return false;
+  }
+
 }
