@@ -121,7 +121,7 @@ class CRM_Iats_Form_IATSOneTimeCharge extends CRM_Core_Form {
       $contribution['source'] = "iATS Payments $subtype One-Time Contribution (using id=$contribution_recur_id)";
     }
     $contribution['original_contribution_id'] = $original_contribution_id;
-    $contribution['is_email_receipt'] = empty($values['is_email_receipt']) ? '0' : '1');
+    $contribution['is_email_receipt'] = empty($values['is_email_receipt']) ? '0' : '1';
     /* todo:  'customer_code' => $values['customerCode'],
       'subtype' => $subtype,
     ); */
