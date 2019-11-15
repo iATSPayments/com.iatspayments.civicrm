@@ -8,9 +8,9 @@
 
 cj(function ($) {
   'use strict';
-  var isRecur = $('#is_recur').prop('checked');
+  var isRecur = $('#is_recur, #auto_renew').prop('checked');
   generateFirstpayIframe(isRecur);
-  $('#is_recur').click(function() {
+  $('#is_recur, #auto_renew').click(function() {
     // remove any existing iframe and message handlers first
     $('#firstpay-iframe').remove();
     if (window.addEventListener) {
