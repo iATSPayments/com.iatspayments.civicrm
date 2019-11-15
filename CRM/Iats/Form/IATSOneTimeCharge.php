@@ -5,7 +5,7 @@
  */
 
 require_once 'CRM/Core/Form.php';
-
+use CRM_Iats_ExtensionUtil as E;
 /**
  * Form controller class.
  *
@@ -71,7 +71,7 @@ class CRM_Iats_Form_IATSOneTimeCharge extends CRM_Core_Form {
     $customer = $iats->result($response, FALSE);
     // print_r($customer); die();
     if (empty($customer['ac1'])) {
-      $alert = ts('Unable to retrieve card details from iATS.<br />%1', array(1 => $customer['AUTHORIZATIONRESULT']));
+      $alert = E::ts('Unable to retrieve card details from iATS.<br />%1', array(1 => $customer['AUTHORIZATIONRESULT']));
       throw new Exception($alert);
     }
     // This is a SimpleXMLElement Object.
@@ -122,11 +122,39 @@ class CRM_Iats_Form_IATSOneTimeCharge extends CRM_Core_Form {
     }
     $contribution['original_contribution_id'] = $original_contribution_id;
     $contribution['is_email_receipt'] = empty($values['is_email_receipt']) ? '0' : '1';
-    /* todo:  'customer_code' => $values['customerCode'],
-      'subtype' => $subtype,
-    ); */
+    // get the payment token and processor information for the recurring schedule.
+    try {
+      $contribution_recur = civicrm_api3('ContributionRecur', 'getsingle',
+        array(
+          'id' => $contribution_recur_id,
+          'return' => array('payment_token_id'),
+        )
+      );
+      if (!empty($contribution_recur['payment_token_id'])) {
+        $payment_token = civicrm_api3('PaymentToken', 'getsingle', array('id' => $contribution_recur['payment_token_id']));
+      }
+    }
+    catch (Exception $e) {
+      $error = E::ts('Unexpected error getting a payment token for recurring schedule id %1', array(1 => $contribution_recur_id));
+      throw new Exception($error);
+    }
+    if (empty($payment_token['token'])) {
+      $error = E::ts('Recur id %1 is missing a payment token.', array(1 => $contribution_recur_id));
+      throw new Exception($error);
+    }
+    try {
+      $paymentProcessor = civicrm_api3('PaymentProcessor', 'getsingle', array('id' => 3)); 
+    }
+    catch (Exception $e) {
+      $error = E::ts('Unexpected error getting payment processor information for recurring schedule id %1', array(1 => $contribution_recur_id));
+      throw new Exception($error);
+    }
     // Now all the hard work in this function, recycled from the original recurring payment job.
-    $result = CRM_Iats_Transaction::process_contribution_payment($contribution, $paymentProcessor);
+    if (empty($paymentProcessor['id']) || empty($payment_token['token'])) {
+      $error = E::ts('Unexpected error transacting one-time payment for schedule id %1', array(1 => $contribution_recur_id));
+      throw new Exception($error);
+    }
+    $result = CRM_Iats_Transaction::process_contribution_payment($contribution, $paymentProcessor, $payment_token);
     return $result;
   }
 
@@ -161,7 +189,7 @@ class CRM_Iats_Form_IATSOneTimeCharge extends CRM_Core_Form {
       $customer = $this->getCustomerCodeDetail($defaults);
     }
     catch (Exception $e) {
-      CRM_Core_Session::setStatus($e->getMessage(), ts('Warning'), 'alert');
+      CRM_Core_Session::setStatus($e->getMessage(), E::ts('Warning'), 'alert');
       return;
     }
     foreach ($labels as $name => $label) {
@@ -184,24 +212,24 @@ class CRM_Iats_Form_IATSOneTimeCharge extends CRM_Core_Form {
       'checkbox',
     // Field name.
       'is_email_receipt',
-      ts('Automated email receipt for this contribution.')
+      E::ts('Automated email receipt for this contribution.')
     );
     $this->add(
     // Field type.
       'checkbox',
     // Field name.
       'is_recurrence',
-      ts('Create this as a contribution in the recurring series.')
+      E::ts('Create this as a contribution in the recurring series.')
     );
     $this->addButtons(array(
       array(
         'type' => 'submit',
-        'name' => ts('Charge this card'),
+        'name' => E::ts('Charge this card'),
         'isDefault' => TRUE,
       ),
       array(
         'type' => 'cancel',
-        'name' => ts('Back'),
+        'name' => E::ts('Back'),
       ),
     ));
 
@@ -209,7 +237,7 @@ class CRM_Iats_Form_IATSOneTimeCharge extends CRM_Core_Form {
     $this->assign('elementNames', $this->getRenderableElementNames());
     // If necessary, warn the user about the nature of what they are about to do.
     if (0 !== $is_recurrence) { // this if is not working!
-      $message = ts('The contribution created by this form will be saved as contribution in the existing recurring series unless you uncheck the corresponding setting.'); // , $type, $options);.
+      $message = E::ts('The contribution created by this form will be saved as contribution in the existing recurring series unless you uncheck the corresponding setting.'); // , $type, $options);.
       CRM_Core_Session::setStatus($message, 'One-Time Charge');
     }
     parent::buildQuickForm();
@@ -223,9 +251,11 @@ class CRM_Iats_Form_IATSOneTimeCharge extends CRM_Core_Form {
     // print_r($values); die();
     // send charge request to iATS.
     $result = $this->processCreditCardCustomer($values);
-    $message = print_r($result, TRUE);
+    $message = '<pre>' . print_r($result, TRUE). '</pre>';
     // , $type, $options);.
     CRM_Core_Session::setStatus($message, 'Customer Card Charged');
+    $return_qs = http_build_query(array('reset' => 1, 'id' => $values['crid'], 'cid' => $values['cid'], 'context' => 'contribution'));
+    $this->controller->_destination = CRM_Utils_System::url('civicrm/contact/view/contributionrecur', $return_qs);
     parent::postProcess();
   }
 
