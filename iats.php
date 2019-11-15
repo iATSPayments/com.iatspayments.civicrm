@@ -427,8 +427,8 @@ function iats_civicrm_pageRun_CRM_Contribute_Page_ContributionRecur($page) {
       $processLink = CRM_Utils_System::url('civicrm/contact/iatsprocesslink',
         'reset=1&cid=' . $recur['contact_id'] . '&customerCode=' . $customer_code . '&paymentProcessorId=' . $recur['payment_processor_id'] . '&crid=' . $crid . '&is_test=' . $recur['is_test']);
       $extra['customerLink'] .= " | <a href='$processLink'>Process</a>";
-      $expiry = str_split($dao->expiry, 2);
-      $extra['expiry'] = '20' . implode('-', $expiry);
+      $expiry = $payment_token['expiry_date'];
+      $extra['expiry'] = date('Y-m', strtotime($expiry));
     }
   }
   catch (CiviCRM_API3_Exception $e) {
