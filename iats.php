@@ -374,6 +374,14 @@ function iats_civicrm_buildForm_CRM_Financial_Form_Payment(&$form) {
 }
 
 /**
+ * The main civicrm contribution form is the public one, there are some
+ * edge cases where we need to do the same as the Financial form above.
+ */
+function iats_civicrm_buildForm_CRM_Contribute_Form_Contribution_Main(&$form) {
+  return iats_civicrm_buildForm_CRM_Financial_Form_Payment($form);
+}
+
+/**
  *
  */
 function iats_civicrm_pageRun(&$page) {
@@ -558,7 +566,11 @@ function _iats_civicrm_is_iats($payment_processor_id) {
 function _iats_filter_payment_processors($class, $processors = array(), $params = array()) {
   $list = array();
   $params['class_name'] = ['LIKE' => 'Payment_' . $class];
-
+  // On the chance that there are a lot of payment processors and the caller
+  // hasn't specified a limit, assume they want them all.
+  if (empty($params['options']['limit'])) {
+    $params['options']['limit'] = 0;
+  }
   // Set the domain id if not passed in.
   if (!array_key_exists('domain_id', $params)) {
     $params['domain_id']    = CRM_Core_Config::domainID();

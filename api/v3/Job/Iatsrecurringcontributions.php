@@ -54,10 +54,10 @@ function civicrm_api3_job_Iatsrecurringcontributions($params) {
   if (!$lock->acquire()) {
     return civicrm_api3_create_success(ts('Failed to acquire lock. No contribution records were processed.'));
   }
-  // Restrict this method of recurring contribution processing to only iATS (Faps + Legacy) payment processors.
+  // Restrict this method of recurring contribution processing to only iATS (Faps + Legacy) active payment processors.
   // TODO: exclude test processors?
-  $fapsProcessors = _iats_filter_payment_processors('Faps%');
-  $iatsProcessors = _iats_filter_payment_processors('iATS%');
+  $fapsProcessors = _iats_filter_payment_processors('Faps%', array(), array('active' => 1));
+  $iatsProcessors = _iats_filter_payment_processors('iATS%', array(), array('active' => 1));
   $paymentProcessors = $fapsProcessors + $iatsProcessors;
   if (empty($paymentProcessors)) {
     return;
