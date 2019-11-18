@@ -441,17 +441,6 @@ class CRM_Iats_Form_Report_Recur extends CRM_Report_Form {
         $entryFound = TRUE;
       }
 
-      // Handle expiry date.
-      /*
-      if ($value = CRM_Utils_Array::value('civicrm_iats_customer_codes_expiry', $row)) {
-        if ($rows[$rowNum]['civicrm_iats_customer_codes_expiry'] == '0000') {
-          $rows[$rowNum]['civicrm_iats_customer_codes_expiry'] = ' ';
-        }
-        elseif ($rows[$rowNum]['civicrm_iats_customer_codes_expiry'] != '0000') {
-          $rows[$rowNum]['civicrm_iats_customer_codes_expiry'] = '20' . substr($rows[$rowNum]['civicrm_iats_customer_codes_expiry'], 0, 2) . '/' . substr($rows[$rowNum]['civicrm_iats_customer_codes_expiry'], 2, 2);
-        }
-  } */
-
       // Handle contribution status id.
       if ($value = CRM_Utils_Array::value('civicrm_contribution_recur_contribution_status_id', $row)) {
         $rows[$rowNum]['civicrm_contribution_recur_contribution_status_id'] = self::$contributionStatus[$value];
