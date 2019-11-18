@@ -453,7 +453,6 @@ function iats_civicrm_pageRun_CRM_Contribute_Page_ContributionRecur($page) {
  */
 function iats_civicrm_merge($type, &$data, $mainId = NULL, $otherId = NULL, $tables = NULL) {
   if ('cidRefs' == $type) {
-    $data['civicrm_iats_customer_codes'] = array('cid');
     $data['civicrm_iats_verify'] = array('cid');
   }
 }
