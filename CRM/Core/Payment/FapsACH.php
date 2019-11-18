@@ -53,12 +53,13 @@ class CRM_Core_Payment_FapsACH extends CRM_Core_Payment_Faps {
     // cryptojs is url of the firstpay script that needs to get loaded after the iframe
     // is generated.
     $cryptojs = 'https://' . $iats_domain . '/secure/PaymentHostedForm/Scripts/firstpay/firstpay.cryptogram.js';
-    $iframe_src = 'https://' . $iats_domain . '/secure/PaymentHostedForm/v3/Ach';
+    $currency = $form->getCurrency();
+    $iframe_src = 'https://' . $iats_domain . '/secure/PaymentHostedForm/v3/' . (('CAD' == $currency) ? 'CanadianAch' : 'Ach');
     $jsVariables = [
-      'paymentProcessorId' => $this->_paymentProcessor['id'], 
+      'paymentProcessorId' => $this->_paymentProcessor['id'],
       'transcenterId' => $this->_paymentProcessor['password'],
       'processorId' => $this->_paymentProcessor['user_name'],
-      'currency' => $form->getCurrency(),
+      'currency' => $currency,
       'is_test' => $this->is_test,
       'title' => $form->getTitle(),
       'iframe_src' => $iframe_src,
@@ -80,6 +81,17 @@ class CRM_Core_Payment_FapsACH extends CRM_Core_Payment_Faps {
     CRM_Core_Region::instance('billing-block')->add(array(
       'script' => $script,
     ));
+    // and now add in a helpful cheque image and description
+    switch($currency) {
+      case 'USD': 
+        CRM_Core_Region::instance('billing-block')->add(array(
+          'template' => 'CRM/Iats/BillingBlockFapsACH_USD.tpl',
+        ));
+      case 'CAD': 
+        CRM_Core_Region::instance('billing-block')->add(array(
+          'template' => 'CRM/Iats/BillingBlockFapsACH_CAD.tpl',
+        ));
+    }
     return FALSE;
   }
 
@@ -94,7 +106,8 @@ class CRM_Core_Payment_FapsACH extends CRM_Core_Payment_Faps {
     // CRM_Core_Error::debug_var('doDirectPayment params', $params);
 
     // Check for valid currency
-    if ('USD' != $params['currencyID']) {
+    $currency = $form->getCurrency();
+    if (('USD' != $currency) && ('CAD' != $currency)) {
       return self::error('Invalid currency selection: ' . $params['currencyID']);
     }
     $isRecur = CRM_Utils_Array::value('is_recur', $params) && $params['contributionRecurID'];
