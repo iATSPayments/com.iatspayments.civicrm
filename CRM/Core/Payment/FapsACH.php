@@ -53,12 +53,13 @@ class CRM_Core_Payment_FapsACH extends CRM_Core_Payment_Faps {
     // cryptojs is url of the firstpay script that needs to get loaded after the iframe
     // is generated.
     $cryptojs = 'https://' . $iats_domain . '/secure/PaymentHostedForm/Scripts/firstpay/firstpay.cryptogram.js';
-    $iframe_src = 'https://' . $iats_domain . '/secure/PaymentHostedForm/v3/Ach';
+    $currency = $form->getCurrency();
+    $iframe_src = 'https://' . $iats_domain . '/secure/PaymentHostedForm/v3/' . (('CAD' == $currency) ? 'CanadianAch' : 'Ach');
     $jsVariables = [
-      'paymentProcessorId' => $this->_paymentProcessor['id'], 
+      'paymentProcessorId' => $this->_paymentProcessor['id'],
       'transcenterId' => $this->_paymentProcessor['password'],
       'processorId' => $this->_paymentProcessor['user_name'],
-      'currency' => $form->getCurrency(),
+      'currency' => $currency,
       'is_test' => $this->is_test,
       'title' => $form->getTitle(),
       'iframe_src' => $iframe_src,
