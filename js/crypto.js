@@ -8,6 +8,11 @@
 
 cj(function ($) {
   'use strict';
+  if (0 < $('#iats-faps-ach-extra').length) {
+    /* move my helpful cheque image + instructions to the top of the section */
+    $('.direct_debit_info-section').prepend($('#iats-faps-ach-extra'));
+  }
+
   var isRecur = $('#is_recur, #auto_renew').prop('checked');
   generateFirstpayIframe(isRecur);
   $('#is_recur, #auto_renew').click(function() {
