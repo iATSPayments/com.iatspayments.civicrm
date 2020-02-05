@@ -31,7 +31,7 @@ class CRM_Iats_Page_iATSAdmin extends CRM_Core_Page {
       $this->assign('jobLastRun', ($job_last_run ? date('Y-m-d H:i:s', $job_last_run) : ''));
       $this->assign('jobOverdue', '');
       $overdueHours  = (time() - $job_last_run) / (60 * 60);
-      if (24 < $overdueHours) {
+      if (36 < $overdueHours) {
         $this->assign('jobOverdue', $overdueHours);
       }
     }
