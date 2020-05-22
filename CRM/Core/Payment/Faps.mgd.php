@@ -27,7 +27,7 @@ return array(
           'billing_mode' => 1,
           'payment_type' => 1,
           'is_recur' => 1,
-          'payment_instrument_id' => 1,
+          'payment_instrument_id' => 'Credit Card',
           'is_active' => 1,
         ),
     ),
@@ -52,7 +52,7 @@ return array(
           'billing_mode' => 1,
           'payment_type' => 2,
           'is_recur' => 1,
-          'payment_instrument_id' => 2,
+          'payment_instrument_id' => 'Debit Card',
           'is_active' => 1,
         ),
     )

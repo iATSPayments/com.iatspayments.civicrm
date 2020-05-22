@@ -48,7 +48,7 @@ return array(
       'url_recur_test_default' => 'https://www.iatspayments.com/NetGate/ProcessLinkv2.asmx?WSDL',
       'is_recur' => 1,
       'payment_type' => 2,
-      'payment_instrument_id' => '2', /* "Debit Card"  */
+      'payment_instrument_id' => 'Debit Card', /* "Debit Card"  */
     ),
   ),
   2 =>
