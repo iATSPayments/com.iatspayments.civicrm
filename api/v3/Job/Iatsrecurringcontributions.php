@@ -87,7 +87,7 @@ function civicrm_api3_job_Iatsrecurringcontributions($params) {
       'options' => ['limit' => 0],
       'return' => ['id', 'contact_id', 'amount', 'failure_count', 'payment_processor_id', 'next_sched_contribution_date',
         'payment_instrument_id', 'is_test', 'currency', 'financial_type_id','is_email_receipt',
-        'frequency_interval', 'frequency_unit', 'payment_token_id'],
+        'frequency_interval', 'frequency_unit', 'payment_token_id', 'installments', 'start_date', 'end_date'],
   );
   // additional filters that may be passed in as params
   if (!empty($params['recur_id'])) {
@@ -240,6 +240,44 @@ function civicrm_api3_job_Iatsrecurringcontributions($params) {
     $next_collection_date = date('Y-m-d H:i:s', strtotime('+'.$recurringContribution['frequency_interval'].' '.$recurringContribution['frequency_unit'], $receive_ts));
     $contribution_recur_set = array('version' => 3, 'id' => $contribution['contribution_recur_id'], 'next_sched_contribution_date' => $next_collection_date);
     $result = CRM_Iats_Transaction::process_contribution_payment($contribution, $paymentProcessor, $payment_token);
+    if (!empty($result['result']['payment_status_id'])) {
+      $subscriptionPaymentStatus = NULL;
+      $contributionStatus = CRM_Core_PseudoConstant::getName('CRM_Contribute_BAO_Contribution', 'contribution_status_id', $result['result']['payment_status_id']);
+      if ($contributionStatus == 'Completed') {
+        // Send recurring notify email if first or last contribution.
+        $check = CRM_Core_DAO::singleValueQuery("SELECT count(c.id)
+        FROM civicrm_contribution c
+        INNER JOIN civicrm_contribution_recur r ON r.id = c.contribution_recur_id
+        WHERE c.contribution_status_id = %1 AND r.id = %2", [1 => [1, 'Integer'], 2 => [$contribution_recur_id, 'Integer']]);
+        if (!empty($check)) {
+          if ($check == 1) {
+            // This is the first payment.
+            $subscriptionPaymentStatus = CRM_Core_Payment::RECURRING_PAYMENT_START;
+          }
+          elseif ($check == $recurringContribution['installments']) {
+            // This is the last payment.
+            $subscriptionPaymentStatus = CRM_Core_Payment::RECURRING_PAYMENT_END;
+          }
+        }
+        if (!empty($subscriptionPaymentStatus)) {
+          //send recurring Notification email for user
+          $pageID = CRM_Core_DAO::singleValueQuery("SELECT contribution_page_id FROM civicrm_contribution WHERE id = %1", [1 => [$contribution['id'], 'Integer']]);
+          $recur = (object) $recurringContribution;
+          $autoRenewMembership = FALSE;
+          if ($recur->id &&
+            !empty($contribution['membership_id'])
+          ) {
+            $autoRenewMembership = TRUE;
+          }
+          CRM_Contribute_BAO_ContributionPage::recurringNotify($subscriptionPaymentStatus,
+            $contact_id,
+            $pageID,
+            $recur,
+            $autoRenewMembership
+          );
+        }
+      }
+    }
     // append result message to report if I'm going to mail out a failures
     // report
     if ($email_failure_report && !$result['result']['success']) {
