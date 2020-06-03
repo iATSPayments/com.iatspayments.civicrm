@@ -45,7 +45,6 @@ class CRM_Core_Payment_iATSServiceSWIPE extends CRM_Core_Payment_iATSService {
    */
   public function __construct($mode, &$paymentProcessor) {
     $this->_paymentProcessor = $paymentProcessor;
-    $this->_processorName = ts('iATS Payments SWIPE');
 
     // Get merchant data from config.
     $config = CRM_Core_Config::singleton();

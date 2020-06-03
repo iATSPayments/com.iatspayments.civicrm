@@ -14,7 +14,6 @@ class CRM_Core_Payment_FapsACH extends CRM_Core_Payment_Faps {
   function __construct( $mode, &$paymentProcessor ) {
     $this->_mode             = $mode;
     $this->_paymentProcessor = $paymentProcessor;
-    $this->_processorName    = ts('iATS Payments 1st American Payment System Interface, ACH');
     $this->disable_cryptogram    = iats_get_setting('disable_cryptogram');
     $this->is_test = ($this->_mode == 'test' ? 1 : 0); 
   }
