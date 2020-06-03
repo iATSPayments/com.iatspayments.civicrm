@@ -194,7 +194,7 @@ class CRM_Core_Payment_Faps extends CRM_Core_Payment {
 
 
   /**
-   * function doDirectPayment
+   * function doPayment
    *
    * This is the function for taking a payment using a core payment form of any kind.
    *
@@ -206,8 +206,8 @@ class CRM_Core_Payment_Faps extends CRM_Core_Payment {
    * So: the best we can do is to avoid the use of the vault if I'm not using the cryptogram, or if I'm on a page that
    * doesn't offer recurring contributions.
    */
-  public function doDirectPayment(&$params) {
-    // CRM_Core_Error::debug_var('doDirectPayment params', $params);
+  public function doPayment(&$params) {
+    // CRM_Core_Error::debug_var('doPayment params', $params);
 
     // Check for valid currency [todo: we have C$ support, but how do we check,
     // or should we?]
