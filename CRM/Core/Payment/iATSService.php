@@ -310,29 +310,18 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
    *
    */
   public function &error($error = NULL) {
-    $e = CRM_Core_Error::singleton();
     if (is_object($error)) {
-      $e->push($error->getResponseCode(),
-        0, NULL,
-        $error->getMessage()
-      );
+      throw new CRM_Core_Exception(ts("Error %1", [1 => $error->getMessage()]));
     }
     elseif ($error && is_numeric($error)) {
-      $e->push($error,
-        0, NULL,
-        $this->errorString($error)
-      );
+      throw new CRM_Core_Exception(ts("Error %1", [1 => $this->errorString($error)]));
     }
     elseif (is_string($error)) {
-      $e->push(9002,
-        0, NULL,
-        $error
-      );
+      throw new CRM_Core_Exception(ts("Error %1", [1 => $error]));
     }
     else {
-      $e->push(9001, 0, NULL, "Unknown System Error.");
+      throw new CRM_Core_Exception(ts("Unknown System Error."));
     }
-    return $e;
   }
 
   /**
