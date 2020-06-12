@@ -363,19 +363,6 @@ class CRM_Core_Payment_Faps extends CRM_Core_Payment {
   }
 
   /**
-   * Todo?
-   *
-   * @param array $params name value pair of contribution data
-   *
-   * @return void
-   * @access public
-   *
-   */
-  function doTransferCheckout( &$params, $component ) {
-    throw new PaymentProcessorException(ts('This function is not implemented'));
-  }
-
-  /**
    * Support corresponding CiviCRM method
    */
   public function changeSubscriptionAmount(&$message = '', $params = array()) {
