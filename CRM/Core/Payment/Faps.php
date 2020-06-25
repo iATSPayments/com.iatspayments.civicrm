@@ -152,7 +152,7 @@ class CRM_Core_Payment_Faps extends CRM_Core_Payment {
     $cryptojs = 'https://' . $iats_domain . '/secure/PaymentHostedForm/Scripts/firstpay/firstpay.cryptogram.js';
     $iframe_src = 'https://' . $iats_domain . '/secure/PaymentHostedForm/v3/CreditCard';
     $jsVariables = [
-      'paymentProcessorId' => $this->_paymentProcessor['id'], 
+      'paymentProcessorId' => $this->_paymentProcessor['id'],
       'transcenterId' => $this->_paymentProcessor['password'],
       'processorId' => $this->_paymentProcessor['user_name'],
       'currency' => $form->getCurrency(),
@@ -189,11 +189,10 @@ class CRM_Core_Payment_Faps extends CRM_Core_Payment {
    */
   public function supportsFutureRecurStartDate() {
     return TRUE;
-  } 
-
+  }
 
   /**
-   * function doDirectPayment
+   * function doPayment
    *
    * This is the function for taking a payment using a core payment form of any kind.
    *
@@ -201,12 +200,12 @@ class CRM_Core_Payment_Faps extends CRM_Core_Payment {
    * needs to be configured for use with the vault. The cryptogram iframe is created before
    * I know whether the contribution will be recurring or not, so that forces me to always
    * use the vault, if recurring is an option.
-   * 
+   *
    * So: the best we can do is to avoid the use of the vault if I'm not using the cryptogram, or if I'm on a page that
    * doesn't offer recurring contributions.
    */
-  public function doDirectPayment(&$params) {
-    // CRM_Core_Error::debug_var('doDirectPayment params', $params);
+  public function doPayment(&$params) {
+    // CRM_Core_Error::debug_var('doPayment params', $params);
 
     // Check for valid currency [todo: we have C$ support, but how do we check,
     // or should we?]
@@ -254,7 +253,7 @@ class CRM_Core_Payment_Faps extends CRM_Core_Payment {
         'test' => $this->is_test,
       );
       $vault_request = new CRM_Iats_FapsRequest($options);
-      // auto-generate a compliant vault key  
+      // auto-generate a compliant vault key
       $vault_key = self::generateVaultKey($request['ownerEmail']);
       $request['vaultKey'] = $vault_key;
       $request['ipAddress'] = $ipAddress;
@@ -363,19 +362,6 @@ class CRM_Core_Payment_Faps extends CRM_Core_Payment {
   }
 
   /**
-   * Todo?
-   *
-   * @param array $params name value pair of contribution data
-   *
-   * @return void
-   * @access public
-   *
-   */
-  function doTransferCheckout( &$params, $component ) {
-    CRM_Core_Error::fatal(ts('This function is not implemented'));
-  }
-
-  /**
    * Support corresponding CiviCRM method
    */
   public function changeSubscriptionAmount(&$message = '', $params = array()) {
@@ -471,18 +457,11 @@ class CRM_Core_Payment_Faps extends CRM_Core_Payment {
    *
    */
   public function &error($error = NULL) {
-    $e = CRM_Core_Error::singleton();
     if (is_object($error)) {
-      $e->push($error->getResponseCode(),
-        0, NULL,
-        $error->getMessage()
-      );
+      throw new PaymentProcessorException(ts('Error %1', [1 => $error->getMessage()]));
     }
     elseif ($error && is_numeric($error)) {
-      $e->push($error,
-        0, NULL,
-        $this->errorString($error)
-      );
+      throw new PaymentProcessorException(ts('Error %1', [1 => $this->errorString($error)]));
     }
     elseif (is_array($error)) {
       $errors = array();
@@ -497,13 +476,10 @@ class CRM_Core_Payment_Faps extends CRM_Core_Payment {
         }
       }
       $error_string = implode('<br />',$errors);
-      $e->push(9002,
-        0, NULL,
-        $error_string
-      );
+      throw new PaymentProcessorException(ts('Error %1', [1 => $error_string]));
     }
     else {
-      $e->push(9001, 0, NULL, "Unknown System Error.");
+      throw new PaymentProcessorException(ts('Unknown System Error.', 9001));
     }
     return $e;
   }

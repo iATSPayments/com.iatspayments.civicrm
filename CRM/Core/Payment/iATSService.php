@@ -120,12 +120,12 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
    */
   public function supportsFutureRecurStartDate() {
     return TRUE;
-  } 
+  }
 
   /**
    *
    */
-  public function doDirectPayment(&$params) {
+  public function doPayment(&$params) {
 
     if (!$this->_profile) {
       return self::error('Unexpected error, missing profile');
@@ -213,7 +213,6 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
         $today = date('Ymd');
         // If the receive_date is NOT today, then
         // create a pending contribution and adjust the next scheduled date.
-        CRM_Core_Error::debug_var('receive_date', $receieve_date);
         if ($receive_date !== $today) {
           // I've got a schedule to adhere to!
           // set the receieve time to 3:00 am for a better admin experience
@@ -239,7 +238,7 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
           $response = $iats->request($credentials, $request);
           $result = $iats->result($response);
           if ($result['status']) {
-            // Add a time string to iATS short authentication string to ensure 
+            // Add a time string to iATS short authentication string to ensure
             // uniqueness and provide helpful referencing.
             $update = array(
               'trxn_id' => trim($result['remote_id']) . ':' . time(),
@@ -284,7 +283,7 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
   /**
    * Set additional fields when editing the schedule.
    *
-   * Note: this doesn't completely replace the form hook, which is still 
+   * Note: this doesn't completely replace the form hook, which is still
    * in use for additional changes, and to support 4.6.
    * e.g. the commented out fields below don't work properly here.
    */
@@ -309,29 +308,18 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
    *
    */
   public function &error($error = NULL) {
-    $e = CRM_Core_Error::singleton();
     if (is_object($error)) {
-      $e->push($error->getResponseCode(),
-        0, NULL,
-        $error->getMessage()
-      );
+      throw new PaymentProcessorException(ts('Error %1', [1 => $error->getMessage()]));
     }
     elseif ($error && is_numeric($error)) {
-      $e->push($error,
-        0, NULL,
-        $this->errorString($error)
-      );
+      throw new PaymentProcessorException(ts('Error %1', [1 => $this->errorString($error)]));
     }
     elseif (is_string($error)) {
-      $e->push(9002,
-        0, NULL,
-        $error
-      );
+      throw new PaymentProcessorException(ts('Error %1', [1 => $error]));
     }
     else {
-      $e->push(9001, 0, NULL, "Unknown System Error.");
+      throw new PaymentProcessorException(ts('Unknown System Error.', 9001));
     }
-    return $e;
   }
 
   /**
@@ -437,8 +425,8 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
     if (empty($params['crid'])) {
       $params['crid'] = !empty($_POST['crid']) ? (int) $_POST['crid'] : (!empty($_GET['crid']) ? (int) $_GET['crid'] : 0);
       if (empty($params['crid']) && !empty($params['entryURL'])) {
-        $components = parse_url($params['entryURL']); 
-        parse_str(html_entity_decode($components['query']), $entryURLquery); 
+        $components = parse_url($params['entryURL']);
+        parse_str(html_entity_decode($components['query']), $entryURLquery);
         $params['crid'] = $entryURLquery['crid'];
       }
     }
@@ -447,7 +435,7 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
     if (empty($crid)) {
       $alert = ts('This system is unable to perform self-service updates to credit cards. Please contact the administrator of this site.');
       throw new Exception($alert);
-    } 
+    }
     $mop = array(
       'Visa' => 'VISA',
       'MasterCard' => 'MC',
@@ -501,12 +489,12 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
       }
       return $this->error('9002','Authorization failed');
     }
-    catch (Exception $error) { // what could go wrong? 
+    catch (Exception $error) { // what could go wrong?
       $message = $error->getMessage();
       return $this->error('9002', $message);
     }
   }
-  
+
   /*
    * Update the recurring contribution record.
    *
@@ -520,7 +508,7 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
   protected function updateRecurring($params, $update) {
     // If the recurring record already exists, let's fix the next contribution and start dates,
     // in case core isn't paying attention.
-    // We also set the schedule to 'in-progress' (even for ACH/EFT when the first one hasn't been verified), 
+    // We also set the schedule to 'in-progress' (even for ACH/EFT when the first one hasn't been verified),
     // because we want the recurring job to run for this schedule.
     if (!empty($params['contributionRecurID'])) {
       $recur_id = $params['contributionRecurID'];

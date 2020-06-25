@@ -112,7 +112,7 @@ class CRM_Core_Payment_iATSServiceACHEFT extends CRM_Core_Payment_iATSService {
    * @throws \Civi\Payment\Exception\PaymentProcessorException
    */
   public function buildForm(&$form) {
-    // If a form allows ACH/EFT and enables recurring, set recurring to the default. 
+    // If a form allows ACH/EFT and enables recurring, set recurring to the default.
     if (isset($form->_elementIndex['is_recur'])) {
       // Make recurring contrib default to true.
       $form->setDefaults(array('is_recur' => 1));
@@ -160,7 +160,7 @@ class CRM_Core_Payment_iATSServiceACHEFT extends CRM_Core_Payment_iATSService {
       'template' => 'CRM/Iats/BillingBlockDirectDebitExtra_USD.tpl',
     ));
   }
-  
+
   /**
    * Customization for CAD ACH-EFT billing block.
    *
@@ -199,7 +199,7 @@ class CRM_Core_Payment_iATSServiceACHEFT extends CRM_Core_Payment_iATSService {
   /**
    *
    */
-  public function doDirectPayment(&$params) {
+  public function doPayment(&$params) {
 
     if (!$this->_profile) {
       return self::error('Unexpected error, missing profile');
@@ -326,7 +326,7 @@ class CRM_Core_Payment_iATSServiceACHEFT extends CRM_Core_Payment_iATSService {
               'gross_amount' => $params['amount'],
               'payment_status_id' => 2,
             );
-            // Setting the next_sched_contribution_date param doesn't do anything, 
+            // Setting the next_sched_contribution_date param doesn't do anything,
             // work around in updateRecurring
             $this->updateRecurring($params, $update);
             $params = array_merge($params, $update);
@@ -375,32 +375,22 @@ class CRM_Core_Payment_iATSServiceACHEFT extends CRM_Core_Payment_iATSService {
    *
    */
   public function &error($error = NULL) {
-    $e = CRM_Core_Error::singleton();
     if (is_object($error)) {
-      $e->push($error->getResponseCode(),
-        0, NULL,
-        $error->getMessage()
-      );
+      throw new PaymentProcessorException(ts('Error %1', [1 => $error->getMessage()]));
     }
     elseif ($error && is_numeric($error)) {
-      $e->push($error,
-        0, NULL,
-        $this->errorString($error)
-      );
+      throw new PaymentProcessorException(ts('Error %1', [1 => $this->errorString($error)]));
     }
     elseif (is_string($error)) {
-      $e->push(9002,
-        0, NULL,
-        $error
-      );
+      throw new PaymentProcessorException(ts('Error %1', [1 => $error]));
     }
     else {
-      $e->push(9001, 0, NULL, "Unknown System Error.");
+      throw new PaymentProcessorException(ts('Unknown System Error.', 9001));
     }
     return $e;
   }
 
- /** 
+ /**
    * Are back office payments supported.
    *
    * @return bool
@@ -408,7 +398,7 @@ class CRM_Core_Payment_iATSServiceACHEFT extends CRM_Core_Payment_iATSService {
   protected function supportsBackOffice() {
     return TRUE;
   }
-    
+
  /**
    * This function checks to see if we have the right config values.
    *
