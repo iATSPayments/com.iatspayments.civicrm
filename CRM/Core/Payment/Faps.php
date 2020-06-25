@@ -462,7 +462,7 @@ class CRM_Core_Payment_Faps extends CRM_Core_Payment {
       throw new PaymentProcessorException(ts('Error %1', [1 => $error->getMessage()]));
     }
     elseif ($error && is_numeric($error)) {
-      throw new PaymentProcessorExceptionn(ts('Error %1', [1 => $this->errorString($error)]));
+      throw new PaymentProcessorException(ts('Error %1', [1 => $this->errorString($error)]));
     }
     elseif (is_array($error)) {
       $errors = array();

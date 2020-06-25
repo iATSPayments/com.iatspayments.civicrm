@@ -380,7 +380,7 @@ class CRM_Core_Payment_iATSServiceACHEFT extends CRM_Core_Payment_iATSService {
       throw new PaymentProcessorException(ts('Error %1', [1 => $error->getMessage()]));
     }
     elseif ($error && is_numeric($error)) {
-      throw new PaymentProcessorExceptionn(ts('Error %1', [1 => $this->errorString($error)]));
+      throw new PaymentProcessorException(ts('Error %1', [1 => $this->errorString($error)]));
     }
     elseif (is_string($error)) {
       throw new PaymentProcessorException(ts('Error %1', [1 => $error]));
