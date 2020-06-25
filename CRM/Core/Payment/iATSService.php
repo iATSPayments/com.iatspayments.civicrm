@@ -214,7 +214,6 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
         $today = date('Ymd');
         // If the receive_date is NOT today, then
         // create a pending contribution and adjust the next scheduled date.
-        CRM_Core_Error::debug_var('receive_date', $receive_date);
         if ($receive_date !== $today) {
           // I've got a schedule to adhere to!
           // set the receieve time to 3:00 am for a better admin experience
