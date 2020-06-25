@@ -45,7 +45,6 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
    */
   public function __construct($mode, &$paymentProcessor, &$paymentForm = NULL, $force = FALSE) {
     $this->_paymentProcessor = $paymentProcessor;
-    $this->_processorName = ts('iATS Payments');
 
     // Get merchant data from config.
     $config = CRM_Core_Config::singleton();

@@ -45,7 +45,6 @@ class CRM_Core_Payment_iATSServiceACHEFT extends CRM_Core_Payment_iATSService {
    */
   public function __construct($mode, &$paymentProcessor) {
     $this->_paymentProcessor = $paymentProcessor;
-    $this->_processorName = ts('iATS Payments ACHEFT');
 
     // Live or test.
     $this->_profile['mode'] = $mode;
