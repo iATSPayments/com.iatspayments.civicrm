@@ -125,7 +125,7 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
   /**
    *
    */
-  public function doPayment(&$params) {
+  public function doPayment(&$params, $component = 'contribute') {
 
     if (!$this->_profile) {
       return self::error('Unexpected error, missing profile');
