@@ -1,6 +1,28 @@
 <?php
 
-require_once 'CRM/Core/Payment.php';
+/**
+ * @file
+ * Copyright iATS Payments (c) 2020.
+ * @author Alan Dixon
+ *
+ * This file is a part of CiviCRM published extension.
+ *
+ * This extension is free software; you can copy, modify, and distribute it
+ * under the terms of the GNU Affero General Public License
+ * Version 3, 19 November 2007.
+ *
+ * It is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public
+ * License with this program; if not, see http://www.gnu.org/licenses/
+ *
+ * This code provides glue between CiviCRM payment model and the payment model encapsulated in the CRM\Iats\FapsRequest object
+ */
+
+use Civi\Payment\Exception\PaymentProcessorException;
 
 class CRM_Core_Payment_FapsACH extends CRM_Core_Payment_Faps {
 
