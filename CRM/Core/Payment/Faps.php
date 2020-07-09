@@ -434,6 +434,34 @@ class CRM_Core_Payment_Faps extends CRM_Core_Payment {
    * @return array
    */
   protected function convertParams($params, $method) {
+    if (empty($params['country']) && !empty($params['country_id'])) {
+      try {
+        $result = civicrm_api3('Country', 'get', [
+          'sequential' => 1,
+          'return' => ['name'],
+	  'id' => $params['country_id'], 
+          'options' => ['limit' => 1],
+        ]);
+	$params['country'] = $result['values'][0]['name'];
+      }
+      catch (CiviCRM_API3_Exception $e) {
+        Civi::log()->info('Unexpected error from api3 looking up countries/states/provinces');
+      }
+    }
+    if (empty($params['state_province']) && !empty($params['state_province_id'])) {
+      try {
+        $result = civicrm_api3('StateProvince', 'get', [
+          'sequential' => 1,
+          'return' => ['name'],
+	  'id' => $params['state_province_id'], 
+          'options' => ['limit' => 1],
+        ]);
+	$params['state_province'] = $result['values'][0]['name'];
+      }
+      catch (CiviCRM_API3_Exception $e) {
+        Civi::log()->info('Unexpected error from api3 looking up countries/states/provinces');
+      }
+    }
     $request = array();
     $convert = array(
       'ownerEmail' => 'email',
@@ -481,11 +509,12 @@ class CRM_Core_Payment_Faps extends CRM_Core_Payment {
    *
    */
   public function &error($error = NULL) {
+    $error_code = 'process_1stpay';
     if (is_object($error)) {
-      throw new PaymentProcessorException(ts('Error %1', [1 => $error->getMessage()]));
+      throw new PaymentProcessorException(ts('Error %1', [1 => $error->getMessage()]), $error_code);
     }
     elseif ($error && is_numeric($error)) {
-      throw new PaymentProcessorException(ts('Error %1', [1 => $this->errorString($error)]));
+      throw new PaymentProcessorException(ts('Error %1', [1 => $this->errorString($error)]), $error_code);
     }
     elseif (is_array($error)) {
       $errors = array();
@@ -498,12 +527,13 @@ class CRM_Core_Payment_Faps extends CRM_Core_Payment {
         foreach($error['validationFailures'] as $message) {
           $errors[] = 'Validation failure for '.$message['key'].': '.$message['message'];
         }
+        $error_code = 'process_1stpay_validation';
       }
-      $error_string = implode('<br />',$errors);
-      throw new PaymentProcessorException(ts('Error %1', [1 => $error_string]));
+      $error_string = implode("\n",$errors);
+      throw new PaymentProcessorException(ts('Error: %1', [1 => $error_string]), $error_code);
     }
-    else {
-      throw new PaymentProcessorException(ts('Unknown System Error.', 9001));
+    else { /* in the event I'm handling an unexpected argument */
+      throw new PaymentProcessorException(ts('Unknown System Error.'), 'process_1stpay_extension');
     }
     return $e;
   }
