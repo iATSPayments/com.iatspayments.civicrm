@@ -551,7 +551,7 @@ function _iats_civicrm_is_iats($payment_processor_id) {
   }
   // type is class name with Payment_ stripped from the front
   $type = substr($result['class_name'], 8);
-  $is_iats = (0 == strpos($type, 'iATSService')) || (0 == strpos($type, 'Faps'));
+  $is_iats = (0 === strpos($type, 'iATSService')) || (0 === strpos($type, 'Faps'));
   return ($is_iats ? $type : FALSE);
 }
 
