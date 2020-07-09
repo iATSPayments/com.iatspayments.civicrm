@@ -434,6 +434,34 @@ class CRM_Core_Payment_Faps extends CRM_Core_Payment {
    * @return array
    */
   protected function convertParams($params, $method) {
+    if (empty($params['country']) && !empty($params['country_id'])) {
+      try {
+        $result = civicrm_api3('Country', 'get', [
+          'sequential' => 1,
+          'return' => ['name'],
+	  'id' => $params['country_id'], 
+          'options' => ['limit' => 1],
+        ]);
+	$params['country'] = $result['values'][0]['name'];
+      }
+      catch (CiviCRM_API3_Exception $e) {
+        Civi::log()->info('Unexpected error from api3 looking up countries/states/provinces');
+      }
+    }
+    if (empty($params['state_province']) && !empty($params['state_province_id'])) {
+      try {
+        $result = civicrm_api3('StateProvince', 'get', [
+          'sequential' => 1,
+          'return' => ['name'],
+	  'id' => $params['state_province_id'], 
+          'options' => ['limit' => 1],
+        ]);
+	$params['state_province'] = $result['values'][0]['name'];
+      }
+      catch (CiviCRM_API3_Exception $e) {
+        Civi::log()->info('Unexpected error from api3 looking up countries/states/provinces');
+      }
+    }
     $request = array();
     $convert = array(
       'ownerEmail' => 'email',
