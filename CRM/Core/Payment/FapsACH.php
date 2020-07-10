@@ -123,7 +123,7 @@ class CRM_Core_Payment_FapsACH extends CRM_Core_Payment_Faps {
    * This is the function for taking a payment using a core payment form of any kind.
    *
    */
-  public function doPayment(&$params) {
+  public function doPayment(&$params, $component = 'contribute') {
     // CRM_Core_Error::debug_var('doPayment params', $params);
 
     // Check for valid currency
