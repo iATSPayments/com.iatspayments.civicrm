@@ -266,7 +266,7 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
   }
 
   /**
-   * support corresponding CiviCRM method
+   * Support corresponding CiviCRM method
    */
   public function changeSubscriptionAmount(&$message = '', $params = array()) {
     // $userAlert = ts('You have modified this recurring contribution.');
@@ -275,7 +275,7 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
   }
 
   /**
-   * support corresponding CiviCRM method
+   * Support corresponding CiviCRM method
    * ToDo: deprecated -> remove when ESR has a security update which will bring everyone >5.27
    */
   public function cancelSubscription(&$message = '', $params = array()) {
@@ -285,7 +285,7 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
   }
 
   /**
-   * support corresponding CiviCRM method
+   * Support corresponding CiviCRM method
    * preferred function for Cancelling a Recurring Contribution as of 5.25
    *
    * @return array|null[]
