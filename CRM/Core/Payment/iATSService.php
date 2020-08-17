@@ -461,6 +461,13 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
       'mop' => $mop[$params['credit_card_type']],
     );
 
+    // IATS-323
+    $submit_values['updateCreditCardNum'] = (0 < strlen($submit_values['creditCardNum']) && (FALSE === strpos($params['creditCardNum'], '*'))) ? 1 : 0;
+    if (empty($submit_values['updateCreditCardNum'])) {
+      unset($submit_values['creditCardNum']);
+      unset($submit_values['updateCreditCardNum']);
+    }
+
     $credentials = CRM_Iats_iATSServiceRequest::credentials($contribution_recur['payment_processor_id'], 0);
     $iats_service_params = array('type' => 'customer', 'iats_domain' => $credentials['domain'], 'method' => 'update_credit_card_customer');
     $iats = new CRM_Iats_iATSServiceRequest($iats_service_params);
