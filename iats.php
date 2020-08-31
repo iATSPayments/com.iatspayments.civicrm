@@ -345,7 +345,10 @@ function iats_civicrm_buildForm($formName, &$form) {
  */
 
 function iats_civicrm_buildForm_CRM_Financial_Form_Payment(&$form) {
-  // We're on CRM_Financial_Form_Payment, we've got just one payment processor
+  // If form loads with no default processor skip this
+  if (empty($form->_paymentProcessor['id'])) {
+    return;
+  }
   // Skip this if it's not an iATS-type of processor
   $type = _iats_civicrm_is_iats($form->_paymentProcessor['id']);
   if (empty($type)) {
