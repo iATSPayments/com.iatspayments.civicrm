@@ -227,6 +227,14 @@ function iats_civicrm_buildForm($formName, &$form) {
     $fname($form);
   }
   // Else echo $fname;.
+
+  if ($formName == 'CRM_Contribute_Form_Contribution' && !($form->_action & CRM_Core_Action::DELETE)) {
+    CRM_Core_Resources::singleton()->addScript(
+      "CRM.$(function($) {
+        $('.crm-link-credit-card-mode a').text('Online Payment Contribution');
+      });
+    ");
+  }
 }
 
 /**
