@@ -226,7 +226,6 @@ class CRM_Core_Payment_iATSServiceACHEFT extends CRM_Core_Payment_iATSService {
       if ($result['status']) {
         $params['payment_status_id'] = 2;
         $params['trxn_id'] = trim($result['remote_id']) . ':' . time();
-        $params['gross_amount'] = $params['amount'];
         // Core assumes that a pending result will have no transaction id, but we have a useful one.
         if (!empty($params['contributionID'])) {
           $contribution_update = array('id' => $params['contributionID'], 'trxn_id' => $params['trxn_id']);
@@ -325,7 +324,6 @@ class CRM_Core_Payment_iATSServiceACHEFT extends CRM_Core_Payment_iATSService {
             // Add a time string to iATS short authentication string to ensure uniqueness and provide helpful referencing.
             $update = array(
               'trxn_id' => trim($result['remote_id']) . ':' . time(),
-              'gross_amount' => $params['amount'],
               'payment_status_id' => 2,
             );
             // Setting the next_sched_contribution_date param doesn't do anything,

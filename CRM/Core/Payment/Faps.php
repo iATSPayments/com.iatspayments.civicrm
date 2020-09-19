@@ -377,7 +377,6 @@ class CRM_Core_Payment_Faps extends CRM_Core_Payment {
       // For versions >= 4.6.6, the proper key.
       $params['payment_status_id'] = 1;
       $params['trxn_id'] = trim($result['data']['referenceNumber']).':'.time();
-      $params['gross_amount'] = $params['amount'];
       return $params;
     }
     else {
@@ -439,7 +438,7 @@ class CRM_Core_Payment_Faps extends CRM_Core_Payment {
         $result = civicrm_api3('Country', 'get', [
           'sequential' => 1,
           'return' => ['name'],
-	  'id' => $params['country_id'], 
+	  'id' => $params['country_id'],
           'options' => ['limit' => 1],
         ]);
 	$params['country'] = $result['values'][0]['name'];
@@ -453,7 +452,7 @@ class CRM_Core_Payment_Faps extends CRM_Core_Payment {
         $result = civicrm_api3('StateProvince', 'get', [
           'sequential' => 1,
           'return' => ['name'],
-	  'id' => $params['state_province_id'], 
+	  'id' => $params['state_province_id'],
           'options' => ['limit' => 1],
         ]);
 	$params['state_province'] = $result['values'][0]['name'];
