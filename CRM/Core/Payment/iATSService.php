@@ -115,6 +115,24 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
   }
 
   /**
+   * Internal function to determine if I'm supporting self-service functions
+   *
+   * @return bool
+   */
+  protected function allowSelfService() {
+    if ('CRM_Core_Payment_iATSServiceACHEFT' == CRM_Utils_System::getClassName($this)) {
+      return FALSE;
+    }
+    elseif (!CRM_Core_Permission::check('access CiviContribution')) {
+      // disable self-service update of billing info if the admin has not allowed it
+      if (FALSE == $this->getSettings('enable_update_subscription_billing_info')) {
+        return FALSE;
+      }
+    }
+    return TRUE;
+  }
+
+  /**
    * The first payment date is configurable when setting up back office recurring payments.
    * For iATSPayments, this is also true for front-end recurring payments.
    *
@@ -122,6 +140,29 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
    */
   public function supportsFutureRecurStartDate() {
     return TRUE;
+  }
+
+  /* We override the default behaviour of allowing self-service editing of recurring contributions
+   * to use the allowSelfService() function that tests for the iATS configuration setting
+   *
+   * @return bool
+   */
+  /* always allow default ability to update subscription billing info
+  public function  supportsUpdateSubscriptionBillingInfo() {
+    return $this->allowSelfService();
+  }
+   */
+
+  public function supportsEditRecurringContribution() {
+    return $this->allowSelfService();
+  }
+
+  public function supportsChangeSubscriptionAmount() {
+    return $this->allowSelfService();
+  }
+
+  public function supportsCancelRecurring() {
+    return $this->allowSelfService();
   }
 
   /**
