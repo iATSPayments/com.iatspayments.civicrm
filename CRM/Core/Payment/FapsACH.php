@@ -37,7 +37,7 @@ class CRM_Core_Payment_FapsACH extends CRM_Core_Payment_Faps {
     $this->_mode             = $mode;
     $this->_paymentProcessor = $paymentProcessor;
     $this->disable_cryptogram    = iats_get_setting('disable_cryptogram');
-    $this->is_test = ($this->_mode == 'test' ? 1 : 0); 
+    $this->is_test = ($this->_mode == 'test' ? 1 : 0);
   }
 
   /**
@@ -104,11 +104,11 @@ class CRM_Core_Payment_FapsACH extends CRM_Core_Payment_Faps {
     ));
     // and now add in a helpful cheque image and description
     switch($currency) {
-      case 'USD': 
+      case 'USD':
         CRM_Core_Region::instance('billing-block')->add(array(
           'template' => 'CRM/Iats/BillingBlockFapsACH_USD.tpl',
         ));
-      case 'CAD': 
+      case 'CAD':
         CRM_Core_Region::instance('billing-block')->add(array(
           'template' => 'CRM/Iats/BillingBlockFapsACH_CAD.tpl',
         ));
@@ -151,7 +151,7 @@ class CRM_Core_Payment_FapsACH extends CRM_Core_Payment_Faps {
       );
       $vault_request = new CRM_Iats_FapsRequest($options);
       $request = $this->convertParams($params, $options['action']);
-      // auto-generate a compliant vault key  
+      // auto-generate a compliant vault key
       $vault_key = self::generateVaultKey($request['ownerEmail']);
       $request['vaultKey'] = $vault_key;
       $request['ipAddress'] = $ipAddress;
@@ -216,7 +216,6 @@ class CRM_Core_Payment_FapsACH extends CRM_Core_Payment_Faps {
     if ($success) {
       $params['payment_status_id'] = 2;
       $params['trxn_id'] = trim($result['data']['referenceNumber']).':'.time();
-      $params['gross_amount'] = $params['amount'];
       // Core assumes that a pending result will have no transaction id, but we have a useful one.
       if (!empty($params['contributionID'])) {
         $contribution_update = array('id' => $params['contributionID'], 'trxn_id' => $params['trxn_id']);
@@ -237,7 +236,7 @@ class CRM_Core_Payment_FapsACH extends CRM_Core_Payment_Faps {
   }
 
   /**
-   * Get the category text. 
+   * Get the category text.
    * Before I return it, check that the category text exists, and create it if
    * it doesn't.
    *
@@ -257,7 +256,7 @@ class CRM_Core_Payment_FapsACH extends CRM_Core_Payment_Faps {
     static $ach_category_text_saved;
     if (!empty($ach_category_text_saved)) {
       return $ach_category_text_saved;
-    } 
+    }
     $ach_category_text = iats_get_setting('ach_category_text');
     $ach_category_text = empty($ach_category_text) ? FAPS_DEFAULT_ACH_CATEGORY_TEXT : $ach_category_text;
     $ach_category_exists = FALSE;

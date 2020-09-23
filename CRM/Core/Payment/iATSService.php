@@ -196,7 +196,6 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
         // Success.
         $params['payment_status_id'] = 1;
         $params['trxn_id'] = trim($result['remote_id']) . ':' . time();
-        $params['gross_amount'] = $params['amount'];
         return $params;
       }
       else {
@@ -285,7 +284,6 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
             // uniqueness and provide helpful referencing.
             $update = array(
               'trxn_id' => trim($result['remote_id']) . ':' . time(),
-              'gross_amount' => $params['amount'],
               'payment_status_id' => 1,
             );
             // do some cleanups to the recurring record in updateRecurring
