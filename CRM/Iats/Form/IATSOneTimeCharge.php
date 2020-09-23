@@ -143,7 +143,7 @@ class CRM_Iats_Form_IATSOneTimeCharge extends CRM_Core_Form {
       throw new Exception($error);
     }
     try {
-      $paymentProcessor = civicrm_api3('PaymentProcessor', 'getsingle', array('id' => 3)); 
+      $paymentProcessor = civicrm_api3('PaymentProcessor', 'getsingle', array('id' => $payment_processor_id)); 
     }
     catch (Exception $e) {
       $error = E::ts('Unexpected error getting payment processor information for recurring schedule id %1', array(1 => $contribution_recur_id));
