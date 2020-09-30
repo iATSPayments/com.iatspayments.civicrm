@@ -224,7 +224,7 @@ class CRM_Core_Payment_iATSServiceACHEFT extends CRM_Core_Payment_iATSService {
       // Process the soap response into a readable result, logging any transaction.
       $result = $iats->result($response);
       if ($result['status']) {
-        $params['payment_status_id'] = 2;
+        $params['payment_status_id'] = CRM_Core_PseudoConstant::getKey('CRM_Contribute_BAO_Contribution', 'contribution_status_id', 'Completed');
         $params['trxn_id'] = trim($result['remote_id']) . ':' . time();
         // Core assumes that a pending result will have no transaction id, but we have a useful one.
         if (!empty($params['contributionID'])) {
@@ -301,7 +301,7 @@ class CRM_Core_Payment_iATSServiceACHEFT extends CRM_Core_Payment_iATSService {
           // I've got a schedule to adhere to!
           // set the receieve time to 3:00 am for a better admin experience
           $update = array(
-            'payment_status_id' => 2,
+            'payment_status_id' => CRM_Core_PseudoConstant::getKey('CRM_Contribute_BAO_Contribution', 'contribution_status_id', 'Completed'),
             'receive_date' => date('Ymd', $receive_ts) . '030000',
           );
           // update the recurring and contribution records with the receive date,
@@ -324,7 +324,7 @@ class CRM_Core_Payment_iATSServiceACHEFT extends CRM_Core_Payment_iATSService {
             // Add a time string to iATS short authentication string to ensure uniqueness and provide helpful referencing.
             $update = array(
               'trxn_id' => trim($result['remote_id']) . ':' . time(),
-              'payment_status_id' => 2,
+              'payment_status_id' => CRM_Core_PseudoConstant::getKey('CRM_Contribute_BAO_Contribution', 'contribution_status_id', 'Completed'),
             );
             // Setting the next_sched_contribution_date param doesn't do anything,
             // work around in updateRecurring
