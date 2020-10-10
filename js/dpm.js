@@ -16,7 +16,7 @@ cj(function ($) {
   // hide fields that are used for error display before validation
   $('#iats-dpm-continue .crm-error').hide();
   /* initiate an ajax submission of the billing dadta: check for required fields, then do a background POST */
-  $('#crm-submit-buttons .crm-button input').click(function( defaultSubmitEvent ) {
+  $('#crm-submit-buttons .crm-button input, #crm-submit-buttons .crm-button button').click(function( defaultSubmitEvent ) {
     var inputButton = $(this);
     inputButton.val('Processing ...').prop('disabled',true);
     // reset the list of errors
