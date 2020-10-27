@@ -89,7 +89,7 @@ class CRM_Core_Payment_FapsACH extends CRM_Core_Payment_Faps {
     ];
     $resources = CRM_Core_Resources::singleton();
     $cryptoCss = $resources->getUrl('com.iatspayments.civicrm', 'css/crypto.css');
-    $markup = '<link type="text/css" rel="stylesheet" href="'.$cryptoCss.'" media="all" /><script type="text/javascript" src="'.$cryptojs.'"></script>';
+    $markup = '<link type="text/css" rel="stylesheet" href="'.$cryptoCss.'" media="all" />'; // <script type="text/javascript" src="'.$cryptojs.'"></script>';
     CRM_Core_Region::instance('billing-block')->add(array(
       'markup' => $markup,
     ));
