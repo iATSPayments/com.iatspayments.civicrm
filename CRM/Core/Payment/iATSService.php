@@ -119,15 +119,13 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
    *
    * @return bool
    */
-  protected function allowSelfService() {
+  protected function allowSelfService($action) {
     if ('CRM_Core_Payment_iATSServiceACHEFT' == CRM_Utils_System::getClassName($this)) {
       return FALSE;
     }
-    elseif (!CRM_Core_Permission::check('access CiviContribution')) {
-      // disable self-service update of billing info if the admin has not allowed it
-      if (FALSE == $this->getSettings('enable_update_subscription_billing_info')) {
-        return FALSE;
-      }
+    elseif (FALSE == $this->getSettings('enable_'.$action)) {
+      // disable self-service 'action' if the admin has not allowed it
+      return FALSE;
     }
     return TRUE;
   }
@@ -147,22 +145,21 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
    *
    * @return bool
    */
-  /* always allow default ability to update subscription billing info
+
   public function  supportsUpdateSubscriptionBillingInfo() {
-    return $this->allowSelfService();
+    return $this->allowSelfService('update_subscription_billing_info');
   }
-   */
 
   public function supportsEditRecurringContribution() {
-    return $this->allowSelfService();
+    return $this->allowSelfService('change_subscription_amount');
   }
 
   public function supportsChangeSubscriptionAmount() {
-    return $this->allowSelfService();
+    return $this->allowSelfService('change_subscription_amount');
   }
 
   public function supportsCancelRecurring() {
-    return $this->allowSelfService();
+    return $this->allowSelfService('cancel_recurring');
   }
 
   /**
