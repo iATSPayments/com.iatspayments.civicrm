@@ -123,9 +123,11 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
     if ('CRM_Core_Payment_iATSServiceACHEFT' == CRM_Utils_System::getClassName($this)) {
       return FALSE;
     }
-    elseif (FALSE == $this->getSettings('enable_'.$action)) {
+    elseif (!CRM_Core_Permission::check('access CiviContribution')) {
       // disable self-service 'action' if the admin has not allowed it
-      return FALSE;
+      if (FALSE == $this->getSettings('enable_'.$action)) {
+	return FALSE;
+      }
     }
     return TRUE;
   }
@@ -146,7 +148,7 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
    * @return bool
    */
 
-  public function  supportsUpdateSubscriptionBillingInfo() {
+  public function supportsUpdateSubscriptionBillingInfo() {
     return $this->allowSelfService('update_subscription_billing_info');
   }
 
