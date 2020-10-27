@@ -361,9 +361,10 @@ class CRM_Iats_Transaction {
         // Process the soap response into a readable result.
         $result['result'] = $iats->result($response);
         $result['success'] = !empty($result['result']['status']);
+        $result['auth_code'] = $result['result']['auth_result'];
         if ($result['success']) {
           $result['trxn_id'] = trim($result['result']['remote_id']) . ':' . time();
-          $result['message'] = $result['auth_code'] = $result['result']['auth_result'];
+          $result['message'] = $result['auth_code'];
         }
         else {
           $result['message'] = $result['result']['reasonMessage'];
