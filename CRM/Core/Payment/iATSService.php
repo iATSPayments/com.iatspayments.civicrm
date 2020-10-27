@@ -565,6 +565,13 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
       // By default, it's empty, unless we've got a future start date.
       if (empty($update['receive_date'])) {
         $next = strtotime('+' . $params['frequency_interval'] . ' ' . $params['frequency_unit']);
+        // handle the special case of monthly contributions made after the 28th
+        if ('month' == $params['frequency_unit']) {
+          $now = getdate();
+          if ($now['mday'] > 28) { // pull it back to the 28th
+            $next = $next - (($now['mday'] - 28) * 24 * 60 * 60);
+          }
+        }
         $recur_update['next_sched_contribution_date'] = date('Ymd', $next) . '030000';
       }
       else {
