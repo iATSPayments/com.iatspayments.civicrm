@@ -184,11 +184,18 @@ class CRM_Iats_Transaction {
     if (!$use_repeattransaction) {
       /* If I'm not using repeattransaction for any reason, I'll create the contribution manually */
       // This code assumes that the contribution_status_id has been set properly above, either pending or failed.
-      $contributionResult = civicrm_api3('contribution', 'create', $contribution);
+      try {
+        $contributionResult = civicrm_api3('contribution', 'create', $contribution);
+      }
+      catch (Exception $e) {
+        // log the error and continue
+        CRM_Core_Error::debug_var('Unexpected Exception', $e);
+        $contributionResult = [];
+      }
       // Pass back the created id indirectly since I'm calling by reference.
       $contribution['id'] = CRM_Utils_Array::value('id', $contributionResult);
       // Connect to a membership if requested.
-      if (!empty($contribution['membership_id'])) {
+      if (!empty($contribution['id']) && !empty($contribution['membership_id'])) {
         try {
           civicrm_api3('MembershipPayment', 'create', array('contribution_id' => $contribution['id'], 'membership_id' => $contribution['membership_id']));
         }
