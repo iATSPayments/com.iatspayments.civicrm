@@ -115,6 +115,44 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
   }
 
   /**
+   * Opportunity for the payment processor to override the financial form build.
+   *
+   * @param CRM_Core_Form $form
+   *
+   * @return bool
+   *   Should form building stop at this point?
+   *
+   * When 3ds is enabled, pull in the appropriate js.
+   *
+   * return (!empty($form->_paymentFields));
+   * @throws \Civi\Payment\Exception\PaymentProcessorException
+   */
+  public function buildForm(&$form) {
+    /* test if I've enabled 3ds before contining */
+    if (!iats_get_setting('enable_3ds')) {
+      return;
+    }
+    $iats_domain = parse_url($this->_paymentProcessor['url_site'], PHP_URL_HOST);
+    /* sanity check for now! */
+    if ($iats_domain != 'www.uk.iatspayments.com') {
+      $alert = ts('3DS is not valid on US/CDN accounts (yet).');
+      throw new Exception($alert);
+    }
+    $my3dsJs = $resources->getUrl('com.iatspayments.civicrm', 'js/3ds.js');
+    $iats3dsjs = 'https://' . $iats_domain . '/netgate/iats3ds.min.js';
+    $paysafe3dsjs = 'https://hosted.paysafe.com/threedsecure/js/latest/paysafe.threedsecure.min.js';
+    $resources = CRM_Core_Resources::singleton();
+    $script = 'var my3dsJs = "'.$my3dsjs.'";';
+    $script. = 'var iats3dsJs = "'.$iats3dsjs.'";';
+    $script .= 'var paysafe3dsJs = "'.$paysafe3dsjs.'";';
+    $script .= 'CRM.$(function ($) { $.getScript(my3dsJs); $.getScript(iats3dsJs); $.getScript(paysafe3dsJs); });';
+    CRM_Core_Region::instance('billing-block')->add(array(
+      'script' => $script,
+    ));
+    return FALSE;
+  }
+
+  /**
    * Internal function to determine if I'm supporting self-service functions
    *
    * @return bool
@@ -126,7 +164,7 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
     elseif (!CRM_Core_Permission::check('access CiviContribute')) {
       // disable self-service 'action' if the admin has not allowed it
       if (FALSE == $this->getSettings('enable_'.$action)) {
-	return FALSE;
+        return FALSE;
       }
     }
     return TRUE;

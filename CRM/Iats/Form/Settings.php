@@ -33,6 +33,12 @@ class CRM_Iats_Form_Settings extends CRM_Core_Form {
 
     $this->add(
       'checkbox',
+      'enable_d3s',
+      ts('Enable use of 3D Secure authentication (required for PSD2 in UK and Eur)')
+    );
+    
+    $this->add(
+      'checkbox',
       'disable_cryptogram',
       ts('Disable use of cryptogram (only applies to FirstAmerican).')
     );
