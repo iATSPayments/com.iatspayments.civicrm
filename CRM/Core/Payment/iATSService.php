@@ -133,18 +133,19 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
       return;
     }
     $iats_domain = parse_url($this->_paymentProcessor['url_site'], PHP_URL_HOST);
-    /* sanity check for now! */
+    /* sanity check on domain for now, since this is not implemented on the North American (default/non-uk) domain */
     if ($iats_domain != 'www.uk.iatspayments.com') {
+      return;
       $alert = ts('3DS is not valid on US/CDN accounts (yet).');
       throw new Exception($alert);
     }
-    $my3dsJs = $resources->getUrl('com.iatspayments.civicrm', 'js/3ds.js');
-    $iats3dsjs = 'https://' . $iats_domain . '/netgate/iats3ds.min.js';
-    $paysafe3dsjs = 'https://hosted.paysafe.com/threedsecure/js/latest/paysafe.threedsecure.min.js';
     $resources = CRM_Core_Resources::singleton();
-    $script = 'var my3dsJs = "'.$my3dsjs.'";';
-    $script. = 'var iats3dsJs = "'.$iats3dsjs.'";';
-    $script .= 'var paysafe3dsJs = "'.$paysafe3dsjs.'";';
+    $my_3ds_js = $resources->getUrl('com.iatspayments.civicrm', 'js/3ds.js');
+    $iats_3ds_js = 'https://' . $iats_domain . '/netgate/iats3ds.min.js';
+    $paysafe_3ds_js = 'https://hosted.paysafe.com/threedsecure/js/latest/paysafe.threedsecure.min.js';
+    $script = 'var my3dsJs = "'.$my_3ds_js.'";';
+    $script .= 'var iats3dsJs = "'.$iats_3ds_js.'";';
+    $script .= 'var paysafe3dsJs = "'.$paysafe_3ds_js.'";';
     $script .= 'CRM.$(function ($) { $.getScript(my3dsJs); $.getScript(iats3dsJs); $.getScript(paysafe3dsJs); });';
     CRM_Core_Region::instance('billing-block')->add(array(
       'script' => $script,
