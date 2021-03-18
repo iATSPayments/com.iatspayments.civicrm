@@ -420,7 +420,7 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
     // so we sanitize it to "and"
     $request['firstName'] = str_replace('&', 'and', $request['firstName']);
     $request['lastName'] = str_replace('&', 'and', $request['lastName']);
-    $request['creditCardExpiry'] = sprintf('%02d/%02d', $params['month'], ($params['year'] % 100));
+    $request['creditCardExpiry'] = sprintf('%02d/%02d', intval($params['month']), (intval($params['year']) % 100));
     $request['total'] = sprintf('%01.2f', CRM_Utils_Rule::cleanMoney($params['amount']));
     // Place for ugly hacks.
     switch ($method) {
@@ -496,7 +496,7 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
       'state' => $state_province['abbreviation'],
       'zipCode' => $params['postal_code'],
       'creditCardNum' => $params['credit_card_number'],
-      'creditCardExpiry' => sprintf('%02d/%02d', $params['month'], $params['year'] % 100),
+      'creditCardExpiry' => sprintf('%02d/%02d', intval($params['month']), intval($params['year']) % 100),
       'mop' => $mop[$params['credit_card_type']],
     );
 
