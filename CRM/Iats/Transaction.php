@@ -88,8 +88,8 @@ class CRM_Iats_Transaction {
     $payment_result = self::process_payment($contribution, $paymentProcessor, $payment_token);
     $success = $payment_result['success'];
     $auth_code = $payment_result['auth_code'];
-    $auth_response = $payment_result['auth_response'];
-    $trxn_id = $payment_result['trxn_id'];
+    $auth_response = empty($payment_result['auth_response']) ? '' : $payment_result['auth_response'];
+    $trxn_id = empty($payment_result['trxn_id']) ? '' : $payment_result['trxn_id'];
     // Handle any case of a failure of some kind, either the card failed, or the system failed.
     if (!$success) {
       $error_message = $payment_result['message'];
