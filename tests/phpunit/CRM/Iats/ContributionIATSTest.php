@@ -35,19 +35,19 @@ class CRM_Iats_ContributioniATSTest extends BaseTestClass {
       ->apply();
   }
 
-  public function setUp() {
+  public function setUp(): void {
     $this->_apiversion = 3;
     parent::setUp();
   }
 
-  public function tearDown() {
+  public function tearDown(): void {
     parent::tearDown();
   }
 
   /**
    * Test a Credit Card Contribution - one time iATS Credit Card - TEST41 - Backend
    */
-  public function testIATSCreditCardBackend() {
+  public function testIATSCreditCardBackend(): void {
 
     $params = array(
       'sequential' => 1,
@@ -120,7 +120,7 @@ class CRM_Iats_ContributioniATSTest extends BaseTestClass {
   /**
    * Test a SWIPE Contribution - one time iATS SWIPE - TEST41 - Backend
    */
-  public function testIATSSWIPEBackend() {
+  public function testIATSSWIPEBackend(): void {
 
     $params = array(
       'sequential' => 1,
