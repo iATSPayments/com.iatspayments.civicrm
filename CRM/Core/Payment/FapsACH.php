@@ -126,6 +126,14 @@ class CRM_Core_Payment_FapsACH extends CRM_Core_Payment_Faps {
   public function doPayment(&$params, $component = 'contribute') {
     // CRM_Core_Error::debug_var('doPayment params', $params);
 
+    /* @var \Civi\Payment\PropertyBag $propertyBag */
+    $propertyBag = \Civi\Payment\PropertyBag::cast($params);
+
+    $zeroAmountPayment = $this->processZeroAmountPayment($propertyBag);
+    if ($zeroAmountPayment) {
+      return $zeroAmountPayment;
+    }
+
     // Check for valid currency
     $currency = $params['currencyID'];
     if (('USD' != $currency) && ('CAD' != $currency)) {

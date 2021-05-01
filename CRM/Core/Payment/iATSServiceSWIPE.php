@@ -27,6 +27,7 @@ use Civi\Payment\Exception\PaymentProcessorException;
  *
  */
 class CRM_Core_Payment_iATSServiceSWIPE extends CRM_Core_Payment_iATSService {
+  use CRM_Core_Payment_iATSTrait;
 
   /**
    * We only need one instance of this object. So we use the singleton
