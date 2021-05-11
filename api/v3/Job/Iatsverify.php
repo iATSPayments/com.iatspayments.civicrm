@@ -84,7 +84,7 @@ function civicrm_api3_job_iatsverify($params) {
     'sequential' => 1,
     'receive_date' => array('>' => "now - $verify_days day"),
     'options' => array('limit' => 0),
-    'contribution_status_id' => array('IN' => array('Pending')),
+    'contribution_status_id' => array('IN' => array('Pending', 'In Progress')),
     'invoice_id' => array('IS NOT NULL' => 1),
     'contribution_test' => 0,
     'return' => array('trxn_id', 'invoice_id', 'contribution_recur_id', 'contact_id', 'source'),
