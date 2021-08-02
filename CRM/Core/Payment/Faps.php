@@ -461,6 +461,66 @@ class CRM_Core_Payment_Faps extends CRM_Core_Payment {
   public function getRecurringScheduleUpdateHelpText() {
     return 'Use this form to change the amount or number of installments for this recurring contribution.<ul><li>You can not change the contribution frequency.</li><li>You can also modify the next scheduled contribution date.</li><li>You can change whether the contributor is sent an email receipt for each contribution.<li>You have an option to notify the contributor of these changes.</li></ul>';
   }
+  
+  /*
+   * Implement the ability to update the billing info for recurring contributions,
+   * This functionality will apply to back-end and front-end,
+   * so it's only enabled when configured as on via the iATS admin settings.
+   * The default isSupported method is overridden above to achieve this.
+   *
+   * Return TRUE on success or an error.
+   */
+  public function updateSubscriptionBillingInfo(&$message = '', $params = array()) {
+    // Fix billing form update bug https://github.com/iATSPayments/com.iatspayments.civicrm/issues/252 by getting crid from _POST
+    if (empty($params['crid'])) {
+      $params['crid'] = !empty($_POST['crid']) ? (int) $_POST['crid'] : (!empty($_GET['crid']) ? (int) $_GET['crid'] : 0);
+      if (empty($params['crid']) && !empty($params['entryURL'])) {
+        $components = parse_url($params['entryURL']);
+        parse_str(html_entity_decode($components['query']), $entryURLquery);
+        $params['crid'] = $entryURLquery['crid'];
+      }
+    }
+    // updatedBillingInfo array changed sometime after 4.7.27
+    $crid = !empty($params['crid']) ? $params['crid'] : $params['recur_id'];
+    if (empty($crid)) {
+      $alert = ts('This system is unable to perform self-service updates to credit cards. Please contact the administrator of this site.');
+      throw new Exception($alert);
+    }
+    $contribution_recur = civicrm_api3('ContributionRecur', 'getsingle', ['id' => $crid]);
+    $payment_token = $result = civicrm_api3('PaymentToken', 'getsingle', ['id' => $contribution_recur['payment_token_id']]);
+    $params['token'] = $payment_token['token'];
+    // construct the array of data that I'll submit to the iATS Payments server.
+    $options = [
+      'action' => 'VaultUpdateCCRecord',
+    ];
+    $vault_request = new CRM_Iats_FapsRequest($options);
+
+    $request = $this->convertParams($params, $options['action']);
+    $result = CRM_Iats_FapsRequest::credentials($contribution_recur['payment_processor_id']);
+    $credentials = [
+      'merchantKey' => $result['signature'],
+      'processorId' => $result['user_name'],
+    ];
+    $token_request->request($credentials, $request);
+    
+    // Make the soap request.
+    try {
+      $response = $vault_request->request($credentials, $submit_values);
+      // note: don't log this to the iats_response table.
+      $faps_result = $vault_request->result($response, TRUE);
+      // CRM_Core_Error::debug_var('iats result', $iats_result);
+      if (!empty($faps_result['recordsUpdated'])) {
+        return TRUE;
+      }
+      else {
+        return self::error($faps_result);
+      }
+    }
+    catch (Exception $error) { // what could go wrong?
+      $message = $error->getMessage();
+      return $this->error('9002', $message);
+    }
+  }
 
   /**
    * Convert the values in the civicrm params to the request array with keys as expected by FAPS
@@ -471,15 +531,50 @@ class CRM_Core_Payment_Faps extends CRM_Core_Payment {
    * @return array
    */
   protected function convertParams($params, $method) {
+    $convert = array(
+      'ownerEmail' => 'email',
+      'ownerStreet' => 'street_address',
+      'ownerCity' => 'city',
+      'ownerState' => 'state_province',
+      'ownerZip' => 'postal_code',
+      'ownerCountry' => 'country',
+      'orderId' => 'invoiceID',
+      'cardNumber' => 'credit_card_number',
+      'cardExpYear' => 'year',
+      'cardExpMonth' => 'month',
+      'cVV' => 'cvv2',
+      'ownerName' => [
+        'billing_first_name',
+        'billing_last_name',
+      ],
+    );
+    if (in_array($method, ['GenerateTokenFromCreditCard', 'VaultCreateCCRecord'])) {
+      $convert = array_merge($convert, [
+        'creditCardCryptogram' => 'cryptogram',
+        'transactionAmount' => 'amount',
+      ]);
+    }
+    if ($method == 'VaultUpdateCCRecord') {
+      $convert = array_merge($convert, [
+        'cardtype' => 'credit_card_type',
+        'ownerName' => [
+          'first_name',
+          'middle_name',
+          'last_name',
+        ],
+        'vaultKey' => 'token',
+      ]);
+    }
+    
     if (empty($params['country']) && !empty($params['country_id'])) {
       try {
         $result = civicrm_api3('Country', 'get', [
           'sequential' => 1,
           'return' => ['name'],
-	  'id' => $params['country_id'],
+          'id' => $params['country_id'],
           'options' => ['limit' => 1],
         ]);
-	$params['country'] = $result['values'][0]['name'];
+	      $params['country'] = $result['values'][0]['name'];
       }
       catch (CiviCRM_API3_Exception $e) {
         Civi::log()->info('Unexpected error from api3 looking up countries/states/provinces');
@@ -490,32 +585,51 @@ class CRM_Core_Payment_Faps extends CRM_Core_Payment {
         $result = civicrm_api3('StateProvince', 'get', [
           'sequential' => 1,
           'return' => ['name'],
-	  'id' => $params['state_province_id'],
+	        'id' => $params['state_province_id'],
           'options' => ['limit' => 1],
         ]);
-	$params['state_province'] = $result['values'][0]['name'];
+	      $params['state_province'] = $result['values'][0]['name'];
       }
       catch (CiviCRM_API3_Exception $e) {
         Civi::log()->info('Unexpected error from api3 looking up countries/states/provinces');
       }
     }
     $request = array();
-    $convert = array(
-      'ownerEmail' => 'email',
-      'ownerStreet' => 'street_address',
-      'ownerCity' => 'city',
-      'ownerState' => 'state_province',
-      'ownerZip' => 'postal_code',
-      'ownerCountry' => 'country',
-      'orderId' => 'invoiceID',
-      'cardNumber' => 'credit_card_number',
-//      'cardtype' => 'credit_card_type',
-      'cVV' => 'cvv2',
-      'creditCardCryptogram' => 'cryptogram',
-    );
     foreach ($convert as $r => $p) {
+      if ($r == 'ownerName') {
+        $request[$r] = '';
+        foreach ($p as $namePart) {
+          $request[$r] .= !empty($params[$namePart]) ? $params[$namePart] . ' ' : ''; 
+        }
+        continue;
+      }
       if (isset($params[$p])) {
-        $request[$r] = htmlspecialchars($params[$p]);
+        if ($r == 'transactionAmount') {
+          $request[$r] = sprintf('%01.2f', CRM_Utils_Rule::cleanMoney($params[$p]));
+        }
+        elseif ($r == 'cardExpYear') {
+          $request[$r] = sprintf('%02d', $params[$p] % 100);
+        }
+        elseif ($r == 'cardExpMonth') {
+          $request[$r] =  sprintf('%02d', $params[$p]);
+        }
+        elseif ($r == 'cardtype') {
+          $mop = [
+            'Visa' => 'VISA',
+            'MasterCard' => 'MC',
+            'Amex' => 'AMX',
+            'Discover' => 'DSC',
+          ];
+          $request[$r] = $mop[$params[$p]];
+        }
+        elseif ($r == 'vaultKey') {
+          $matches = explode(':', $params[$p]);
+          $request['id'] = $matches[1];
+          $request[$r] = $matches[0];
+        }
+        else {
+          $request[$r] = htmlspecialchars($params[$p]);
+        }
       }
     }
     if (empty($params['email'])) {
@@ -526,14 +640,7 @@ class CRM_Core_Payment_Faps extends CRM_Core_Payment {
         $request['ownerEmail'] = $params['email-Primary'];
       }
     }
-    $request['ownerName'] = $params['billing_first_name'].' '.$params['billing_last_name'];
-    if (!empty($params['month'])) {
-      $request['cardExpMonth'] = sprintf('%02d', $params['month']);
-    }
-    if (!empty($params['year'])) {
-      $request['cardExpYear'] = sprintf('%02d', $params['year'] % 100);
-    }
-    $request['transactionAmount'] = sprintf('%01.2f', CRM_Utils_Rule::cleanMoney($params['amount']));
+
     // additional method-specific values (none!)
     //CRM_Core_Error::debug_var('params for conversion', $params);
     //CRM_Core_Error::debug_var('method', $method);
