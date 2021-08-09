@@ -191,7 +191,7 @@ class CRM_Core_Payment_Faps extends CRM_Core_Payment {
     $markup = '<link type="text/css" rel="stylesheet" href="'.$cryptoCss.'" media="all" />'; // <script type="text/javascript" src="'.$cryptojs.'"></script>';
     CRM_Core_Region::instance('billing-block')->add(array(
       'markup' => $markup,
-    )); 
+    ));
     // the cryptojs above is the one on the 1pay server, now I load and invoke the extension's crypto.js
     $myCryptoJs = $resources->getUrl('com.iatspayments.civicrm', 'js/crypto.js');
     // after manually doing what addVars('iats', $jsVariables) would normally do
@@ -461,7 +461,7 @@ class CRM_Core_Payment_Faps extends CRM_Core_Payment {
   public function getRecurringScheduleUpdateHelpText() {
     return 'Use this form to change the amount or number of installments for this recurring contribution.<ul><li>You can not change the contribution frequency.</li><li>You can also modify the next scheduled contribution date.</li><li>You can change whether the contributor is sent an email receipt for each contribution.<li>You have an option to notify the contributor of these changes.</li></ul>';
   }
-  
+
   /*
    * Implement the ability to update the billing info for recurring contributions,
    * This functionality will apply to back-end and front-end,
@@ -501,24 +501,22 @@ class CRM_Core_Payment_Faps extends CRM_Core_Payment {
       'merchantKey' => $result['signature'],
       'processorId' => $result['user_name'],
     ];
-    $token_request->request($credentials, $request);
-    
+
     // Make the soap request.
     try {
-      $response = $vault_request->request($credentials, $submit_values);
+      $response = $vault_request->request($credentials, $request);
       // note: don't log this to the iats_response table.
-      $faps_result = $vault_request->result($response, TRUE);
-      // CRM_Core_Error::debug_var('iats result', $iats_result);
-      if (!empty($faps_result['recordsUpdated'])) {
+      // CRM_Core_Error::debug_var('faps result', $response);
+      if (!empty($response['recordsUpdated'])) {
         return TRUE;
       }
       else {
-        return self::error($faps_result);
+        return self::error($response);
       }
     }
     catch (Exception $error) { // what could go wrong?
       $message = $error->getMessage();
-      return $this->error('9002', $message);
+      throw new PaymentProcessorException($message, '9002');
     }
   }
 
@@ -565,7 +563,7 @@ class CRM_Core_Payment_Faps extends CRM_Core_Payment {
         'vaultKey' => 'token',
       ]);
     }
-    
+
     if (empty($params['country']) && !empty($params['country_id'])) {
       try {
         $result = civicrm_api3('Country', 'get', [
@@ -599,7 +597,7 @@ class CRM_Core_Payment_Faps extends CRM_Core_Payment {
       if ($r == 'ownerName') {
         $request[$r] = '';
         foreach ($p as $namePart) {
-          $request[$r] .= !empty($params[$namePart]) ? $params[$namePart] . ' ' : ''; 
+          $request[$r] .= !empty($params[$namePart]) ? $params[$namePart] . ' ' : '';
         }
         continue;
       }
@@ -657,9 +655,6 @@ class CRM_Core_Payment_Faps extends CRM_Core_Payment {
     if (is_object($error)) {
       throw new PaymentProcessorException(ts('Error %1', [1 => $error->getMessage()]), $error_code);
     }
-    elseif ($error && is_numeric($error)) {
-      throw new PaymentProcessorException(ts('Error %1', [1 => $this->errorString($error)]), $error_code);
-    }
     elseif (is_array($error)) {
       $errors = array();
       if ($error['isError']) {
@@ -679,7 +674,7 @@ class CRM_Core_Payment_Faps extends CRM_Core_Payment {
     else { /* in the event I'm handling an unexpected argument */
       throw new PaymentProcessorException(ts('Unknown System Error.'), 'process_1stpay_extension');
     }
-    return $e;
+    return $error;
   }
 
   /*
@@ -761,6 +756,3 @@ class CRM_Core_Payment_Faps extends CRM_Core_Payment {
 
 
 }
-
-
-
