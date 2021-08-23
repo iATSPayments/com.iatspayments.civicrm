@@ -507,7 +507,7 @@ class CRM_Core_Payment_Faps extends CRM_Core_Payment {
       $response = $vault_request->request($credentials, $request);
       // note: don't log this to the iats_response table.
       // CRM_Core_Error::debug_var('faps result', $response);
-      if (!empty($response['recordsUpdated'])) {
+      if (empty($response['isError']) && !empty($response['data']['recordsUpdated'])) {
         return TRUE;
       }
       else {
@@ -541,17 +541,13 @@ class CRM_Core_Payment_Faps extends CRM_Core_Payment {
       'cardExpYear' => 'year',
       'cardExpMonth' => 'month',
       'cVV' => 'cvv2',
+      'transactionAmount' => 'amount',
+      'creditCardCryptogram' => 'cryptogram',
       'ownerName' => [
         'billing_first_name',
         'billing_last_name',
       ],
     );
-    if (in_array($method, ['GenerateTokenFromCreditCard', 'VaultCreateCCRecord'])) {
-      $convert = array_merge($convert, [
-        'creditCardCryptogram' => 'cryptogram',
-        'transactionAmount' => 'amount',
-      ]);
-    }
     if ($method == 'VaultUpdateCCRecord') {
       $convert = array_merge($convert, [
         'cardtype' => 'credit_card_type',
