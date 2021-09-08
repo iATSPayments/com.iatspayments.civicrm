@@ -489,6 +489,7 @@ class CRM_Core_Payment_Faps extends CRM_Core_Payment {
     $contribution_recur = civicrm_api3('ContributionRecur', 'getsingle', ['id' => $crid]);
     $payment_token = $result = civicrm_api3('PaymentToken', 'getsingle', ['id' => $contribution_recur['payment_token_id']]);
     $params['token'] = $payment_token['token'];
+    $params['defaultAccount'] = TRUE;
     // construct the array of data that I'll submit to the iATS Payments server.
     $options = [
       'action' => 'VaultUpdateCCRecord',
@@ -556,7 +557,7 @@ class CRM_Core_Payment_Faps extends CRM_Core_Payment {
           'middle_name',
           'last_name',
         ],
-        'defaultAccount' => 1,
+        'defaultAccount' => 'defaultAccount',
         'vaultKey' => 'token',
       ]);
     }
