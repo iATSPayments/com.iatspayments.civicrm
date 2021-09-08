@@ -556,6 +556,7 @@ class CRM_Core_Payment_Faps extends CRM_Core_Payment {
           'middle_name',
           'last_name',
         ],
+        'defaultAccount' => 1,
         'vaultKey' => 'token',
       ]);
     }
