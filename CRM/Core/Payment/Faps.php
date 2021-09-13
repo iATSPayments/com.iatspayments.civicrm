@@ -487,9 +487,36 @@ class CRM_Core_Payment_Faps extends CRM_Core_Payment {
       throw new Exception($alert);
     }
     $contribution_recur = civicrm_api3('ContributionRecur', 'getsingle', ['id' => $crid]);
-    $payment_token = $result = civicrm_api3('PaymentToken', 'getsingle', ['id' => $contribution_recur['payment_token_id']]);
+    $payment_token = civicrm_api3('PaymentToken', 'getsingle', ['id' => $contribution_recur['payment_token_id']]);
     $params['token'] = $payment_token['token'];
-    $params['defaultAccount'] = TRUE;
+    $params['defaultAccount'] = true;
+    $result = CRM_Iats_FapsRequest::credentials($contribution_recur['payment_processor_id']);
+    $credentials = [
+      'merchantKey' => $result['signature'],
+      'processorId' => $result['user_name'],
+    ];
+    // Generate token from creditcardcryptogram
+    $options = array(
+      'action' => 'GenerateTokenFromCreditCard',
+    );
+    $token_request = new CRM_Iats_FapsRequest($options);
+    $request = $this->convertParams($params, $options['action']);
+    // Make the request.
+    // CRM_Core_Error::debug_var('token request', $request);
+    $result = $token_request->request($credentials, $request);
+    // CRM_Core_Error::debug_var('token result', $result);
+    // unset the cryptogram param and request values, we can't use the cryptogram again and don't want to return it anyway.
+    unset($params['cryptogram']);
+    unset($request['creditCardCryptogram']);
+    unset($token_request);
+    if (!empty($result['isSuccess'])) {
+      // some of the result[data] is not useful, we're assuming it's not harmful to include in future requests here.
+      $params = array_merge($params, $result['data']);
+    }
+    else {
+      return self::error($result);
+    }
+
     // construct the array of data that I'll submit to the iATS Payments server.
     $options = [
       'action' => 'VaultUpdateCCRecord',
@@ -497,11 +524,6 @@ class CRM_Core_Payment_Faps extends CRM_Core_Payment {
     $vault_request = new CRM_Iats_FapsRequest($options);
 
     $request = $this->convertParams($params, $options['action']);
-    $result = CRM_Iats_FapsRequest::credentials($contribution_recur['payment_processor_id']);
-    $credentials = [
-      'merchantKey' => $result['signature'],
-      'processorId' => $result['user_name'],
-    ];
 
     // Make the soap request.
     try {
@@ -551,7 +573,10 @@ class CRM_Core_Payment_Faps extends CRM_Core_Payment {
     );
     if ($method == 'VaultUpdateCCRecord') {
       $convert = array_merge($convert, [
-        'cardtype' => 'credit_card_type',
+        'cardType' => 'cardtype',
+        'creditCardToken' => 'creditCardToken',
+        'cardExpMonth' => 'cardExpMonth',
+        'cardExpYear' => 'cardExpYear',
         'ownerName' => [
           'first_name',
           'middle_name',
@@ -617,6 +642,9 @@ class CRM_Core_Payment_Faps extends CRM_Core_Payment {
             'Discover' => 'DSC',
           ];
           $request[$r] = $mop[$params[$p]];
+        }
+        elseif($r == 'defaultAccount') {
+          $request[$r] = true;
         }
         elseif ($r == 'vaultKey') {
           $matches = explode(':', $params[$p]);
