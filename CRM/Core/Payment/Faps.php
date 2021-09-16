@@ -505,8 +505,7 @@ class CRM_Core_Payment_Faps extends CRM_Core_Payment {
     // CRM_Core_Error::debug_var('token request', $request);
     $result = $token_request->request($credentials, $request);
     // CRM_Core_Error::debug_var('token result', $result);
-    // unset the cryptogram param and request values, we can't use the cryptogram again and don't want to return it anyway.
-    unset($params['cryptogram']);
+    // unset the cryptogram request values, we can't use the cryptogram again and don't want to return it anyway.
     unset($request['creditCardCryptogram']);
     unset($token_request);
     if (!empty($result['isSuccess'])) {
@@ -519,7 +518,7 @@ class CRM_Core_Payment_Faps extends CRM_Core_Payment {
 
     // construct the array of data that I'll submit to the iATS Payments server.
     $options = [
-      'action' => 'VaultUpdateCCRecord',
+      'action' => 'VaultCreateCCRecord',
     ];
     $vault_request = new CRM_Iats_FapsRequest($options);
 
@@ -571,7 +570,7 @@ class CRM_Core_Payment_Faps extends CRM_Core_Payment {
         'billing_last_name',
       ],
     );
-    if ($method == 'VaultUpdateCCRecord') {
+    if ($method == 'VaultCreateCCRecord') {
       $convert = array_merge($convert, [
         'cardType' => 'cardtype',
         'creditCardToken' => 'creditCardToken',
@@ -648,7 +647,6 @@ class CRM_Core_Payment_Faps extends CRM_Core_Payment {
         }
         elseif ($r == 'vaultKey') {
           $matches = explode(':', $params[$p]);
-          $request['id'] = $matches[1];
           $request[$r] = $matches[0];
         }
         else {
