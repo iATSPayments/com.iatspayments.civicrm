@@ -529,7 +529,15 @@ class CRM_Core_Payment_Faps extends CRM_Core_Payment {
       $response = $vault_request->request($credentials, $request);
       // note: don't log this to the iats_response table.
       // CRM_Core_Error::debug_var('faps result', $response);
-      if (empty($response['isError']) && !empty($response['data']['recordsUpdated'])) {
+      if (empty($response['isError'])) {
+        if (!empty($response['data']['id'])) {
+          // We update the payment token.
+          $newToken = $request['vaultKey'] . ":" . $response['data']['id'];
+          civicrm_api3('PaymentToken', 'create', [
+            'id' => $contribution_recur['payment_token_id'],
+            'token' => $newToken,
+          ]);
+        }
         return TRUE;
       }
       else {
