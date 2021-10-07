@@ -72,9 +72,15 @@ class CRM_Core_Payment_iATSServiceACHEFT extends CRM_Core_Payment_iATSService {
    */
 
   protected function getDirectDebitFormFields() {
+    $currency = $this->_profile['currencyID'] ?? NULL;
     $fields = parent::getDirectDebitFormFields();
-    $fields[] = 'bank_account_type';
-    // print_r($fields); die();
+    switch ($currency) {
+      case 'USD':
+      case 'CAD':
+         $fields[] = 'bank_account_type';
+         break;
+    }
+
     return $fields;
   }
 
@@ -88,6 +94,7 @@ class CRM_Core_Payment_iATSServiceACHEFT extends CRM_Core_Payment_iATSService {
    */
   public function getPaymentFormFieldsMetadata() {
     $metadata = parent::getPaymentFormFieldsMetadata();
+    $metadata['bank_identification_number']['title'] = ts('Bank Routing Number');
     $metadata['bank_account_type'] = [
       'htmlType' => 'Select',
       'name' => 'bank_account_type',
@@ -119,7 +126,7 @@ class CRM_Core_Payment_iATSServiceACHEFT extends CRM_Core_Payment_iATSService {
       // Make recurring contrib default to true.
       $form->setDefaults(array('is_recur' => 1));
     }
-    $currency = iats_getCurrency($form);
+    $this->_profile['currencyID'] = $currency = iats_getCurrency($form);
     // my javascript will (should, not yet) use the currency to rewrite some labels
     $jsVariables = [
       'currency' => $currency,
