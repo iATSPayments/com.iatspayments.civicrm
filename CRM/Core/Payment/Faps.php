@@ -506,6 +506,7 @@ class CRM_Core_Payment_Faps extends CRM_Core_Payment {
     $result = $token_request->request($credentials, $request);
     // CRM_Core_Error::debug_var('token result', $result);
     // unset the cryptogram request values, we can't use the cryptogram again and don't want to return it anyway.
+    unset($params['cryptogram']);
     unset($request['creditCardCryptogram']);
     unset($token_request);
     if (!empty($result['isSuccess'])) {
