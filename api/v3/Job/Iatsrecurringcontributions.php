@@ -1,4 +1,5 @@
 <?php
+
 use CRM_Iats_ExtensionUtil as E;
 
 /**
@@ -9,7 +10,8 @@ use CRM_Iats_ExtensionUtil as E;
  * @return void
  * @see http://wiki.civicrm.org/confluence/display/CRMDOC/API+Architecture+Standards
  */
-function _civicrm_api3_job_Iatsrecurringcontributions_spec(&$spec) {
+function _civicrm_api3_job_Iatsrecurringcontributions_spec(&$spec)
+{
   $spec['recur_id'] = array(
     'name' => 'recur_id',
     'title' => 'Recurring payment id',
@@ -47,7 +49,8 @@ function _civicrm_api3_job_Iatsrecurringcontributions_spec(&$spec) {
  * @see civicrm_api3_create_error
  * @throws API_Exception
  */
-function civicrm_api3_job_Iatsrecurringcontributions($params) {
+function civicrm_api3_job_Iatsrecurringcontributions($params)
+{
   // Running this job in parallell could generate bad duplicate contributions.
   $lock = new CRM_Core_Lock('civicrm.job.Iatsrecurringcontributions');
 
@@ -80,14 +83,16 @@ function civicrm_api3_job_Iatsrecurringcontributions($params) {
   // Now we're ready to trigger payments
   // Select the ongoing recurring payments for FAPS where the next scheduled contribution date is before the end of of the current day.
   $get = array(
-      'next_sched_contribution_date' => ['<=' => $dtCurrentDayEnd],
-      'payment_processor_id' => ['IN' => array_keys($paymentProcessors)],
-      'contribution_status_id' => ['IN' => ['In Progress']],
-      'payment_token_id' => ['>' => 0],
-      'options' => ['limit' => 0],
-      'return' => ['id', 'contact_id', 'amount', 'failure_count', 'payment_processor_id', 'next_sched_contribution_date',
-        'payment_instrument_id', 'is_test', 'currency', 'financial_type_id','is_email_receipt',
-        'frequency_interval', 'frequency_unit', 'payment_token_id'],
+    'next_sched_contribution_date' => ['<=' => $dtCurrentDayEnd],
+    'payment_processor_id' => ['IN' => array_keys($paymentProcessors)],
+    'contribution_status_id' => ['IN' => ['In Progress']],
+    'payment_token_id' => ['>' => 0],
+    'options' => ['limit' => 0],
+    'return' => [
+      'id', 'contact_id', 'amount', 'failure_count', 'payment_processor_id', 'next_sched_contribution_date',
+      'payment_instrument_id', 'is_test', 'currency', 'financial_type_id', 'is_email_receipt',
+      'frequency_interval', 'frequency_unit', 'payment_token_id'
+    ],
   );
   // additional filters that may be passed in as params
   if (!empty($params['recur_id'])) {
@@ -108,10 +113,12 @@ function civicrm_api3_job_Iatsrecurringcontributions($params) {
   $settings = Civi::settings()->get('iats_settings');
   $receipt_recurring = $settings['receipt_recurring'];
   $email_failure_report = empty($settings['email_recurring_failure_report']) ? '' : $settings['email_recurring_failure_report'];
+  $bcc_email_failure_report = empty($settings['bcc_email_recurring_failure_report']) ? '' : $settings['bcc_email_recurring_failure_report'];
+
   // By default, after 3 failures move the next scheduled contribution date forward.
   $failure_threshhold = empty($settings['recurring_failure_threshhold']) ? 3 : (int) $settings['recurring_failure_threshhold'];
   $failure_report_text = '';
-  foreach($recurringContributions['values'] as $recurringContribution) {
+  foreach ($recurringContributions['values'] as $recurringContribution) {
     // Strategy: create the contribution record with status = 2 (= pending), try the payment, and update the status to 1 if successful
     //           also, advance the next scheduled payment before the payment attempt and pull it back if we know it fails.
     $contribution_recur_id    = $recurringContribution['id'];
@@ -126,7 +133,7 @@ function civicrm_api3_job_Iatsrecurringcontributions($params) {
     $hash = md5(uniqid(rand(), TRUE));
     $failure_count    = $recurringContribution['failure_count'];
     $paymentProcessor = $paymentProcessors[$payment_processor_id];
-    $paymentClass = substr($paymentProcessor['class_name'],8);
+    $paymentClass = substr($paymentProcessor['class_name'], 8);
     $source = E::ts('iATS Payments (%1) Recurring Contribution ( id = %2 )', [
       1 => $paymentClass,
       2 => $contribution_recur_id,
@@ -142,14 +149,12 @@ function civicrm_api3_job_Iatsrecurringcontributions($params) {
         if (empty($payment_token['token'])) {
           $errors[] = E::ts('Recur id %1 is missing a payment token.', array(1 => $contribution_recur_id));
         }
-      }
-      catch (Exception $e) {
+      } catch (Exception $e) {
         $errors[] = E::ts('Unexpected error getting a payment token for recurring schedule id %1', array(1 => $contribution_recur_id));
         CRM_Core_Error::debug_var('Unexpected error getting payment token', $e);
         $payment_token = array();
       }
-    }
-    else {
+    } else {
       $errors[] = E::ts('Unexpected error, no payment token for recurring schedule id %1', array(1 => $contribution_recur_id));
     }
     if (count($errors)) {
@@ -191,8 +196,7 @@ function civicrm_api3_job_Iatsrecurringcontributions($params) {
       if (!empty($pending_contribution['id'])) {
         $contribution['id'] = $pending_contribution['id'];
       }
-    }
-    catch (Exception $e) {
+    } catch (Exception $e) {
       // ignore, we'll proceed normally without a contribution id
     }
     // If I'm not recycling a contribution record and my original has line_items, then I'll add them to the contribution creation array.
@@ -225,8 +229,7 @@ function civicrm_api3_job_Iatsrecurringcontributions($params) {
           // isn't normally a property of a contribution.
           $contribution['membership_id'] = $membership_payment['membership_id'];
         }
-      }
-      catch (Exception $e) {
+      } catch (Exception $e) {
         // ignore, if will fail correctly if there is no membership payment.
       }
     }
@@ -238,13 +241,13 @@ function civicrm_api3_job_Iatsrecurringcontributions($params) {
     // Save the current value to restore in case of payment failure (perhaps ...).
     $saved_next_sched_contribution_date = $recurringContribution['next_sched_contribution_date'];
     /* calculate the next collection date, based on the recieve date (note effect of catchup mode, above)  */
-    $next_collection_date = date('Y-m-d H:i:s', strtotime('+'.$recurringContribution['frequency_interval'].' '.$recurringContribution['frequency_unit'], $receive_ts));
+    $next_collection_date = date('Y-m-d H:i:s', strtotime('+' . $recurringContribution['frequency_interval'] . ' ' . $recurringContribution['frequency_unit'], $receive_ts));
     $contribution_recur_set = array('version' => 3, 'id' => $contribution['contribution_recur_id'], 'next_sched_contribution_date' => $next_collection_date);
     $result = CRM_Iats_Transaction::process_contribution_payment($contribution, $paymentProcessor, $payment_token);
     // append result message to report if I'm going to mail out a failures
     // report
     if ($email_failure_report && !$result['result']['success']) {
-      $failure_report_text .= "\n".$result['message'];
+      $failure_report_text .= "\n" . $result['message'];
     }
     $output[] = $result['message'];
     /* by default, just set the failure count back to 0 */
@@ -259,7 +262,9 @@ function civicrm_api3_job_Iatsrecurringcontributions($params) {
       }
     }
     civicrm_api('ContributionRecur', 'create', $contribution_recur_set);
-    $result = civicrm_api('activity', 'create',
+    $result = civicrm_api(
+      'activity',
+      'create',
       array(
         'version'       => 3,
         'activity_type_id'  => 6,
@@ -280,8 +285,7 @@ function civicrm_api3_job_Iatsrecurringcontributions($params) {
         )
       );
       ++$error_count;
-    }
-    else {
+    } else {
       $output[] = ts('Created activity record for contact id %1', array(1 => $contact_id));
     }
     ++$counter;
@@ -313,27 +317,30 @@ function civicrm_api3_job_Iatsrecurringcontributions($params) {
   */
   $lock->release();
   // If errors ..
+  list($fromName, $fromEmail) = CRM_Core_BAO_Domain::getNameAndEmail();
+  $mailparams = [
+    'groupName' => 'iATS Email Sender',
+    'from' =>    $fromEmail,
+    'toName' =>  empty($fromName) ? ts('Admin') : $fromName,
+    'toEmail' => $email_failure_report,
+    'bcc' =>  !empty($bcc_email_failure_report) ?  $bcc_email_failure_report : '',
+    'subject' => ts('iATS Recurring Payment job failure report ')  . date('c'),
+    'text' => $failure_report_text
+  ];
   if ((strlen($failure_report_text) > 0) && $email_failure_report) {
-    list($fromName, $fromEmail) = CRM_Core_BAO_Domain::getNameAndEmail();
-    $mailparams = array(
-      'from' => $fromName . ' <' . $fromEmail . '> ',
-      'to' => 'System Administrator <' . $email_failure_report . '>',
-      'subject' => ts('iATS Recurring Payment job failure report: ' . date('c')),
-      'text' => $failure_report_text,
-      'returnPath' => $fromEmail,
-    );
-    // print_r($mailparams);
     CRM_Utils_Mail::send($mailparams);
   }
+
   // If errors ..
   if ($error_count > 0) {
     return civicrm_api3_create_error(
-      ts("Completed, but with %1 errors. %2 records processed.",
+      ts(
+        "Completed, but with %1 errors. %2 records processed.",
         array(
           1 => $error_count,
           2 => $counter,
         )
-      ) . "<br />" . implode("<br />", $output)
+      )
     );
   }
   // If no errors and records processed ..
@@ -344,9 +351,9 @@ function civicrm_api3_job_Iatsrecurringcontributions($params) {
         array(
           1 => $counter,
         )
-      ) . "<br />" . implode("<br />", $output)
+      )
     );
   }
   // No records processed.
-  return civicrm_api3_create_success(ts('No contribution records were processed.'));
+  return civicrm_api3_create_success(ts('<br>No contribution records were processed.<br>') . '<hr>Mailparams:<br>' . print_r($mailparams, TRUE));
 }
