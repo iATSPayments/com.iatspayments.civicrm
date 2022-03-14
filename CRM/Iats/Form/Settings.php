@@ -7,23 +7,32 @@ use CRM_Iats_ExtensionUtil as E;
  *
  * @see https://wiki.civicrm.org/confluence/display/CRMDOC/QuickForm+Reference
  */
-class CRM_Iats_Form_Settings extends CRM_Core_Form {
-  public function buildQuickForm() {
-
+class CRM_Iats_Form_Settings extends CRM_Core_Form
+{
+  public function buildQuickForm()
+  {
     // Add form elements.
     $this->add(
-      'text',
+      'email',
       'email_recurring_failure_report',
       ts('Email Recurring Contribution failure reports to this Email address')
     );
-    $this->addRule('email_recurring_failure_report', ts('Email address is not a valid format.'), 'email');
+
+    $this->add(
+      'email',
+      'bcc_email_recurring_failure_report',
+      ts('BCC Email Recurring Contribution failure reports to this Email address. ')
+    );
+
     $this->add(
       'text',
       'recurring_failure_threshhold',
       ts('When failure count is equal to or greater than this number, push the next scheduled contribution date forward')
     );
+
     $this->addRule('recurring_failure_threshhold', ts('Threshhold must be a positive integer.'), 'integer');
     $receipt_recurring_options =  array('0' => 'Never', '1' => 'Always', '2' => 'As set for a specific Contribution Series');
+
     $this->add(
       'select',
       'receipt_recurring',
@@ -33,10 +42,16 @@ class CRM_Iats_Form_Settings extends CRM_Core_Form {
 
     $this->add(
       'checkbox',
+      'email_failure_contribution_receipt',
+      ts('Send Failed Contribution Receipt (with error message)')
+    );
+
+    $this->add(
+      'checkbox',
       'disable_cryptogram',
       ts('Disable use of cryptogram (only applies to FirstAmerican).')
     );
-    
+
     $this->add(
       'text',
       'ach_category_text',
@@ -86,7 +101,7 @@ class CRM_Iats_Form_Settings extends CRM_Core_Form {
       ts('Allow creation of new recurring series from iATS imports. (e.g. "mobile recurring")')
     );
     */
-    
+
     $this->add(
       'checkbox',
       'enable_public_future_recurring_start',
@@ -144,7 +159,8 @@ class CRM_Iats_Form_Settings extends CRM_Core_Form {
     parent::buildQuickForm();
   }
 
-  public function postProcess() {
+  public function postProcess()
+  {
     $values = $this->exportValues();
     foreach (array('qfKey', '_qf_default', '_qf_Settings_submit', 'entryURL') as $key) {
       if (isset($values[$key])) {
@@ -160,7 +176,8 @@ class CRM_Iats_Form_Settings extends CRM_Core_Form {
    *
    * @return array (string)
    */
-  public function getRenderableElementNames() {
+  public function getRenderableElementNames()
+  {
     // The _elements list includes some items which should not be
     // auto-rendered in the loop -- such as "qfKey" and "buttons".  These
     // items don't have labels.  We'll identify renderable by filtering on
@@ -175,5 +192,4 @@ class CRM_Iats_Form_Settings extends CRM_Core_Form {
     }
     return $elementNames;
   }
-
 }
