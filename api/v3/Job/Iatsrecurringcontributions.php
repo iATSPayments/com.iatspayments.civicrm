@@ -325,6 +325,19 @@ function civicrm_api3_job_Iatsrecurringcontributions($params) {
     // print_r($mailparams);
     CRM_Utils_Mail::send($mailparams);
   }
+
+  // Send receipt with error message if [recurring only?] contribution fails   $email_failure_contribution_receipt
+  // CRM_Core_Error::debug_var('Contribution', $contribution);
+  // CRM_Core_Error::debug_var('iATS response message', $failure_report_text);
+    if ((strlen($failure_report_text) > 0) && $email_failure_contribution_receipt) {
+        return civicrm_api3('Contribution', 'sendconfirmation', [
+        'id' => $contribution['id'],
+        'receipt_from_name' => empty($fromName) ? ts('Admin') : $fromName,
+        'receipt_from_email' => $fromEmail,
+        'receipt_text' => ts('It seems something is not quite right with your recurring contribution payment. Please see details below.') . '<hr><br>' . $failure_report_text,
+        'bcc_receipt' => !empty($email_failure_report)? $email_failure_report: $fromEmail,
+        ]);
+    }  
   // If errors ..
   if ($error_count > 0) {
     return civicrm_api3_create_error(
