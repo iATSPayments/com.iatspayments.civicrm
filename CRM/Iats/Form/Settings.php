@@ -30,6 +30,12 @@ class CRM_Iats_Form_Settings extends CRM_Core_Form {
       ts('Email receipt for a Contribution in a Recurring Series'),
       $receipt_recurring_options
     );
+    
+    $this->add(
+      'checkbox',
+      'email_failure_contribution_receipt',
+        ts('Email receipt for a Contribution if Recurring payment fails - with error message')
+    );
 
     $this->add(
       'checkbox',
