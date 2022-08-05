@@ -268,6 +268,9 @@ class CRM_Core_Payment_Faps extends CRM_Core_Payment {
    */
   public function doPayment(&$params, $component = 'contribute') {
     // CRM_Core_Error::debug_var('doPayment params', $params);
+    if (empty($params['amount'])) {
+      return _iats_payment_status_complete();
+    }
 
     // Check for valid currency [todo: we have C$ support, but how do we check,
     // or should we?]

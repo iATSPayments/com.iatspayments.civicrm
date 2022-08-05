@@ -125,6 +125,9 @@ class CRM_Core_Payment_FapsACH extends CRM_Core_Payment_Faps {
    */
   public function doPayment(&$params, $component = 'contribute') {
     // CRM_Core_Error::debug_var('doPayment params', $params);
+    if (empty($params['amount'])) {
+      return _iats_payment_status_complete();
+    }
 
     // Check for valid currency
     $currency = $params['currency'];
