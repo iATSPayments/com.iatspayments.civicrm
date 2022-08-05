@@ -191,7 +191,7 @@ class CRM_Core_Payment_Faps extends CRM_Core_Payment {
     $markup = '<link type="text/css" rel="stylesheet" href="'.$cryptoCss.'" media="all" />'; // <script type="text/javascript" src="'.$cryptojs.'"></script>';
     CRM_Core_Region::instance('billing-block')->add(array(
       'markup' => $markup,
-    )); 
+    ));
     // the cryptojs above is the one on the 1pay server, now I load and invoke the extension's crypto.js
     $myCryptoJs = $resources->getUrl('com.iatspayments.civicrm', 'js/crypto.js');
     // after manually doing what addVars('iats', $jsVariables) would normally do
@@ -272,10 +272,10 @@ class CRM_Core_Payment_Faps extends CRM_Core_Payment {
     // Check for valid currency [todo: we have C$ support, but how do we check,
     // or should we?]
     if (
-        'USD' != $params['currencyID']
-     && 'CAD' != $params['currencyID']
+        'USD' != $params['currency']
+     && 'CAD' != $params['currency']
     ) {
-      return self::error('Invalid currency selection: ' . $params['currencyID']);
+      return self::error('Invalid currency selection: ' . $params['currency']);
     }
     $isRecur = CRM_Utils_Array::value('is_recur', $params) && $params['contributionRecurID'];
     $usingCrypto = !empty($params['cryptogram']);

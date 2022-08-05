@@ -127,7 +127,7 @@ class CRM_Core_Payment_FapsACH extends CRM_Core_Payment_Faps {
     // CRM_Core_Error::debug_var('doPayment params', $params);
 
     // Check for valid currency
-    $currency = $params['currencyID'];
+    $currency = $params['currency'];
     if (('USD' != $currency) && ('CAD' != $currency)) {
       return self::error('Invalid currency selection: ' . $currency);
     }

@@ -75,19 +75,19 @@ class CRM_Iats_iATSServiceRequest {
     $this->options = $options;
     $this->options['debug'] = _iats_civicrm_domain_info('debug_enabled');
     // Check for valid currencies with domain/method combinations.
-    if (isset($options['currencyID'])) {
+    if (isset($options['currency'])) {
       $valid = FALSE;
       switch ($iats_domain) {
         case 'www2.iatspayments.com':
         case 'www.iatspayments.com':
-          if (in_array($options['currencyID'], array('USD', 'CAD'))) {
+          if (in_array($options['currency'], array('USD', 'CAD'))) {
             $valid = TRUE;
           }
           break;
 
         case 'www.uk.iatspayments.com':
           if ('cc' == substr($method, 0, 2) || 'create_credit_card_customer' == $method) {
-            if (in_array($options['currencyID'], array('AUD', 'USD', 'EUR', 'GBP', 'IEE', 'CHF', 'HKD', 'JPY', 'SGD', 'MXN'))) {
+            if (in_array($options['currency'], array('AUD', 'USD', 'EUR', 'GBP', 'IEE', 'CHF', 'HKD', 'JPY', 'SGD', 'MXN'))) {
               $valid = TRUE;
             }
           }
@@ -98,7 +98,7 @@ class CRM_Iats_iATSServiceRequest {
           break;
       }
       if (!$valid) {
-        throw new PaymentProcessorException(ts('Invalid currency selection: %1 for domain %2', [1 => $options['currencyID'], 2=> $iats_domain]));
+        throw new PaymentProcessorException(ts('Invalid currency selection: %1 for domain %2', [1 => $options['currency'], 2=> $iats_domain]));
       }
     }
   }
