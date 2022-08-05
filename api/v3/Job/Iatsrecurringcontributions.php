@@ -319,6 +319,7 @@ function civicrm_api3_job_Iatsrecurringcontributions($params) {
       'from' => $fromName . ' <' . $fromEmail . '> ',
       'toName' => empty($fromName) ? ts('System Administrator') : $fromName,
       'toEmail' => $email_failure_report,
+      'bcc' =>  !empty($bcc_email_failure_report) ?  $bcc_email_failure_report : '',
       'subject' => ts('iATS Recurring Payment job failure report: ' . date('c')),
       'text' => $failure_report_text,
     );
