@@ -317,10 +317,10 @@ function civicrm_api3_job_Iatsrecurringcontributions($params) {
     list($fromName, $fromEmail) = CRM_Core_BAO_Domain::getNameAndEmail();
     $mailparams = array(
       'from' => $fromName . ' <' . $fromEmail . '> ',
-      'to' => 'System Administrator <' . $email_failure_report . '>',
+      'toName' => empty($fromName) ? ts('System Administrator') : $fromName,
+      'toEmail' => $email_failure_report,
       'subject' => ts('iATS Recurring Payment job failure report: ' . date('c')),
       'text' => $failure_report_text,
-      'returnPath' => $fromEmail,
     );
     // print_r($mailparams);
     CRM_Utils_Mail::send($mailparams);
