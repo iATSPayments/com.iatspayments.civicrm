@@ -216,7 +216,7 @@ class CRM_Core_Payment_iATSServiceACHEFT extends CRM_Core_Payment_iATSService {
     $method = $isRecur ? 'create_acheft_customer_code' : 'acheft';
     $iats = new CRM_Iats_iATSServiceRequest(array('type' => $methodType, 'method' => $method, 'iats_domain' => $this->_profile['iats_domain'], 'currency' => $params['currency']));
     $request = $this->convertParams($params, $method);
-    $request['customerIPAddress'] = (function_exists('ip_address') ? ip_address() : $_SERVER['REMOTE_ADDR']);
+    $request['customerIPAddress'] = CRM_Iats_Transaction::remote_ip_address();
     $credentials = array(
       'agentCode' => $this->_paymentProcessor['user_name'],
       'password'  => $this->_paymentProcessor['password'],

@@ -422,4 +422,21 @@ class CRM_Iats_Transaction {
     }
     return $start_dates;
   }
+
+
+  /*
+   * Get the ip of the source of the transaction.
+   *
+   * Test to make sure we're not sending an invalid value!
+   * $param $filter = an optional additional FILTER to validate the ip
+   */
+  static function remote_ip_address($filter = 0) {
+    $ipAddress = (function_exists('ip_address') ? ip_address() : $_SERVER['REMOTE_ADDR']);
+    $filter = $filter | FILTER_FLAG_NO_PRIV_RANGE;
+    if (!filter_var($ipAddress, FILTER_VALIDATE_IP, $filter)) {
+        $ipAddress = '';
+    }
+    return $ipAddress;
+  }
+
 }
