@@ -135,11 +135,8 @@ class CRM_Core_Payment_FapsACH extends CRM_Core_Payment_Faps {
       return self::error('Invalid currency selection: ' . $currency);
     }
     $isRecur = CRM_Utils_Array::value('is_recur', $params) && $params['contributionRecurID'];
-    $ipAddress = (function_exists('ip_address') ? ip_address() : $_SERVER['REMOTE_ADDR']);
-    // If we have an IPv6 Address ignore it.
-    if (!filter_var($ipAddress, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
-      $ipAddress = '';
-    }
+    // FAPS only allows ipv4 addresses
+    $ipAddress = CRM_Iats_Transaction::remote_ip_address($FILTER_FLAG_IPV4);
     $credentials = array(
       'merchantKey' => $this->_paymentProcessor['signature'],
       'processorId' => $this->_paymentProcessor['user_name']
