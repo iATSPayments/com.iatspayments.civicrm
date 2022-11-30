@@ -390,7 +390,7 @@ class CRM_Iats_Transaction {
    * @param $start_date a timestamp, only return dates after this.
    * @param $allow_days an array of allowable days of the month.
    *
-   *   A low-level utility function for triggering a transaction on iATS.
+   *   A low-level utility function used to get an array of the next allowable start dates
    */
   static function get_future_monthly_start_dates($start_date, $allow_days) {
     // Future date options.
@@ -399,7 +399,7 @@ class CRM_Iats_Transaction {
     $today = date('Ymd').'030000';
     // If not set, only allow for the first 28 days of the month.
     if (max($allow_days) <= 0) {
-      $allow_days = range(1,28);
+      $allow_days = range(1,31);
     }
     for ($j = 0; $j < count($allow_days); $j++) {
       // So I don't get into an infinite loop somehow ..
