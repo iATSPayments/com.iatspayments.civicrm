@@ -93,7 +93,7 @@ class CRM_Iats_Transaction {
     // Handle any case of a failure of some kind, either the card failed, or the system failed.
     if (!$success) {
       $error_message = $payment_result['message'];
-      /* set the failed transaction status, or pending if I had a server issue */
+      /* set the failed transaction status (=4), or pending (= 2) if I had a server issue */
       $contribution['contribution_status_id'] = empty($auth_code) ? 2 : 4;
       /* and include the reason in the source field */
       $contribution['source'] .= ' ' . $error_message;
@@ -108,24 +108,33 @@ class CRM_Iats_Transaction {
       // 2. if we don't already have a contribution id
       $use_repeattransaction = $is_recurrence && empty($contribution['id']);
     }
-    // We have come from the iats recurring contribution job.
+    // Update the recurring contribution record with the next scheduled contribution date
+    // Note: applies if we have come from the iats recurring contribution job.
     if (!empty($contributionRecurUpdate)) {
       /* by default, just set the failure count back to 0 */
-      /* special handling for failures: try again at next opportunity if we haven't failed too often */
+      /* special handling for confirmed, hopefully transient, card failures: try again at next opportunity if we haven't failed too often */
       if (4 == $contribution['contribution_status_id']) {
         $contributionRecurUpdate['failure_count'] = $contributionRecurUpdate['failure_count'] + 1;
         /* if it has failed and the failure threshold will not be reached with this failure, set the next sched contribution date to what it was */
         if ($contributionRecurUpdate['failure_count'] < $contributionRecurUpdate['failure_threshold']) {
-          // Should the failure count be reset otherwise? It is not.
-          $contributionRecurUpdate['next_sched_contribution_date'] = $contributionRecurUpdate['original_next_scheudled_recur_date'];
+          // Override/set the next_sched_contribution_date to it's current value so we can try again.
+          $contributionRecurUpdate['next_sched_contribution_date'] = $contributionRecurUpdate['current_sched_contribution_date'];
         }
+        // otherwise, we'll keep the next collection date as passed in from the caller
       }
-      else {
+      elseif (!empty($auth_code)) {
+        // set the failure count back to zero unless I had a server issue
         $contributionRecurUpdate['failure_count'] = 0;
       }
+      // unset some of the passed in values that were useful but not part of the recurring record
       unset($contributionRecurUpdate['failure_threshold']);
-      unset($contributionRecurUpdate['original_next_scheudled_recur_date']);
-      civicrm_api3('ContributionRecur', 'create', $contributionRecurUpdate);
+      unset($contributionRecurUpdate['current_sched_contribution_date']);
+      try {
+        civicrm_api3('ContributionRecur', 'create', $contributionRecurUpdate);
+      }
+      catch (Exception $e) {
+        // Ignore this, though perhaps I should log it.
+      }
     }
     if ($use_repeattransaction) {
       // We processed it successflly and I can try to use repeattransaction. 
@@ -160,13 +169,18 @@ class CRM_Iats_Transaction {
         // If repeattransaction succeded.
         // First restore/add various fields that the repeattransaction api may overwrite or ignore.
         // TODO - fix this in core to allow these to be set above.
-        civicrm_api3('contribution', 'create', array('id' => $contribution['id'], 
-          'invoice_id' => $contribution['invoice_id'],
-          'source' => $contribution['source'],
-          'receive_date' => $contribution['receive_date'],
-          'payment_instrument_id' => $contribution['payment_instrument_id'],
-          // '' => $contribution['receive_date'],
-        ));
+        try {
+          civicrm_api3('contribution', 'create', array('id' => $contribution['id'], 
+            'invoice_id' => $contribution['invoice_id'],
+            'source' => $contribution['source'],
+            'receive_date' => $contribution['receive_date'],
+            'payment_instrument_id' => $contribution['payment_instrument_id'],
+            // '' => $contribution['receive_date'],
+          ));
+        }
+        catch (Exception $e) {
+          // Not sure why this might fail, but let's be careful before we've updated the next scheduled contribution date
+        }
         // Save my status in the contribution array that was passed in.
         $contribution['contribution_status_id'] = $payment_result['payment_status_id'];
         if ($contribution['contribution_status_id'] == 1) {
