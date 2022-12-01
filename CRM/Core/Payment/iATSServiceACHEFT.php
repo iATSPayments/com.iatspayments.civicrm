@@ -211,7 +211,10 @@ class CRM_Core_Payment_iATSServiceACHEFT extends CRM_Core_Payment_iATSService {
     }
     // Use the iATSService object for interacting with iATS, mostly the same for recurring contributions.
     // We handle both one-time and recurring ACH/EFT
-    $isRecur = CRM_Utils_Array::value('is_recur', $params) && $params['contributionRecurID'];
+    $isRecur = CRM_Utils_Array::value('is_recur', $params);
+    if ($isRecur && empty($params['contributionRecurID'])) {
+      return self::error('Invalid call to doPayment with is_recur and no contributionRecurID');
+    }
     $methodType = $isRecur ? 'customer' : 'process';
     $method = $isRecur ? 'create_acheft_customer_code' : 'acheft';
     $iats = new CRM_Iats_iATSServiceRequest(array('type' => $methodType, 'method' => $method, 'iats_domain' => $this->_profile['iats_domain'], 'currency' => $params['currency']));
