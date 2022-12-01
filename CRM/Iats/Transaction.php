@@ -179,7 +179,7 @@ class CRM_Iats_Transaction {
           ));
         }
         catch (Exception $e) {
-          // Not sure why this might fail, but let's be careful before we've updated the next scheduled contribution date
+          // Not sure why this might fail, but let's be careful
         }
         // Save my status in the contribution array that was passed in.
         $contribution['contribution_status_id'] = $payment_result['payment_status_id'];
