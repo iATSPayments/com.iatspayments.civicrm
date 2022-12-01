@@ -239,26 +239,14 @@ function civicrm_api3_job_Iatsrecurringcontributions($params) {
     $saved_next_sched_contribution_date = $recurringContribution['next_sched_contribution_date'];
     /* calculate the next collection date, based on the recieve date (note effect of catchup mode, above)  */
     $next_collection_date = date('Y-m-d H:i:s', strtotime('+'.$recurringContribution['frequency_interval'].' '.$recurringContribution['frequency_unit'], $receive_ts));
-    $contribution_recur_set = array('version' => 3, 'id' => $contribution['contribution_recur_id'], 'next_sched_contribution_date' => $next_collection_date);
-    $result = CRM_Iats_Transaction::process_contribution_payment($contribution, $paymentProcessor, $payment_token);
+    $contribution_recur_set = array('version' => 3, 'id' => $contribution['contribution_recur_id'], 'next_sched_contribution_date' => $next_collection_date, 'failure_count' => $failure_count, 'failure_threshold' => $failure_threshhold, 'original_next_scheudled_recur_date' => $saved_next_sched_contribution_date);
+    $result = CRM_Iats_Transaction::process_contribution_payment($contribution, $paymentProcessor, $payment_token, $contribution_recur_set);
     // append result message to report if I'm going to mail out a failures
     // report
     if ($email_failure_report && !$result['result']['success']) {
       $failure_report_text .= "\n".$result['message'];
     }
     $output[] = $result['message'];
-    /* by default, just set the failure count back to 0 */
-    $contribution_recur_set = array('version' => 3, 'id' => $contribution['contribution_recur_id'], 'failure_count' => '0', 'next_sched_contribution_date' => $next_collection_date);
-    /* special handling for failures: try again at next opportunity if we haven't failed too often */
-    if (4 == $contribution['contribution_status_id']) {
-      $contribution_recur_set['failure_count'] = $failure_count + 1;
-      /* if it has failed and the failure threshold will not be reached with this failure, set the next sched contribution date to what it was */
-      if ($contribution_recur_set['failure_count'] < $failure_threshhold) {
-        // Should the failure count be reset otherwise? It is not.
-        $contribution_recur_set['next_sched_contribution_date'] = $saved_next_sched_contribution_date;
-      }
-    }
-    civicrm_api('ContributionRecur', 'create', $contribution_recur_set);
     $result = civicrm_api('activity', 'create',
       array(
         'version'       => 3,
@@ -338,7 +326,7 @@ function civicrm_api3_job_Iatsrecurringcontributions($params) {
         'receipt_text' => ts('It seems something is not quite right with your recurring contribution payment. Please see details below.') . '<hr><br>' . $failure_report_text,
         'bcc_receipt' => !empty($email_failure_report)? $email_failure_report: $fromEmail,
         ]);
-    }  
+    }
   // If errors ..
   if ($error_count > 0) {
     return civicrm_api3_create_error(

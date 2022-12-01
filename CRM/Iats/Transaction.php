@@ -80,7 +80,7 @@ class CRM_Iats_Transaction {
    *   Used in the Iatsrecurringcontributions.php job and the one-time ('card on file') form.
    *   
    */
-  static function process_contribution_payment(&$contribution, $paymentProcessor, $payment_token) {
+  static function process_contribution_payment(&$contribution, $paymentProcessor, $payment_token, $contributionRecurUpdate = []) {
     // By default, don't use repeattransaction
     $use_repeattransaction = FALSE;
     $is_recurrence = !empty($contribution['original_contribution_id']);
@@ -107,6 +107,25 @@ class CRM_Iats_Transaction {
       // 1. if we want it (i.e. if it's for a recurring schedule)
       // 2. if we don't already have a contribution id
       $use_repeattransaction = $is_recurrence && empty($contribution['id']);
+    }
+    // We have come from the iats recurring contribution job.
+    if (!empty($contributionRecurUpdate)) {
+      /* by default, just set the failure count back to 0 */
+      /* special handling for failures: try again at next opportunity if we haven't failed too often */
+      if (4 == $contribution['contribution_status_id']) {
+        $contributionRecurUpdate['failure_count'] = $contributionRecurUpdate['failure_count'] + 1;
+        /* if it has failed and the failure threshold will not be reached with this failure, set the next sched contribution date to what it was */
+        if ($contributionRecurUpdate['failure_count'] < $contributionRecurUpdate['failure_threshold']) {
+          // Should the failure count be reset otherwise? It is not.
+          $contributionRecurUpdate['next_sched_contribution_date'] = $contributionRecurUpdate['original_next_scheudled_recur_date'];
+        }
+      }
+      else {
+        $contributionRecurUpdate['failure_count'] = 0;
+      }
+      unset($contributionRecurUpdate['failure_threshold']);
+      unset($contributionRecurUpdate['original_next_scheudled_recur_date']);
+      civicrm_api3('ContributionRecur', 'create', $contributionRecurUpdate);
     }
     if ($use_repeattransaction) {
       // We processed it successflly and I can try to use repeattransaction. 
