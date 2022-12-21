@@ -479,6 +479,8 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
     }
     // updatedBillingInfo array changed sometime after 4.7.27
     $crid = !empty($params['crid']) ? $params['crid'] : $params['recur_id'];
+    // ID changed again
+    if (empty($crid) && !empty($params['contributionRecurID'])) $crid = $params['contributionRecurID'];
     if (empty($crid)) {
       $alert = ts('This system is unable to perform self-service updates to credit cards. Please contact the administrator of this site.');
       throw new Exception($alert);
