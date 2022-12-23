@@ -177,7 +177,10 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
       return self::error('Unexpected error, missing profile');
     }
     // Use the iATSService object for interacting with iATS. Recurring contributions go through a more complex process.
-    $isRecur = CRM_Utils_Array::value('is_recur', $params) && $params['contributionRecurID'];
+    $isRecur = CRM_Utils_Array::value('is_recur', $params);
+    if ($isRecur && empty($params['contributionRecurID'])) {
+      return self::error('Invalid call to doPayment with is_recur and no contributionRecurID');
+    }
     $methodType = $isRecur ? 'customer' : 'process';
     $method = $isRecur ? 'create_credit_card_customer' : 'cc';
     $iats = new CRM_Iats_iATSServiceRequest(array('type' => $methodType, 'method' => $method, 'iats_domain' => $this->_profile['iats_domain'], 'currency' => $params['currency']));
