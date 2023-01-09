@@ -468,17 +468,8 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
    */
   public function updateSubscriptionBillingInfo(&$message = '', $params = array()) {
 
-    // Fix billing form update bug https://github.com/iATSPayments/com.iatspayments.civicrm/issues/252 by getting crid from _POST
-    if (empty($params['crid'])) {
-      $params['crid'] = !empty($_POST['crid']) ? (int) $_POST['crid'] : (!empty($_GET['crid']) ? (int) $_GET['crid'] : 0);
-      if (empty($params['crid']) && !empty($params['entryURL'])) {
-        $components = parse_url($params['entryURL']);
-        parse_str(html_entity_decode($components['query']), $entryURLquery);
-        $params['crid'] = $entryURLquery['crid'];
-      }
-    }
-    // updatedBillingInfo array changed sometime after 4.7.27
-    $crid = !empty($params['crid']) ? $params['crid'] : $params['recur_id'];
+    // updatedBillingInfo array has changed a few times, we'll try a few different keys to pull the contribution recurring id
+    $crid = !empty($params['contributionRecurID']) ? $params['contributionRecurID'] : (!empty($params['crid']) ? $params['crid'] : $params['recur_id']);
     if (empty($crid)) {
       $alert = ts('This system is unable to perform self-service updates to credit cards. Please contact the administrator of this site.');
       throw new Exception($alert);
