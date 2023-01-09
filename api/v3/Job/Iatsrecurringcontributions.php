@@ -106,7 +106,7 @@ function civicrm_api3_job_Iatsrecurringcontributions($params) {
   $error_count  = 0;
   $output  = [];
   $settings = Civi::settings()->get('iats_settings');
-  $receipt_recurring = $settings['receipt_recurring'];
+  $receipt_recurring = $settings['receipt_recurring'] ?? null;
   $email_failure_report = empty($settings['email_recurring_failure_report']) ? '' : $settings['email_recurring_failure_report'];
   // By default, after 3 failures move the next scheduled contribution date forward.
   $failure_threshhold = empty($settings['recurring_failure_threshhold']) ? 3 : (int) $settings['recurring_failure_threshhold'];
