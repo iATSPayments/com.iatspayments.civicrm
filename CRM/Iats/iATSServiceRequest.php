@@ -272,8 +272,8 @@ class CRM_Iats_iATSServiceRequest {
       case 'process':
         if (!empty($response->PROCESSRESULT)) {
           $processresult = $response->PROCESSRESULT;
-          $result['auth_result'] = trim(current($processresult->AUTHORIZATIONRESULT));
-          $result['remote_id'] = current($processresult->TRANSACTIONID);
+          $result['auth_result'] = trim(((array) $processresult->AUTHORIZATIONRESULT)[0] ?? '');
+          $result['remote_id'] = ((array) $processresult->TRANSACTIONID)[0] ?? '';
           // If we didn't get an approval response code...
           // Note: do not use SUCCESS property, which just means iATS said "hello".
           $result['status'] = (substr($result['auth_result'], 0, 2) == self::iATS_TXN_OK) ? 1 : 0;
