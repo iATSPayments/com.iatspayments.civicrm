@@ -17,8 +17,8 @@
     <author>Alan Dixon</author>
     <email>iats@blackflysolutions.ca</email>
   </maintainer>
-  <releaseDate>2023-01-09</releaseDate>
-  <version>1.7.5-rc2</version>
+  <releaseDate>2023-03-08</releaseDate>
+  <version>1.7.5</version>
   <develStage>stable</develStage>
   <compatibility>
     <ver>5.49</ver>
