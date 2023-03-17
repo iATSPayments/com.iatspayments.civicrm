@@ -216,17 +216,24 @@ function civicrm_api3_job_Iatsrecurringcontributions($params) {
     }
     // Else: no errors in the setup, continue.
     // If our template contribution is a membership payment, make this one also.
-    if ($domemberships && !empty($contribution_template['contribution_id'])) {
-      try {
-        $membership_payment = civicrm_api('MembershipPayment', 'getsingle', array('version' => 3, 'contribution_id' => $contribution_template['contribution_id']));
-        if (!empty($membership_payment['membership_id'])) {
-          // a slightly hacky was of passing this information in, membership_id
-          // isn't normally a property of a contribution.
-          $contribution['membership_id'] = $membership_payment['membership_id'];
-        }
+    if ($domemberships) {
+      //we didn't find a matching contribution template with amount, but we are allowed to update recurring rate
+      if (empty($contribution_template['contribution_id'])) {
+        //go find the latest payment regardless of amount to check for a membership
+        $contribution_template = CRM_Iats_Transaction::getContributionTemplate(['contribution_recur_id' => $contribution_recur_id, 'is_test' => $is_test]);
       }
-      catch (Exception $e) {
-        // ignore, if will fail correctly if there is no membership payment.
+      if (!empty($contribution_template['contribution_id'])) {
+        try {
+          $membership_payment = civicrm_api('MembershipPayment', 'getsingle', array('version' => 3, 'contribution_id' => $contribution_template['contribution_id']));
+          if (!empty($membership_payment['membership_id'])) {
+            // a slightly hacky was of passing this information in, membership_id
+            // isn't normally a property of a contribution.
+            $contribution['membership_id'] = $membership_payment['membership_id'];
+          }
+        }
+        catch (Exception $e) {
+          // ignore, if will fail correctly if there is no membership payment.
+        }
       }
     }
     // So far so, good ... now use my utility function process_contribution_payment to
