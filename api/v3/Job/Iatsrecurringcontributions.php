@@ -36,6 +36,10 @@ function _civicrm_api3_job_Iatsrecurringcontributions_spec(&$spec) {
     'title' => 'Ignore memberships',
     'api.required' => 0,
   );
+  $spec['stale_limit'] = array(
+    'title' => 'Limit stale schedules, in days',
+    'api.required' => 0,
+  );
 }
 
 /**
@@ -62,6 +66,9 @@ function civicrm_api3_job_Iatsrecurringcontributions($params) {
   if (empty($paymentProcessors)) {
     return;
   }
+  // stale_limit restricts processing of schedules by next_sched_contribution_date no further in the past than this number of days, defaulting to 7.
+  $stale_limit = empty($params['stale_limit']) ? 7 : (integer) $params['stale_limit'];
+  unset($params['stale_limit']);
   // use catchup mode to calculate next scheduled contribution based on current value rather than current date
   $catchup = !empty($params['catchup']);
   unset($params['catchup']);
@@ -73,8 +80,8 @@ function civicrm_api3_job_Iatsrecurringcontributions($params) {
   // do my calculations based on yyyymmddhhmmss representation of the time
   // not sure about time-zone issues.
   $dtCurrentDay    = date("Ymd", mktime(0, 0, 0, date("m"), date("d"), date("Y")));
-  $dtCurrentDayStart = $dtCurrentDay . "000000";
   $dtCurrentDayEnd   = $dtCurrentDay . "235959";
+  $stale_date = date('Y-m-d', strtotime('-'.$stale_limit.' days')). ' 00:00:00';
   $expiry_limit = date('ym');
   // TODO: before triggering payments, do some housekeeping of the civicrm_contribution_recur records?
   // Now we're ready to trigger payments
@@ -116,6 +123,20 @@ function civicrm_api3_job_Iatsrecurringcontributions($params) {
     //           also, advance the next scheduled payment before the payment attempt and pull it back if we know it fails.
     $contribution_recur_id    = $recurringContribution['id'];
     $contact_id = $recurringContribution['contact_id'];
+    // But first, check if the next scheduled contribution date is too far in the past, in which case I'll just notify an administrator and skip it.
+    if ($recurringContribution['next_sched_contribution_date'] < $stale_date) {
+      $failure_report_text .= "\n".ts(
+        'Stale recurring contribution schedule for contact id %1, recurring schedule id %2, %3',
+        array(
+          1 => $contact_id,
+          2 => $contribution_recur_id,
+          3 => $recurringContribution['next_sched_contribution_date']
+        )
+      );
+      $output[] = $failure_report_text;
+      ++$error_count;
+      continue;
+    }
     $total_amount = $recurringContribution['amount'];
     $is_test = $recurringContribution['is_test'];
     $payment_processor_id = $recurringContribution['payment_processor_id'];
