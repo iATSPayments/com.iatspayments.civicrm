@@ -224,6 +224,8 @@ function civicrm_api3_job_iatsverify($params) {
       1 => count($error_log),
     )
   );
+  $message .= '<br />' . ts('Contribution ID: ') . !empty($contribution['id'])?? $contribution['id']; 
+  $message .= '<br />' . ts('Recurring Contribution ID: ') . !empty($contribution['contribution_recur_id'])?? $contribution['contribution_recur_id']; 
   $message .= '<br />' . ts('Processed %1 approvals, %2 pending and %3 rejection records from the previous ' . IATS_VERIFY_DAYS . ' days.',
     array(
       1 => $processed[1],
