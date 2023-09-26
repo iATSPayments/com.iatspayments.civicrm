@@ -362,7 +362,7 @@ class CRM_Iats_Transaction {
           $result['message'] = $result['auth_response'] = empty($data['authResponse']) ? '' : trim($data['authResponse']);
         }
         else {
-          $result['message'] = $result['result']['errorMessages'];
+          $result['message'] = implode(',', $result['result']['errorMessages']);
         }
         /* in case of critical failure set the series to pending */
         switch ($result['auth_code']) {
