@@ -179,7 +179,7 @@ class CRM_Core_Payment_iATSServiceACHEFT extends CRM_Core_Payment_iATSService {
    * North American interbank system is consistent across US and Canada.
    */
   protected function buildForm_CAD(&$form) {
-    $form->addElement('text', 'cad_bank_number', ts('Bank N. (3 digits)'));
+    $form->addElement('text', 'cad_bank_number', ts('Bank No. (3 digits)'));
     $form->addRule('cad_bank_number', ts('%1 is a required field.', array(1 => ts('Bank No.'))), 'required');
     $form->addRule('cad_bank_number', ts('%1 must contain only digits.', array(1 => ts('Bank No.'))), 'numeric');
     $form->addRule('cad_bank_number', ts('%1 must be of length 3.', array(1 => ts('Bank No.'))), 'rangelength', array(3, 3));
