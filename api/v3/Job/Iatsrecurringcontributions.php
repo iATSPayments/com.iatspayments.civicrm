@@ -263,10 +263,14 @@ function civicrm_api3_job_Iatsrecurringcontributions($params) {
         continue;
       }
       // Else: no errors in the setup, continue.
-      // If our template contribution is a membership payment, make this one also.
-      if ($domemberships && !empty($contribution_template['contribution_id'])) {
+      // If the most recent contribution in the sequence is a membership payment, make this one also.
+      // Note that we don't use the template_contribution for this purpose, so that
+      // we can support changing membership amounts.
+      if ($domemberships) {
+        // retrieve the most recent previous contribution to check for a membership payment
+        $latest_contribution = CRM_Iats_Transaction::getContributionTemplate(['contribution_recur_id' => $contribution_recur_id, 'is_test' => $is_test]);
         try {
-          $membership_payment = civicrm_api('MembershipPayment', 'getsingle', array('version' => 3, 'contribution_id' => $contribution_template['contribution_id']));
+          $membership_payment = civicrm_api('MembershipPayment', 'getsingle', array('version' => 3, 'contribution_id' => $latest_contribution['contribution_id']));
           if (!empty($membership_payment['membership_id'])) {
             // a slightly hacky was of passing this information in, membership_id
             // isn't normally a property of a contribution.
