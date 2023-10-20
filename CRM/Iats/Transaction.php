@@ -448,7 +448,7 @@ class CRM_Iats_Transaction {
         $key = ''; // date('YmdHis');
       }
       else {
-        $display = strftime('%B %e, %Y', $start_date);
+        $display = date('%F %j, %Y', strtotime($start_date));
       }
       $start_dates[$key] = $display;
       $start_date += (24 * 60 * 60);
