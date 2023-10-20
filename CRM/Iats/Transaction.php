@@ -448,7 +448,8 @@ class CRM_Iats_Transaction {
         $key = ''; // date('YmdHis');
       }
       else {
-        $display = strftime('%B %e, %Y', $start_date);
+        // display of the future date option to the user
+        $display = CRM_Utils_Date::customFormatTs($start_date,Civi::settings()->get('dateformatFull'));
       }
       $start_dates[$key] = $display;
       $start_date += (24 * 60 * 60);
