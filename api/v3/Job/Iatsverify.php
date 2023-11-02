@@ -194,7 +194,7 @@ function civicrm_api3_job_iatsverify($params) {
             ));
             break;
         }
-        // Always log these requests in my cutom civicrm table for auditing type purposes
+        // Always log these requests in my custom civicrm table for auditing type purposes
         $query_params = array(
           1 => array($journal_entry['client_code'], 'String'),
           2 => array($contribution['contact_id'], 'Integer'),
@@ -214,6 +214,12 @@ function civicrm_api3_job_iatsverify($params) {
             (customer_code, cid, contribution_id, contribution_status_id, verify_datetime, auth_result, recur_id) VALUES (%1, %2, %3, %4, NOW(), %5, %6)", $query_params);
         }
       }
+      $message .= '<br />' . ts('Contribution ID: %1,  Recurring Contribution ID: %2 ', 
+       array (
+          1 =>  !empty($contribution['id'])?? $contribution['id'],
+          2 =>  !empty($contribution['contribution_recur_id'])?? $contribution['contribution_recur_id']
+       )
+      );
     }
   }
   catch (CiviCRM_API3_Exception $e) {
@@ -224,8 +230,6 @@ function civicrm_api3_job_iatsverify($params) {
       1 => count($error_log),
     )
   );
-  $message .= '<br />' . ts('Contribution ID: ') . !empty($contribution['id'])?? $contribution['id']; 
-  $message .= '<br />' . ts('Recurring Contribution ID: ') . !empty($contribution['contribution_recur_id'])?? $contribution['contribution_recur_id']; 
   $message .= '<br />' . ts('Processed %1 approvals, %2 pending and %3 rejection records from the previous ' . IATS_VERIFY_DAYS . ' days.',
     array(
       1 => $processed[1],
