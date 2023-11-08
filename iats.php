@@ -257,9 +257,12 @@ function iats_civicrm_buildForm_CRM_Financial_Form_Payment(&$form) {
   }
   // If future public start dates are enabled on a recurring-enabled page ...
   // Uses javascript to hide/reset unless they have recurring contributions checked.
+  // 2023-11-08 updated how the payment processor object is found temporarily
+  //   update to use getter method in the future.
   $settings = Civi::settings()->get('iats_settings');
   if (!empty($settings['enable_public_future_recurring_start'])
-    && $form->getPaymentProcessorObject()->supports('FutureRecurStartDate')
+  //  && $form->getPaymentProcessorObject()->supports('FutureRecurStartDate') 
+    && $form->_paymentProcessor['object']->supports('FutureRecurStartDate')
   ) {
     $allow_days = empty($settings['days']) ? array('-1') : $settings['days'];
     $start_dates = CRM_Iats_Transaction::get_future_monthly_start_dates(time(), $allow_days);
