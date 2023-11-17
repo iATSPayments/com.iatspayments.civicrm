@@ -12,7 +12,16 @@ class CRM_Iats_Utils {
     }
     else {
       foreach ($settings as $setting) {
-        $settingValues[$setting] = Civi::settings()->get('iats_' . $setting);
+        if ($setting === 'days') {
+          $value = Civi::settings()->get('iats_' . $setting);
+          if (!is_array($value)) {
+            $value = [$value];
+          }
+          $settingValues[$setting] = $value;
+        }
+        else {
+          $settingValues[$setting] = Civi::settings()->get('iats_' . $setting);
+        }
       }
     }
     return $settingValues;
