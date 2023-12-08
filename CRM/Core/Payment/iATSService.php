@@ -76,7 +76,7 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
     static $settings = array();
     if (empty($settings)) {
       try {
-        $settings = CRM_Iats_Utils::getSettings();
+        $settings = civicrm_api3('Setting', 'getvalue', array('name' => 'iats_settings'));
         if (empty($settings['days'])) {
           $settings['days'] = array('-1');
         }
