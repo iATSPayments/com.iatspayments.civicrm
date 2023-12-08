@@ -87,7 +87,7 @@ class CRM_Core_Payment_Faps extends CRM_Core_Payment {
     static $settings = array();
     if (empty($settings)) {
       try {
-        $settings = CRM_Utils_Iats::getSettings();
+        $settings = civicrm_api3('Setting', 'getvalue', array('name' => 'iats_settings'));
         if (empty($settings['days'])) {
           $settings['days'] = array('-1');
         }
