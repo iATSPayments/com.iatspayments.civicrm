@@ -13,8 +13,8 @@ class CRM_Iats_Utils {
       foreach ($settings as $setting) {
         $settingValue = Civi::settings()->get('iats_' . $setting);
         if ($setting === 'days') {
-          // if setting value is blank set it to be disabled.
-          if (trim($settingValue, CRM_Core_DAO::VALUE_SEPARATOR) === '') {
+          // if setting value is empty or blank set it to be the "disabled" serialized array of [-1].
+          if (empty($setting) || trim($settingValue, CRM_Core_DAO::VALUE_SEPARATOR) === '') {
             $settingValue = '-1';
           }
           $settingValue = CRM_Core_DAO::unSerializeField($settingValue, CRM_Core_DAO::SERIALIZE_SEPARATOR_BOOKEND);
