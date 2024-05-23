@@ -13,11 +13,21 @@ class CRM_Iats_Utils {
       foreach ($settings as $setting) {
         $settingValue = Civi::settings()->get('iats_' . $setting);
         if ($setting === 'days') {
-          // if setting value is empty or blank set it to be the "disabled" serialized array of [-1].
-          if (empty($settingValue) || trim($settingValue, CRM_Core_DAO::VALUE_SEPARATOR) === '') {
-            $settingValue = '-1';
+          // the days setting value is unpredictable, fix that here
+          // convert value to an array if it's a serialized string
+          if (is_string($settingValue)) {
+            // if setting value is empty or blank set it to be the "disabled" serialized array of [-1].
+            if (empty($settingValue) || trim($settingValue, CRM_Core_DAO::VALUE_SEPARATOR) === '') {
+              $settingValue = ['-1'];
+            }
+            else {
+              $settingValue = CRM_Core_DAO::unSerializeField($settingValue, CRM_Core_DAO::SERIALIZE_SEPARATOR_BOOKEND);
+            }
           }
-          $settingValue = CRM_Core_DAO::unSerializeField($settingValue, CRM_Core_DAO::SERIALIZE_SEPARATOR_BOOKEND);
+          // in case we end up with something wacky, set it to the "disabled" option
+          if (empty($settingValue) || !is_array($settingValue)) {
+            $settingValue = ['-1'];
+          }
         }
         $settingValues[$setting] = $settingValue;
       }
