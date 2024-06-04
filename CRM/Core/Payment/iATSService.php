@@ -38,6 +38,14 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
   static private $_singleton = NULL;
 
   /**
+   * @var array
+   * @todo Is the `mode` key is ever used? And it only seems to have one
+   * other key `iats_domain`, so maybe should remove mode and rename this.
+   * The parent core class doesn't seem to use `_profile`.
+   */
+  protected $_profile;
+
+  /**
    * Constructor.
    *
    * @param string $mode
