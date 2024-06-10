@@ -98,8 +98,6 @@ class CRM_Iats_iATSServiceRequest {
     }
     // TODO: check that the method is allowed!
     $this->method = $this->methodInfo($this->type, $method);
-    // Initialize the request array.
-    $this->request = array();
     $this->options = $options;
     $this->options['debug'] = _iats_civicrm_domain_info('debug_enabled');
     // Check for valid currencies with domain/method combinations.
@@ -213,7 +211,7 @@ class CRM_Iats_iATSServiceRequest {
       $soapClient = new SoapClient($this->_wsdl_url, array('trace' => 1, 'soap_version' => SOAP_1_2));
       /* build the request manually as per the iATS docs */
       $xml = '<' . $message . ' xmlns="https://www.iatspayments.com/NetGate/">';
-      $request = array_merge($this->request, $credentials, $request_params);
+      $request = array_merge($credentials, $request_params);
       // Pass CiviCRM tag + version to iATS.
       $request['comment'] = 'CiviCRM: ' . CRM_Utils_System::version() . ' + ' . 'iATS Extension: ' . $this->iats_extension_version();
       $tags = (!empty($this->_tag_order)) ? $this->_tag_order : array_keys($request);
