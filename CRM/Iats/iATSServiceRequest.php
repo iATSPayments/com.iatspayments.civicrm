@@ -35,6 +35,7 @@ class CRM_Iats_iATSServiceRequest {
   const iATS_TXN_TRACE = TRUE;
   const iATS_TXN_SUCCESS = 'Success';
   const iATS_TXN_OK = 'OK';
+  const iATS_URL_NAMESPACE = 'https://www.iatspayments.com/NetGate/';
   const iATS_URL_PROCESSLINK = '/NetGate/ProcessLinkv2.asmx?WSDL';
   const iATS_URL_REPORTLINK = '/NetGate/ReportLinkv2.asmx?WSDL';
   const iATS_URL_CUSTOMERLINK = '/NetGate/CustomerLinkv2.asmx?WSDL';
@@ -210,7 +211,7 @@ class CRM_Iats_iATSServiceRequest {
       /* until iATS fixes it's box verify, we need to have trace on to make the hack below work */
       $soapClient = new SoapClient($this->_wsdl_url, array('trace' => 1, 'soap_version' => SOAP_1_2));
       /* build the request manually as per the iATS docs */
-      $xml = '<' . $message . ' xmlns="https://www.iatspayments.com/NetGate/">';
+      $xml = '<' . $message . ' xmlns="' . self::iATS_URL_NAMESPACE . '">';
       $request = array_merge($credentials, $request_params);
       // Pass CiviCRM tag + version to iATS.
       $request['comment'] = 'CiviCRM: ' . CRM_Utils_System::version() . ' + ' . 'iATS Extension: ' . $this->iats_extension_version();
