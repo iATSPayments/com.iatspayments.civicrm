@@ -43,6 +43,36 @@ class CRM_Iats_iATSServiceRequest {
   const iATS_USE_DPMPROCESS = FALSE;
 
   /**
+   * @var string
+   */
+  private $type;
+
+  /**
+   * @var string
+   */
+  private $_wsdl_url;
+
+  /**
+   * @var array
+   */
+  private $_tag_order;
+
+  /**
+   * @var array
+   */
+  private $method;
+
+  /**
+   * @var array
+   */
+  private $options;
+
+  /**
+   * @var string
+   */
+  private $invoiceNum;
+
+  /**
    *
    */
   public function __construct($options) {
