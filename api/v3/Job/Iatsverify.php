@@ -183,16 +183,18 @@ function civicrm_api3_job_iatsverify($params) {
             // Restore source field and trxn_id that completetransaction overwrites
             civicrm_api3('contribution', 'create', array(
               'id' => $contribution['id'],
-              'source' => ($contribution['contribution_source'] ?? $contribution['source']),
+              'source' => ($contribution['contribution_source'] ?? $contribution['source'] ?? ''),
               'trxn_id' => $trxn_id,
             ));
             break;
+
           case 4: // failed, just update the contribution status.
             civicrm_api3('Contribution', 'create', array(
               'id' => $contribution['id'],
               'contribution_status_id' => $contribution_status_id,
             ));
             break;
+
         }
         // Always log these requests in my cutom civicrm table for auditing type purposes
         $query_params = array(
