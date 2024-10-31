@@ -427,31 +427,11 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
 
     foreach ($convert as $r => $p) {
       if (isset($params[$p])) {
+        $params[$p] = str_replace(str_split(".',`;&"), '', $params[$p]);
         $request[$r] = htmlspecialchars($params[$p]);
       }
     }
-    // The "&" character is badly handled by the processor,
-    // so we sanitize it to "and"
-    // but before we do that we first we need to html_entity_decode as CiviCRM
-    // is changing ' to &#039; now (obversed in names O&#039;Reilly; in a City: St. John's and in Street Address)
-    $request['firstName'] = html_entity_decode($request['firstName']);
-    $request['lastName'] = html_entity_decode($request['lastName']);
-    $request['city'] = html_entity_decode($request['city']);
-    $request['address'] = html_entity_decode($request['address']);
-
-    // replacing & with and
-    // replacing ' and . with nothing
-    $request['firstName'] = str_replace('&', 'and', $request['firstName']);
-    $request['lastName'] = str_replace('&', 'and', $request['lastName']);
-    $request['firstName'] = str_replace("'", "", $request['firstName']);
-    $request['lastName'] = str_replace("'", "", $request['lastName']);
-    $request['city'] = str_replace("'", "", $request['city']);
-    $request['address'] = str_replace("'", "", $request['address']);
-    $request['firstName'] = str_replace(".", "", $request['firstName']);
-    $request['lastName'] = str_replace(".", "", $request['lastName']);
-    $request['city'] = str_replace(".", "", $request['city']);
-    $request['address'] = str_replace(".", "", $request['address']);
-
+    
     $request['creditCardExpiry'] = sprintf('%02d/%02d', intval($params['month']), (intval($params['year']) % 100));
     $request['total'] = sprintf('%01.2f', CRM_Utils_Rule::cleanMoney($params['amount']));
     // Place for ugly hacks.
