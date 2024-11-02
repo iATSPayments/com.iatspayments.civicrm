@@ -427,8 +427,7 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
 
     foreach ($convert as $r => $p) {
       if (isset($params[$p])) {
-        $params[$p] = str_replace(str_split(".',`;&"), '', $params[$p]);
-        $request[$r] = htmlspecialchars($params[$p]);
+        $request[$r] = str_replace(str_split(";"), '', $params[$p]);
       }
     }
     
