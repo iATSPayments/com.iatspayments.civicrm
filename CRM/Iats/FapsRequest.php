@@ -130,4 +130,14 @@ class CRM_Iats_FapsRequest {
       return $e->getMessage();
     }
   }
+
+  public static function credentials($payment_processor_id) {
+    static $credentials = [];
+    if (empty($credentials[$payment_processor_id])) {
+      $credentials[$payment_processor_id] = civicrm_api3('PaymentProcessor', 'get', [
+        'id' => $payment_processor_id,
+      ])['values'][$payment_processor_id];
+    }
+    return $credentials[$payment_processor_id];
+  }
 }
