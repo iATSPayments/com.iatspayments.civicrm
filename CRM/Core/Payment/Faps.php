@@ -36,6 +36,11 @@ class CRM_Core_Payment_Faps extends CRM_Core_Payment {
   protected $disable_cryptogram = FALSE;
 
   /**
+   * @var int
+   */
+  protected $is_test;
+
+  /**
    * Constructor
    *
    * @param string $mode the mode of operation: live or test
