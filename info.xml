@@ -18,7 +18,7 @@
     <email>iats@blackflysolutions.ca</email>
   </maintainer>
   <releaseDate>2025-01-21</releaseDate>
-  <version>1.10.0</version>
+  <version>1.10.2</version>
   <develStage>stable</develStage>
   <compatibility>
     <ver>5.70</ver>
