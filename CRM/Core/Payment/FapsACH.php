@@ -310,7 +310,7 @@ class CRM_Core_Payment_FapsACH extends CRM_Core_Payment_Faps {
    * @return array
    */
   protected function convertParams($params, $method) {
-    $request = []
+    $request = [];
     $convert = [
       'ownerEmail' => 'email',
       'ownerStreet' => 'street_address',
