@@ -134,8 +134,10 @@ function civicrm_api3_job_Iatsrecurringcontributions($params) {
   $email_failure_report = empty($settings['email_recurring_failure_report']) ? '' : $settings['email_recurring_failure_report'];
   $email_failure_contribution_receipt = empty($settings['email_failure_contribution_receipt']) ? FALSE : TRUE;
   list($emailFromName, $emailFromEmail) = CRM_Core_BAO_Domain::getNameAndEmail();
+
   // By default, after 3 failures move the next scheduled contribution date forward.
   $failure_threshhold = empty($settings['recurring_failure_threshhold']) ? 3 : (int) $settings['recurring_failure_threshhold'];
+  $revert_onfailure = isset($settings['recurring_revert_onfailure']) ? $settings['recurring_revert_onfailure'] : FALSE;
   $failure_report_text = '';
   if ($failsafeFlag) {
     $error_count = $staleRecurringContributions['count'];
@@ -290,7 +292,14 @@ function civicrm_api3_job_Iatsrecurringcontributions($params) {
       // The next collection date is based on receive_ts, "recieve timestamp" (note effect of catchup mode, above)
       $next_collection_date = date('Y-m-d H:i:s', strtotime('+'.$recurringContribution['frequency_interval'].' '.$recurringContribution['frequency_unit'], $receive_ts));
       // Note: keep track of the currently defined "next_sched_contribution_date" as "current_sched_contribution_date" in case of confirmed transient card failures.
-      $contribution_recur_update = array('id' => $contribution['contribution_recur_id'], 'next_sched_contribution_date' => $next_collection_date, 'failure_count' => $recurringContribution['failure_count'], 'failure_threshold' => $failure_threshhold, 'current_sched_contribution_date' => $recurringContribution['next_sched_contribution_date']);
+      $contribution_recur_update = [
+        'id' => $contribution['contribution_recur_id'],
+        'next_sched_contribution_date' => $next_collection_date,
+        'failure_count' => $recurringContribution['failure_count'],
+        'failure_threshold' => $failure_threshhold,
+        'revert_onfailure' => $revert_onfailure,
+        'current_sched_contribution_date' => $recurringContribution['next_sched_contribution_date'],
+      ];
       // process the payment and update the contribution and recurring contribution records:
       $result = CRM_Iats_Transaction::process_contribution_payment($contribution, $paymentProcessor, $payment_token, $contribution_recur_update);
       // in case of failure:

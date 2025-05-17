@@ -4,7 +4,22 @@ class CRM_Iats_Utils {
 
   public static function getSettings(): array {
     $settingValues = [];
-    $settings = ['email_recurring_failure_report', 'bcc_email_recurring_failure_report', 'receipt_recurring', 'recurring_failure_threshhold', 'email_failure_contribution_receipt', 'disable_cryptogram', 'ach_category_text', 'no_edit_extra', 'enable_update_subscription_billing_info', 'enable_change_subscription_amount', 'enable_cancel_recurring', 'enable_cancel_recurring', 'days'];
+    $settings = [
+      'email_recurring_failure_report',
+      'bcc_email_recurring_failure_report',
+      'receipt_recurring',
+      'recurring_failure_threshhold',
+      'recurring_revert_onfailure',
+      'email_failure_contribution_receipt',
+      'disable_cryptogram',
+      'ach_category_text',
+      'no_edit_extra',
+      'enable_update_subscription_billing_info',
+      'enable_change_subscription_amount',
+      'enable_cancel_recurring',
+      'enable_cancel_recurring',
+      'days'
+    ];
     $hasNotbeenMigrated = CRM_Core_DAO::singleValueQuery("SELECT id FROM civicrm_setting WHERE name = 'iats_settings'");
     if ($hasNotbeenMigrated) {
       return Civi::settings()->get('iats_settings');
