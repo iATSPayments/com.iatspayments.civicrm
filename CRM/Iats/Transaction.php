@@ -66,7 +66,7 @@ class CRM_Iats_Transaction {
     }
     return $from_time;
   }
-  
+
   /**
    * Function contribution_payment
    *
@@ -78,7 +78,7 @@ class CRM_Iats_Transaction {
    *
    *   A high-level utility function for making a contribution payment from an existing recurring schedule
    *   Used in the Iatsrecurringcontributions.php job and the one-time ('card on file') form.
-   *   
+   *
    */
   static function process_contribution_payment(&$contribution, $paymentProcessor, $payment_token, $contributionRecurUpdate = []) {
     // By default, don't use repeattransaction
@@ -118,8 +118,28 @@ class CRM_Iats_Transaction {
         $contributionRecurUpdate['failure_count'] = $contributionRecurUpdate['failure_count'] + 1;
         /* if it has failed and the failure threshold will not be reached with this failure, set the next sched contribution date to what it was */
         if ($contributionRecurUpdate['failure_count'] < $contributionRecurUpdate['failure_threshold']) {
-          // Override/set the next_sched_contribution_date to it's current value so we can try again.
-          $contributionRecurUpdate['next_sched_contribution_date'] = $contributionRecurUpdate['current_sched_contribution_date'];
+          // Do we want to revert to regular contribution?
+          if ($contributionRecurUpdate['revert_onfailure']) {
+            $contributionRecurUpdate['contribution_status_id'] = 'Cancelled';
+            $contributionRecurUpdate['cancel_date'] = 'now';
+            $contributionRecurUpdate['cancel_reason'] = 'Too many failed transactions (threshold reached)';
+            unset($contributionRecurUpdate['next_sched_contribution_date']);
+
+            // We update the Contribution
+            try {
+              $results = \Civi\Api4\Contribution::update(TRUE)
+                ->addValue('contribution_recur_id', '')
+                ->addWhere('id', '=', $contribution['original_contribution_id'])
+                ->execute();
+            }
+            catch (Exception $e) {
+              Civi::log()->warning('iATS: Failed to decouple recur id for ID '.var_export($contribution['original_contribution_id'],true));
+            }
+          }
+          else {
+            // Override/set the next_sched_contribution_date to it's current value so we can try again.
+            $contributionRecurUpdate['next_sched_contribution_date'] = $contributionRecurUpdate['current_sched_contribution_date'];
+          }
         }
         // otherwise, we'll keep the next collection date as passed in from the caller
       }
@@ -131,6 +151,7 @@ class CRM_Iats_Transaction {
       unset($contributionRecurUpdate['failure_threshold']);
       unset($contributionRecurUpdate['current_sched_contribution_date']);
       try {
+        // Api3 "create" is basically create/update
         civicrm_api3('ContributionRecur', 'create', $contributionRecurUpdate);
       }
       catch (Exception $e) {
@@ -260,8 +281,18 @@ class CRM_Iats_Transaction {
       }
     }
     // Now return the appropriate message and code.
-    if (!$success) { // calling function will restore next schedule contribution date
-      $message = ts('Failed to process recurring contribution id %1: %2', array(1 => $contribution['contribution_recur_id'], 2 => $payment_result['message']));
+    if (!$success) {
+      if ($contributionRecurUpdate['revert_onfailure']) {
+        $message = ts('%1 failures have occurred so your recurring transaction has been cancelled for contribution id %2: %3', [
+          1 => $contributionRecurUpdate['failure_count'],
+          2 => $contribution['contribution_recur_id'],
+          3 => $payment_result['message']
+        ]);
+      }
+      else {
+        // calling function will restore next schedule contribution date
+        $message = ts('Failed to process recurring contribution id %1: %2', array(1 => $contribution['contribution_recur_id'], 2 => $payment_result['message']));
+      }
     }
     elseif ($payment_result['payment_status_id'] == 1) {
       $message = ts('Successfully processed recurring contribution in series id %1: %2', array(1 => $contribution['contribution_recur_id'], 2 => $auth_response));
