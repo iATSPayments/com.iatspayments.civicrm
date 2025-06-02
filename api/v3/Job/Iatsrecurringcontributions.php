@@ -312,7 +312,7 @@ function civicrm_api3_job_Iatsrecurringcontributions($params) {
         }
       }
       $output[] = $result['message'];
-      $payment_status_label = CRM_Core_PseudoConstant::getLabel('CRM_Contribute_BAO_Contribution', 'contribution_status_id', $result['payment_status_id']);
+      $payment_status_label = CRM_Core_PseudoConstant::getLabel('CRM_Contribute_BAO_Contribution', 'contribution_status_id', $result['result']['payment_status_id']);
       $result = civicrm_api('activity', 'create',
         array(
           'version'       => 3,
@@ -320,7 +320,7 @@ function civicrm_api3_job_Iatsrecurringcontributions($params) {
           'source_contact_id'   => $contact_id,
           'source_record_id' => $contribution['id'],
           'assignee_contact_id' => $contact_id,
-          'subject'       => ts('Attempted iATS Payments (%1) Recurring Contribution for %2, result %3', array(1 => $paymentClass, 2 => $total_amount, 3 => $payment_status_label)),
+          'subject'       => ts('Attempted iATS Payments (%1) Recurring Contribution for %2, %3', array(1 => $paymentClass, 2 => $total_amount, 3 => $payment_status_label)),
           'status_id'       => 2,
           'activity_date_time'  => date("YmdHis"),
         )
