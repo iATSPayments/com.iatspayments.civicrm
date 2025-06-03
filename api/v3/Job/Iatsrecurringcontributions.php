@@ -320,7 +320,7 @@ function civicrm_api3_job_Iatsrecurringcontributions($params) {
           'source_contact_id'   => $contact_id,
           'source_record_id' => $contribution['id'],
           'assignee_contact_id' => $contact_id,
-          'subject'       => ts('Attempted iATS Payments (%1) Recurring Contribution for %2, %3', array(1 => $paymentClass, 2 => $total_amount, 3 => $payment_status_label)),
+          'subject'       => ts('Attempted iATS Payments (%1) Recurring Contribution for %2 -- %3', array(1 => $paymentClass, 2 => $total_amount, 3 => $payment_status_label)),
           'status_id'       => 2,
           'activity_date_time'  => date("YmdHis"),
         )
