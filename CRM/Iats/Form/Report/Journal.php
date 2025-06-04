@@ -12,8 +12,12 @@ require_once('CRM/Report/Form.php');
  */
 class CRM_Iats_Form_Report_Journal extends CRM_Report_Form {
 
-  // protected $_customGroupExtends = array('Contact');
-
+  // Allow custom fieldsets for contacts and contributions
+  protected $_customGroupExtends = [
+    'Contact',
+    'Individual',
+    'Contribution',
+  ];
   /* static private $processors = array();
   static private $version = array();
   static private $financial_types = array();
@@ -94,7 +98,76 @@ class CRM_Iats_Form_Report_Journal extends CRM_Report_Form {
                  'type' => CRM_Utils_Type::T_INT,
                ),
              ),
-        ),
+	),
+      'civicrm_contribution' => [
+        'dao' => 'CRM_Contribute_DAO_Contribution',
+        'fields' => [
+          'contribution_id' => [
+            'name' => 'id',
+            'no_display' => TRUE,
+            'required' => TRUE,
+          ],
+          'list_contri_id' => [
+            'name' => 'id',
+            'title' => ts('Contribution ID'),
+          ],
+          'financial_type_id' => [
+            'title' => ts('Financial Type'),
+            'default' => TRUE,
+          ],
+          'contribution_status_id' => [
+            'title' => ts('Contribution Status'),
+          ],
+          'contribution_page_id' => [
+            'title' => ts('Contribution Page'),
+          ],
+          'source' => [
+            'title' => ts('Source'),
+          ],
+          'payment_instrument_id' => [
+            'title' => ts('Payment Type'),
+          ],
+          'check_number' => [
+            'title' => ts('Check Number'),
+          ],
+          'currency' => [
+            'required' => TRUE,
+            'no_display' => TRUE,
+          ],
+          'trxn_id' => NULL,
+          'receive_date' => ['default' => TRUE],
+          'receipt_date' => NULL,
+	  'thankyou_date' => NULL,
+	            'total_amount' => [
+            'title' => ts('Amount'),
+            'required' => TRUE,
+          ],
+          'non_deductible_amount' => [
+            'title' => ts('Non-deductible Amount'),
+          ],
+          'fee_amount' => NULL,
+          'net_amount' => NULL,
+          'contribution_or_soft' => [
+            'title' => ts('Contribution OR Soft Credit?'),
+            'dbAlias' => "'Contribution'",
+          ],
+          'soft_credits' => [
+            'title' => ts('Soft Credits'),
+            'dbAlias' => "NULL",
+          ],
+          'soft_credit_for' => [
+            'title' => ts('Soft Credit For'),
+            'dbAlias' => "NULL",
+          ],
+          'cancel_date' => [
+            'title' => ts('Cancelled / Refunded Date'),
+            'name' => 'contribution_cancel_date',
+          ],
+          'cancel_reason' => [
+            'title' => ts('Cancellation / Refund Reason'),
+          ],
+        ],
+      ],
     );
     parent::__construct();
   }
@@ -111,6 +184,9 @@ class CRM_Iats_Form_Report_Journal extends CRM_Report_Form {
    */
   public function from() {
     $this->_from = "FROM civicrm_iats_journal  {$this->_aliases['civicrm_iats_journal']}";
+    if ($this->isTableSelected('civicrm_contribution')) {
+      $this->_from .= " LEFT JOIN civicrm_contribution {$this->_aliases['civicrm_contribution']}
+           ON {$this->_aliases['civicrm_contribution']}.invoice_id = {$this->_aliases['civicrm_iats_journal']}.inv \n";
+    }
   }
-
 }
