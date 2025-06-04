@@ -312,7 +312,7 @@ function civicrm_api3_job_Iatsrecurringcontributions($params) {
         }
       }
       $output[] = $result['message'];
-      $payment_status_label = CRM_Core_PseudoConstant::getLabel('CRM_Contribute_BAO_Contribution', 'contribution_status_id', $result['result']['payment_status_id']);
+      $payment_status_label = isset($result['result']['payment_status_id']) ? CRM_Core_PseudoConstant::getLabel('CRM_Contribute_BAO_Contribution', 'contribution_status_id', $result['result']['payment_status_id']) : 'Unexpected error';
       $result = civicrm_api('activity', 'create',
         array(
           'version'       => 3,
