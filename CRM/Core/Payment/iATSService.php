@@ -363,6 +363,14 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
    *
    */
   public function &error($error = NULL) {
+    if (CRM_Iats_Utils::isFirewallEnabled()) {
+      if (is_string($error) && (str_contains('tumbling', $error) || str_contains('stolen', $error))) {
+        \Civi\Firewall\Event\FraudEvent::trigger(\Civi\Firewall\Firewall::getIPAddress(), 'Iats Service error');
+      }
+      else {
+        \Civi\Firewall\Event\DeclinedCardEvent::trigger(\Civi\Firewall\Firewall::getIPAddress(), 'Iats Service error');
+      }
+    }
     if (is_object($error)) {
       throw new PaymentProcessorException(ts('Error %1', [1 => $error->getMessage()]));
     }

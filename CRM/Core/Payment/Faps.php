@@ -550,6 +550,9 @@ class CRM_Core_Payment_Faps extends CRM_Core_Payment {
    *
    */
   public function &error($error = NULL) {
+    if (CRM_Iats_Utils::isFirewallEnabled()) {
+      \Civi\Firewall\Event\DeclinedCardEvent::trigger(\Civi\Firewall\Firewall::getIPAddress(), 'Iats Faps error');
+    }
     $error_code = 'process_1stpay';
     if (is_object($error)) {
       throw new PaymentProcessorException(ts('Error %1', [1 => $error->getMessage()]), $error_code);
