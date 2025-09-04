@@ -17,13 +17,13 @@
     <author>Alan Dixon</author>
     <email>iats@blackflysolutions.ca</email>
   </maintainer>
-  <releaseDate>2025-05-08</releaseDate>
-  <version>1.10.3</version>
+  <releaseDate>2025-09-04</releaseDate>
+  <version>1.11.0</version>
   <develStage>stable</develStage>
   <compatibility>
     <ver>5.81</ver>
   </compatibility>
-  <comments>A recommended maintenance + bugfixes release, see release notes for 1.10.0 above for details.</comments>
+  <comments>A recommended maintenance + bugfixes release, see release notes for 1.11.0 above for details.</comments>
   <civix>
     <namespace>CRM/Iats</namespace>
     <format>25.01.1</format>
