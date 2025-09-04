@@ -26,7 +26,7 @@
   <comments>A recommended maintenance + bugfixes release, see release notes for 1.10.0 above for details.</comments>
   <civix>
     <namespace>CRM/Iats</namespace>
-    <format>24.09.1</format>
+    <format>25.01.1</format>
   </civix>
   <mixins>
     <mixin>menu-xml@1.0.0</mixin>
