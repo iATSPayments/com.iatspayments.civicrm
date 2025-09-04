@@ -143,7 +143,6 @@ function civicrm_api3_job_Iatsrecurringcontributions($params) {
     $output[] = $failure_report_text;
   }
   else {
-    CRM_Core_Error::debug_var('recurring Contributions', $recurringContributions['values']);
     foreach($recurringContributions['values'] as $recurringContribution) {
       // Strategy: create the contribution record with status = 2 (= pending), try the payment, and update the status to 1 if successful
       //           also, advance the next scheduled payment before the payment attempt and pull it back if we know it fails.
@@ -373,11 +372,10 @@ function civicrm_api3_job_Iatsrecurringcontributions($params) {
       'from' => $emailFromName . ' <' . $emailFromEmail . '> ',
       'toName' => empty($emailFromName) ? ts('System Administrator') : $emailFromName,
       'toEmail' => $email_failure_report,
-      'bcc' =>  !empty($bcc_email_failure_report) ?  $bcc_email_failure_report : '',
+      'bcc' =>  !empty($settings['bcc_email_recurring_failure_report']) ? $settings['bcc_email_recurring_failure_report'] : '',
       'subject' => ts('iATS Recurring Payment job failure report: ' . date('c')),
       'text' => $failure_report_text,
     );
-    // print_r($mailparams);
     CRM_Utils_Mail::send($mailparams);
   }
 
