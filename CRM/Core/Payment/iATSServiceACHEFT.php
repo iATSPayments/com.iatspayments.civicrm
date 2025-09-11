@@ -369,8 +369,8 @@ class CRM_Core_Payment_iATSServiceACHEFT extends CRM_Core_Payment_iATSService {
    *
    */
   public function changeSubscriptionAmount(&$message = '', $params = array()) {
-    $userAlert = ts('You have updated the amount of this recurring contribution.');
-    CRM_Core_Session::setStatus($userAlert, ts('Warning'), 'alert');
+    // $userAlert = ts('You have updated the amount of this recurring contribution.');
+    // CRM_Core_Session::setStatus($userAlert, ts('Warning'), 'alert');
     return TRUE;
   }
 
