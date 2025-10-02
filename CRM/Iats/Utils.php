@@ -55,4 +55,14 @@ class CRM_Iats_Utils {
     return $days;
   }
 
+  public static function isFirewallEnabled(): bool {
+    $extensionCheck = \Civi\Api4\Extension::get(FALSE)
+      ->addWhere('key', '=', 'firewall')
+      ->execute();
+    if (count($extensionCheck) == 0 || $extensionCheck[0]['status'] !== 'installed') {
+      return FALSE;
+    }
+    return TRUE;
+  }
+
 }
