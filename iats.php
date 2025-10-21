@@ -227,6 +227,14 @@ function iats_civicrm_buildForm($formName, &$form) {
     $fname($form);
   }
   // Else echo $fname;.
+
+  if ($formName == 'CRM_Contribute_Form_Contribution' && !($form->_action & CRM_Core_Action::DELETE)) {
+    CRM_Core_Resources::singleton()->addScript(
+      "CRM.$(function($) {
+        $('.crm-link-credit-card-mode a').text('Online Payment Contribution');
+      });
+    ");
+  }
 }
 
 /**
@@ -261,7 +269,7 @@ function iats_civicrm_buildForm_CRM_Financial_Form_Payment(&$form) {
   //   update to use getter method in the future.
   $settings = CRM_Iats_Utils::getSettings();
   if (!empty($settings['enable_public_future_recurring_start'])
-  //  && $form->getPaymentProcessorObject()->supports('FutureRecurStartDate') 
+  //  && $form->getPaymentProcessorObject()->supports('FutureRecurStartDate')
     && $form->_paymentProcessor['object']->supports('FutureRecurStartDate')
   ) {
     $allow_days = empty($settings['days']) ? array('-1') : $settings['days'];
@@ -537,12 +545,13 @@ function iats_getCurrency($form) {
   $form_class = get_class($form);
   $currency = '';
   switch($form_class) {
-    case 'CRM_Contribute_Form_Contribution':
     case 'CRM_Contribute_Form_Contribution_Main':
     case 'CRM_Member_Form_Membership':
       $currency = $form->_values['currency'];
       break;
+
     case 'CRM_Financial_Form_Payment':
+    case 'CRM_Contribute_Form_Contribution':
       // This is the new ajax-loaded payment form.
       $currency = $form->getCurrency();
       break;
@@ -551,6 +560,7 @@ function iats_getCurrency($form) {
       $currency = $form->_values['event']['currency'];
       break;
   }
+
   if (empty($currency)) {
     // This may occur in edge cases, so don't break, though the form won't be rendered correctly.
     // See comment on civicrm core commit f61437d
