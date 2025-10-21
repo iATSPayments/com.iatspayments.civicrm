@@ -22,6 +22,7 @@
  */
 
 use Civi\Payment\Exception\PaymentProcessorException;
+use Civi\Payment\PropertyBag;
 
 /**
  *
@@ -318,7 +319,7 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
   }
 
   /**
-   * support corresponding CiviCRM method
+   * Support corresponding CiviCRM method
    */
   public function changeSubscriptionAmount(&$message = '', $params = array()) {
     // $userAlert = ts('You have modified this recurring contribution.');
@@ -327,12 +328,23 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
   }
 
   /**
-   * support corresponding CiviCRM method
+   * Support corresponding CiviCRM method
+   * ToDo: deprecated -> remove when ESR has a security update which will bring everyone >5.27
    */
   public function cancelSubscription(&$message = '', $params = array()) {
     $userAlert = ts('You have cancelled this recurring contribution.');
     CRM_Core_Session::setStatus($userAlert, ts('Warning'), 'alert');
     return TRUE;
+  }
+
+  /**
+   * Support corresponding CiviCRM method
+   * preferred function for Cancelling a Recurring Contribution as of 5.25
+   *
+   * @return array|null[]
+   */
+  public function doCancelRecurring(PropertyBag $propertyBag) {
+    return ['message' => ts('You have cancelled this recurring contribution.')];
   }
 
   /**
