@@ -799,7 +799,7 @@ UNION ALL
 
       // soft credits
       if (array_key_exists('civicrm_contribution_soft_credits', $row) &&
-        'Contribution' == $rows[$rowNum]['civicrm_contribution_contribution_or_soft'] ?? NULL &&
+        'Contribution' == ($rows[$rowNum]['civicrm_contribution_contribution_or_soft'] ?? NULL) &&
         array_key_exists('civicrm_contribution_contribution_id', $row)
       ) {
         $query = "
@@ -820,7 +820,7 @@ WHERE  civicrm_contribution_contribution_id={$row['civicrm_contribution_contribu
       }
 
       if (array_key_exists('civicrm_contribution_soft_credit_for', $row) &&
-        'Soft Credit' == $rows[$rowNum]['civicrm_contribution_contribution_or_soft'] ?? NULL &&
+        'Soft Credit' == ($rows[$rowNum]['civicrm_contribution_contribution_or_soft'] ?? NULL) &&
         array_key_exists('civicrm_contribution_contribution_id', $row)
       ) {
         $query = "
