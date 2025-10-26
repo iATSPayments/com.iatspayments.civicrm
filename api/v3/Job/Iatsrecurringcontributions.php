@@ -72,10 +72,10 @@ function civicrm_api3_job_Iatsrecurringcontributions($params) {
     return civicrm_api3_create_success(E::ts('Failed to find any iATS processors. No contribution records were processed.'));
   }
   // stale_limit restricts processing of schedules by next_sched_contribution_date no further in the past than this number of days, defaulting to 7.
-  $stale_limit = empty($params['stale_limit']) ? 7 : (integer) $params['stale_limit'];
+  $stale_limit = empty($params['stale_limit']) ? 7 : (int) $params['stale_limit'];
   unset($params['stale_limit']);
   // failsafe_limit restricts all processing of schedules if the number of stale schedules exceeds this number. Defaults to 0 = ignore.
-  $failsafe_limit = empty($params['failsafe_limit']) ? 0 : (integer) $params['failsafe_limit'];
+  $failsafe_limit = empty($params['failsafe_limit']) ? 0 : (int) $params['failsafe_limit'];
   unset($params['failsafe_limit']);
   // use catchup mode to calculate next scheduled contribution based on current value rather than current date
   $catchup = !empty($params['catchup']);
