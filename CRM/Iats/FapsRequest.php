@@ -85,10 +85,10 @@ class CRM_Iats_FapsRequest {
       }
       $url = $this->apiRequest;
       $this->result = array();
-      $jsondata = json_encode(new Faps_Transaction($data), JSON_PRETTY_PRINT);
-      $jsondata = array_map(function($item) {
+      $data = array_map(function($item) {
         return mb_convert_encoding($item, 'UTF-8', mb_detect_encoding($item));
-      }, $jsondata);
+      }, $data);
+      $jsondata = json_encode(new Faps_Transaction($data), JSON_PRETTY_PRINT);
       // CRM_Core_Error::debug_var('jsondata', $jsondata);
       $curl_handle = curl_init();
       curl_setopt($curl_handle, CURLOPT_URL, $url);
