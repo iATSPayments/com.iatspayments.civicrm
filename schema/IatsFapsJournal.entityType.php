@@ -1,8 +1,6 @@
 <?php
 use CRM_Iats_ExtensionUtil as E;
 
-use function PHPSTORM_META\map;
-
 return [
   'name' => 'IatsFapsJournal',
   'table' => 'civicrm_iats_faps_journal',
