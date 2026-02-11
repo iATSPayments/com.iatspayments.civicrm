@@ -19,15 +19,21 @@
  *   category: 'Transactions', 'Ach', or 'Vault'
  *   test: set to anything non-empty for testing
  * $result = $faps->request($credentials, $request_params)
- * 
+ *
  **/
 
 /**
- * Define a utility class required by FapsRequest 
+ * Define a utility class required by FapsRequest
  * Should likely be in a namespace.
  */
 
 class Faps_Transaction implements JsonSerializable {
+
+  /**
+   * Transaction Data
+   */
+  public $array;
+
   /**
   * Transaction class: Ties into the PHP JSON Functions & makes them easily available to the CRM_Iats_FapsRequest class.
   * Using the class like so: $a = json_encode(new Faps_Transaction($txnarray), JSON_PRETTY_PRINT)
@@ -51,6 +57,8 @@ class CRM_Iats_FapsRequest {
   public $status = "";
   private $liveUrl = "https://secure.1stpaygateway.net/secure/RestGW/Gateway/Transaction/";
   private $testUrl = "https://secure-v.goemerchant.com/secure/RestGW/Gateway/Transaction/";
+  private $action = '';
+  private $apiRequest = '';
 
   /**
    *
@@ -73,12 +81,14 @@ class CRM_Iats_FapsRequest {
     $data = array_merge($credentials, $request_params);
     try {
       if ($data == NULL) {
-        $data = array(); 
+        $data = array();
       }
       $url = $this->apiRequest;
       $this->result = array();
       $jsondata = json_encode(new Faps_Transaction($data), JSON_PRETTY_PRINT);
-      $jsondata = utf8_encode($jsondata);
+      $jsondata = array_map(function($item) {
+        return mb_convert_encoding($item, 'UTF-8', mb_detect_encoding($item));
+      }, $jsondata);
       // CRM_Core_Error::debug_var('jsondata', $jsondata);
       $curl_handle = curl_init();
       curl_setopt($curl_handle, CURLOPT_URL, $url);
@@ -90,9 +100,9 @@ class CRM_Iats_FapsRequest {
         "Content-Length: " . strlen($jsondata)
       ));
       curl_setopt($curl_handle, CURLOPT_SSL_VERIFYPEER, FALSE);
-      $this->response = curl_exec($curl_handle);
+      $response = curl_exec($curl_handle);
       if (self::DEBUG) {
-        CRM_Core_Error::debug_var('JSON Response', $this->response);
+        CRM_Core_Error::debug_var('JSON Response', $response);
       }
       $this->status = curl_getinfo($curl_handle,CURLINFO_HTTP_CODE);
       if (connection_aborted()) {
@@ -116,12 +126,12 @@ class CRM_Iats_FapsRequest {
         );
       }
       else {
-        // CRM_Core_Error::debug_var('Response', $this->response);
-        $this->result = json_decode($this->response, TRUE);
+        // CRM_Core_Error::debug_var('Response', $response);
+        $this->result = json_decode($response, TRUE);
         if (empty($this->result['isSuccess'])  && $log_failure) {
           CRM_Core_Error::debug_var('FAPS transaction failure result', $this->result);
           // $this->result['errorMessages'] = $this->result['data']['authResponse'];
-        } 
+        }
       }
       return $this->result;
     }
@@ -130,4 +140,5 @@ class CRM_Iats_FapsRequest {
       return $e->getMessage();
     }
   }
+
 }
