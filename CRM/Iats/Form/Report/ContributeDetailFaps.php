@@ -2,12 +2,7 @@
 /*
  * A simple modified copy of the core Contribution Detail report with iATS
  * verification detail added
- */
-opcache_reset();
-/**
  *
- * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2019
  */
 class CRM_Iats_Form_Report_ContributeDetailFaps extends CRM_Report_Form {
 
