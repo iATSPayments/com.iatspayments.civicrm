@@ -178,6 +178,17 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
    */
   public function doPayment(&$params, $component = 'contribute') {
 
+    // CRM_Core_Error::debug_var('params', $params);
+    $missing_invoice_id = empty($params['invoiceID']);
+    if ($missing_invoice_id) {
+      $result = civicrm_api3('Contribution', 'get', ['sequential' => 1, 'return' => ['invoice_id'], 'id' => $params['contributionID']]);
+      // CRM_Core_Error::debug_var('result', $result);
+      if (count($result['values'])) {
+        $params['invoiceID'] = $result['values'][0]['invoice_id'];
+      }
+    }
+    // CRM_Core_Error::debug_var('params', $params);
+
     if (empty($params['amount'])) {
       return _iats_payment_status_complete();
     }
@@ -210,6 +221,8 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
         // Success.
         $params['payment_status_id'] = 1;
         $params['trxn_id'] = trim($result['remote_id']) . ':' . time();
+        $params['payment_status'] = 'Completed';
+	// CRM_Core_Error::debug_var('params', $params);
         return $params;
       }
       else {
