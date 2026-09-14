@@ -55,4 +55,28 @@ class CRM_Iats_Utils {
     return $days;
   }
 
+  public function paymentStatus($status_name) {
+    return [
+      'payment_status_id' => CRM_Core_PseudoConstant::getKey('CRM_Contribute_BAO_Contribution', 'contribution_status_id', $status_name),
+      'payment_status' => $status_name,
+    ];
+  }
+
+  /*
+   * Make sure my contribution has it's invoice id
+   */
+  public function checkInvoiceId(&$params) {
+    $missing_invoice_id = empty($params['invoiceID']);
+    if ($missing_invoice_id) {
+      $contribution = \Civi\Api4\Contribution::get(FALSE)
+        ->addSelect('invoice_id')
+        ->addWhere('id', '=', $params['contributionID'])
+        ->setLimit(1)
+        ->execute()->first();
+      // CRM_Core_Error::debug_var('result', $result);
+      if (!empty($contribution['invoice_id']))
+        $params['invoiceID'] = $contribution['invoice_id'];
+      }
+    }
+  }
 }

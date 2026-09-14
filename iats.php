@@ -735,9 +735,3 @@ function iats_civicrm_buildForm_CRM_Contribute_Form_UpdateBilling(&$form) {
   }
 }
 
-function _iats_payment_status_complete() {
-  return [
-    'payment_status_id' => CRM_Core_PseudoConstant::getKey('CRM_Contribute_BAO_Contribution', 'contribution_status_id', 'Completed'),
-    'payment_status' => 'Completed',
-  ];
-}
