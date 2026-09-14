@@ -178,20 +178,10 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
    */
   public function doPayment(&$params, $component = 'contribute') {
 
-    // CRM_Core_Error::debug_var('params', $params);
-    $missing_invoice_id = empty($params['invoiceID']);
-    if ($missing_invoice_id) {
-      $result = civicrm_api3('Contribution', 'get', ['sequential' => 1, 'return' => ['invoice_id'], 'id' => $params['contributionID']]);
-      // CRM_Core_Error::debug_var('result', $result);
-      if (count($result['values'])) {
-        $params['invoiceID'] = $result['values'][0]['invoice_id'];
-      }
-    }
-    // CRM_Core_Error::debug_var('params', $params);
-
     if (empty($params['amount'])) {
-      return _iats_payment_status_complete();
+      return CRM_Iats_Utils::paymentStatus('Completed');
     }
+    CRM_Iats_Utils::checkInvoiceId($params);
     if (!$this->_profile) {
       return self::error('Unexpected error, missing profile');
     }
@@ -219,9 +209,8 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
       $result = $iats->result($response);
       if ($result['status']) {
         // Success.
-        $params['payment_status_id'] = 1;
+        $params += CRM_Iats_Utils::paymentStatus('Completed');
         $params['trxn_id'] = trim($result['remote_id']) . ':' . time();
-        $params['payment_status'] = 'Completed';
 	// CRM_Core_Error::debug_var('params', $params);
         return $params;
       }
@@ -285,10 +274,8 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
         if ($receive_date !== $today) {
           // I've got a schedule to adhere to!
           // set the receieve time to 3:00 am for a better admin experience
-          $update = array(
-            'payment_status_id' => 2,
-            'receive_date' => date('Ymd', $receive_ts) . '030000',
-          );
+          $update = CRM_Iats_Utils::paymentStatus('Pending')
+            + ['receive_date' => date('Ymd', $receive_ts) . '030000'];
           // update the recurring and contribution records with the receive date,
           // i.e. make up for what core doesn't do
           $this->updateRecurring($params, $update);
@@ -309,10 +296,8 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
           if ($result['status']) {
             // Add a time string to iATS short authentication string to ensure
             // uniqueness and provide helpful referencing.
-            $update = array(
-              'trxn_id' => trim($result['remote_id']) . ':' . time(),
-              'payment_status_id' => 1,
-            );
+            $update = CRM_Iats_Utils::paymentStatus('Completed')
+              + ['trxn_id' => trim($result['remote_id']) . ':' . time()];
             // do some cleanups to the recurring record in updateRecurring
             $this->updateRecurring($params, $update);
             $params = array_merge($params, $update);
@@ -587,6 +572,7 @@ class CRM_Core_Payment_iATSService extends CRM_Core_Payment {
       $recur_update = array(
         'id' => $recur_id,
         'contribution_status_id' => 'In Progress',
+        'contribution_status' => 'In Progress',
       );
       // use the receive date to set the next sched contribution date.
       // By default, it's empty, unless we've got a future start date.
