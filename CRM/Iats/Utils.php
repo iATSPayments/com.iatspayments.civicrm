@@ -74,7 +74,7 @@ class CRM_Iats_Utils {
         ->setLimit(1)
         ->execute()->first();
       // CRM_Core_Error::debug_var('result', $result);
-      if (!empty($contribution['invoice_id']))
+      if (!empty($contribution['invoice_id'])) {
         $params['invoiceID'] = $contribution['invoice_id'];
       }
     }
