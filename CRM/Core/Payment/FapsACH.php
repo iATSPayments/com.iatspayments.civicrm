@@ -126,9 +126,8 @@ class CRM_Core_Payment_FapsACH extends CRM_Core_Payment_Faps {
   public function doPayment(&$params, $component = 'contribute') {
     // CRM_Core_Error::debug_var('doPayment params', $params);
     if (empty($params['amount'])) {
-      return _iats_payment_status_complete();
+      return CRM_Iats_Utils::paymentStatus('Completed');
     }
-
     $isRecur = $params['is_recur'] ?? NULL;
     if ($isRecur && empty($params['contributionRecurID'])) {
       return self::error('Invalid call to doPayment with is_recur and no contributionRecurID');
@@ -144,6 +143,7 @@ class CRM_Core_Payment_FapsACH extends CRM_Core_Payment_Faps {
     // Store it in params, will be used by my convert request call(s) later
     $params['ach_category_text'] = self::getCategoryText($credentials, $this->is_test, $ipAddress);
 
+    CRM_Iats_Utils::checkInvoiceId($params);
     $vault_key = $vault_id = '';
     if ($isRecur) {
       // Store the params in a vault before attempting payment
@@ -216,7 +216,7 @@ class CRM_Core_Payment_FapsACH extends CRM_Core_Payment_Faps {
     // CRM_Core_Error::debug_var('result', $result);
     $success = (!empty($result['isSuccess']));
     if ($success) {
-      $params['payment_status_id'] = 2;
+      $params += CRM_Iats_Utils::paymentStatus('Pending');
       $params['trxn_id'] = trim($result['data']['referenceNumber']).':'.time();
       // Core assumes that a pending result will have no transaction id, but we have a useful one.
       if (!empty($params['contributionID'])) {

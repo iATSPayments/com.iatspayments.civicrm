@@ -274,9 +274,9 @@ class CRM_Core_Payment_Faps extends CRM_Core_Payment {
   public function doPayment(&$params, $component = 'contribute') {
     // CRM_Core_Error::debug_var('doPayment params', $params);
     if (empty($params['amount'])) {
-      return _iats_payment_status_complete();
+      return CRM_Iats_Utils::paymentStatus('Completed');
     }
-
+    CRM_Iats_Utils::checkInvoiceId($params);
     $isRecur = $params['is_recur'] ?? NULL;
     if ($isRecur && empty($params['contributionRecurID'])) {
       return self::error('Invalid call to doPayment with is_recur and no contributionRecurID');
@@ -368,10 +368,8 @@ class CRM_Core_Payment_Faps extends CRM_Core_Payment {
           // create a pending contribution and adjust the next scheduled date.
           if ($receive_date !== $today) {
             // set the receieve time to 3:00 am for a better admin experience
-            $update = array(
-              'payment_status_id' => 2,
-              'receive_date' => date('Ymd', $receive_ts) . '030000',
-            );
+            $update = CRM_Iats_Utils::paymentStatus('Pending')
+              + ['receive_date' => date('Ymd', $receive_ts) . '030000'];
             // update the recurring and contribution records with the receive date,
             // i.e. make up for what core doesn't do
             $this->updateRecurring($params, $update);
@@ -414,10 +412,7 @@ class CRM_Core_Payment_Faps extends CRM_Core_Payment {
     // CRM_Core_Error::debug_var('result', $result);
     $success = (!empty($result['isSuccess']));
     if ($success) {
-      // put the old version of the return param in just to be sure
-      $params['contribution_status_id'] = 1;
-      // For versions >= 4.6.6, the proper key.
-      $params['payment_status_id'] = 1;
+      $params += CRM_Iats_Utils::paymentStatus('Completed');
       $params['trxn_id'] = trim($result['data']['referenceNumber']).':'.time();
       return $params;
     }
@@ -480,10 +475,10 @@ class CRM_Core_Payment_Faps extends CRM_Core_Payment {
         $result = civicrm_api3('Country', 'get', [
           'sequential' => 1,
           'return' => ['name'],
-	  'id' => $params['country_id'],
+          'id' => $params['country_id'],
           'options' => ['limit' => 1],
         ]);
-	$params['country'] = $result['values'][0]['name'];
+        $params['country'] = $result['values'][0]['name'];
       }
       catch (CRM_Core_Exception $e) {
         Civi::log()->info('Unexpected error from api3 looking up countries/states/provinces');
@@ -494,10 +489,10 @@ class CRM_Core_Payment_Faps extends CRM_Core_Payment {
         $result = civicrm_api3('StateProvince', 'get', [
           'sequential' => 1,
           'return' => ['name'],
-	  'id' => $params['state_province_id'],
+          'id' => $params['state_province_id'],
           'options' => ['limit' => 1],
         ]);
-	$params['state_province'] = $result['values'][0]['name'];
+        $params['state_province'] = $result['values'][0]['name'];
       }
       catch (CRM_Core_Exception $e) {
         Civi::log()->info('Unexpected error from api3 looking up countries/states/provinces');
@@ -597,10 +592,11 @@ class CRM_Core_Payment_Faps extends CRM_Core_Payment {
     // because we want the recurring job to run for this schedule.
     if (!empty($params['contributionRecurID'])) {
       $recur_id = $params['contributionRecurID'];
-      $recur_update = array(
+      $recur_update = [
         'id' => $recur_id,
         'contribution_status_id' => 'In Progress',
-      );
+        'contribution_status' => 'In Progress',
+      ];
       // use the receive date to set the next sched contribution date.
       // By default, it's empty, unless we've got a future start date.
       if (empty($update['receive_date'])) {

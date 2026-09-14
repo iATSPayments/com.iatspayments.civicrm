@@ -293,18 +293,15 @@ class CRM_Iats_Transaction {
    */
   static function process_payment($contribution, $paymentProcessor, $payment_token) {
     // set default result status
-    $result = [
-      'payment_status_id' => 1,
-      'auth_code' => '',
-    ];
-    $request = [
-    ];
+    $result = ['auth_code' => ''];
+    $request = [];
+    $paymentStatus = 'Completed';
     switch ($paymentProcessor['class_name']) {
       case 'Payment_FapsACH':
         $paymentProcessorGroup = 'Faps';
         $action = 'AchDebitUsingVault';
         // Will complete later
-        $result['payment_status_id'] = 2;
+        $paymentStatus = 'Pending';
         // store it in request 
         $credentials = array(
           'merchantKey' => $paymentProcessor['signature'],
@@ -324,7 +321,7 @@ class CRM_Iats_Transaction {
         $paymentProcessorGroup = 'iATS';
         $method = 'acheft_with_customer_code';
         // Will complete later.
-        $result['payment_status_id'] = 2;
+        $paymentStatus = 'Pending';
         break;
       case 'Payment_iATSService':
       case 'Payment_iATSServiceSWIPE':
@@ -335,6 +332,7 @@ class CRM_Iats_Transaction {
         CRM_Core_Error::debug_var('Unsupported processor class:', $paymentProcessor['class_name']);
         throw new Exception(ts('Unsupported processor class %1', array(1 => $paymentProcessor['class_name'])));
     }
+    $result += CRM_Iats_Utils::paymentStatus($paymentStatus);
 
     // Two different "group" flows, either Faps or iATS Legacy
     switch ($paymentProcessorGroup) {
@@ -377,6 +375,7 @@ class CRM_Iats_Transaction {
                 'version' => 3,
                 'id'      => $contribution['contribution_recur_id'],
                 'contribution_status_id'   => 'Pending',
+                'contribution_status'   => 'Pending',
               )
             );
             break;

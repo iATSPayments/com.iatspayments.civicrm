@@ -210,8 +210,9 @@ class CRM_Core_Payment_iATSServiceACHEFT extends CRM_Core_Payment_iATSService {
   public function doPayment(&$params, $component = 'contribute') {
 
     if (empty($params['amount'])) {
-      return _iats_payment_status_complete();
+      return CRM_Iats_Utils::paymentStatus('Completed');
     }
+    CRM_Iats_Utils::checkInvoiceId($params);
     if (!$this->_profile) {
       return self::error('Unexpected error, missing profile');
     }
@@ -236,7 +237,7 @@ class CRM_Core_Payment_iATSServiceACHEFT extends CRM_Core_Payment_iATSService {
       // Process the soap response into a readable result, logging any transaction.
       $result = $iats->result($response);
       if ($result['status']) {
-        $params['payment_status_id'] = 2;
+        $params += CRM_Iats_Utils::paymentStatus('Pending');
         $params['trxn_id'] = trim($result['remote_id']) . ':' . time();
         // Core assumes that a pending result will have no transaction id, but we have a useful one.
         if (!empty($params['contributionID'])) {
@@ -312,10 +313,8 @@ class CRM_Core_Payment_iATSServiceACHEFT extends CRM_Core_Payment_iATSService {
         if ($receive_date !== $today) {
           // I've got a schedule to adhere to!
           // set the receieve time to 3:00 am for a better admin experience
-          $update = array(
-            'payment_status_id' => 2,
-            'receive_date' => date('Ymd', $receive_ts) . '030000',
-          );
+          $update = CRM_Iats_Utils::paymentStatus('Pending')
+            + ['receive_date' => date('Ymd', $receive_ts) . '030000'];
           // update the recurring and contribution records with the receive date,
           // i.e. make up for what core doesn't do
           $this->updateRecurring($params, $update);
@@ -334,10 +333,8 @@ class CRM_Core_Payment_iATSServiceACHEFT extends CRM_Core_Payment_iATSService {
           $result = $iats->result($response);
           if ($result['status']) {
             // Add a time string to iATS short authentication string to ensure uniqueness and provide helpful referencing.
-            $update = array(
-              'trxn_id' => trim($result['remote_id']) . ':' . time(),
-              'payment_status_id' => 2,
-            );
+            $update = CRM_Iats_Utils::paymentStatus('Pending')
+              + ['trxn_id' => trim($result['remote_id']) . ':' . time()];
             // Setting the next_sched_contribution_date param doesn't do anything,
             // work around in updateRecurring
             $this->updateRecurring($params, $update);
