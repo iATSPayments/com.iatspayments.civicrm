@@ -55,7 +55,7 @@ class CRM_Iats_Utils {
     return $days;
   }
 
-  public function paymentStatus($status_name) {
+  public static function paymentStatus($status_name) {
     return [
       'payment_status_id' => CRM_Core_PseudoConstant::getKey('CRM_Contribute_BAO_Contribution', 'contribution_status_id', $status_name),
       'payment_status' => $status_name,
