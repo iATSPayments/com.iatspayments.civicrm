@@ -65,7 +65,7 @@ class CRM_Iats_Utils {
   /*
    * Make sure my contribution has it's invoice id
    */
-  public function checkInvoiceId(&$params) {
+  public static function checkInvoiceId(&$params) {
     $missing_invoice_id = empty($params['invoiceID']);
     if ($missing_invoice_id) {
       $contribution = \Civi\Api4\Contribution::get(FALSE)
