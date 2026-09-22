@@ -48,7 +48,7 @@ class CRM_Iats_Utils {
   }
 
   public static function settingDateOptions(): array {
-    $days = array('-1' => 'disabled');
+    $days = ['-1' => 'disabled'];
     for ($i = 1; $i <= 28; $i++) {
       $days["$i"] = "$i";
     }
