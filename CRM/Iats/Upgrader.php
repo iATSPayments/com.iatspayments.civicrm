@@ -114,8 +114,8 @@ class CRM_Iats_Upgrader extends CRM_Extension_Upgrader_Base {
     }
     try {
       $this->ctx->log->info('Setting payment instrument label');
-      $acheft_option_value_id = civicrm_api3('OptionValue', 'getvalue', array('return' => 'id', 'value' => 2, 'option_group_id' => 'payment_instrument'));
-      civicrm_api3('OptionValue', 'create', array('label' => 'ACHEFT', 'id' => $acheft_option_value_id));
+      $acheft_option_value_id = civicrm_api3('OptionValue', 'getvalue', ['return' => 'id', 'value' => 2, 'option_group_id' => 'payment_instrument']);
+      civicrm_api3('OptionValue', 'create', ['label' => 'ACHEFT', 'id' => $acheft_option_value_id]);
     }
     catch (Exception $e) {
       $this->ctx->log->info($e->getMessage());
