@@ -5,6 +5,8 @@ CiviCRM Extension for iATS Web Services Payment Processor
 
 This README.md contains information specific to system administrators/developers. Information for users/implementors can be found in the Documentation Wiki: https://github.com/iATSPayments/com.iatspayments.civicrm/wiki/Documentation
 
+Note that this extension is in maintenance only, no new features are being added.
+
 Requirements
 ------------
 
