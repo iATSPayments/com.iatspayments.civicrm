@@ -1,7 +1,9 @@
 com.iatspayments.civicrm
 ===============
 
-CiviCRM Extension for iATS Web Services Payment Processor
+CiviCRM Extension for iATS Web Services Payment Processor.
+
+iATS is now owned by Deluxe.
 
 This README.md contains information specific to system administrators/developers. Information for users/implementors can be found in the Documentation Wiki: https://github.com/iATSPayments/com.iatspayments.civicrm/wiki/Documentation
 
@@ -10,7 +12,7 @@ Note that this extension is in maintenance only, no new features are being added
 Requirements
 ------------
 
-1. CiviCRM 5.x. Tested on the latest ESR and officially supported recent releases.
+1. CiviCRM versions: tested on the latest ESR and officially supported recent releases.
 
 2. When using the 'legacy' processor, your PHP needs to include the SOAP extension (php.net/manual/en/soap.setup.php).
 
@@ -25,8 +27,6 @@ Installation
 ------------
 
 This extension follows the standard installation method - if you've got a supported CiviCRM version and you've set up your extensions directory, it'll appear in the Manage Extensions list as 'iATS Payments (com.iatspayments.civicrm)'. Hit Install.
-
-As of CiviCRM 5.x, the iATS extension is distributed with the CiviCRM download. This is generally the right version to install. See https://github.com/iATSPayments/com.iatspayments.civicrm/issues/242 for notes on converting from a previous manual install.
 
 If you need help with installing extensions, try: https://docs.civicrm.org/sysadmin/en/latest/customize/extensions/
 
