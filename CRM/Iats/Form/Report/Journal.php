@@ -1,7 +1,5 @@
 <?php
 
-require_once('CRM/Report/Form.php');
-
 /**
  * @file
  */

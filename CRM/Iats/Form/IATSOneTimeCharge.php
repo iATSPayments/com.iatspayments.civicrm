@@ -3,8 +3,6 @@
 /**
  * @file
  */
-
-require_once 'CRM/Core/Form.php';
 use CRM_Iats_ExtensionUtil as E;
 /**
  * Form controller class.
