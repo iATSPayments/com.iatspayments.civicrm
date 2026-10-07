@@ -4,8 +4,6 @@
  * @file This administrative page provides simple access to recent transactions
  * and an opportunity for the system to warn administrators about failing
  * crons .*/
-
-require_once 'CRM/Core/Page.php';
 /**
  *
  */

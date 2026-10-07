@@ -3,8 +3,6 @@
 /**
  * @file
  */
-
-require_once 'CRM/Core/Page.php';
 /**
  *
  */
