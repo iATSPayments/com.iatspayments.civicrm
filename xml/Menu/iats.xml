@@ -10,6 +10,7 @@
     <path>civicrm/iatsjson</path>
     <page_callback>CRM_Iats_Page_json</page_callback>
     <access_arguments>make online contributions</access_arguments>
+    <is_ajax>true</is_ajax>
   </item>
   <item>
     <path>civicrm/admin/setting/iats</path>
